@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Editor } from "./useEditor";
 import type { Element } from "./model";
 import { LayerTree } from "./LayerTree";
@@ -8,6 +8,68 @@ import {
   ColorField,
 } from "../components/ui/Controls";
 import { FontField } from "../components/ui/FontField";
+import { slugify } from "./identifiers";
+import { matchLibraryAsset } from "./assets";
+
+function IdentifierField({
+  element,
+  editor,
+}: {
+  element: Element;
+  editor: Editor;
+}) {
+  const value = element.identifier || slugify(element.n),
+    [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value, element.id]);
+  const match = element.t === "img" ? matchLibraryAsset(value) : undefined;
+  function commit() {
+    const next = slugify(draft);
+    setDraft(next || value);
+    if (next && next !== value) void editor.setIdentifier(next, [element.id]);
+  }
+  return (
+    <div className="identifier-field">
+      <div className="property">
+        <span>Identifier</span>
+        <input
+          aria-label="Identifier"
+          value={draft}
+          spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
+          onChange={(ev) => setDraft(ev.target.value)}
+          onBlur={commit}
+          onKeyDown={(ev) => {
+            if (ev.key === "Enter") {
+              ev.preventDefault();
+              ev.currentTarget.blur();
+            }
+          }}
+        />
+      </div>
+      {element.t === "img" && (
+        <>
+          <p className="hint">
+            Searchable name, color, then facing. Example:
+            laptop-computer-blue-front.
+          </p>
+          <p className="hint" role="status">
+            {match
+              ? `Matching asset: ${match.name}`
+              : "No matching library asset. You can still choose an image from Assets or upload one."}
+          </p>
+          {match && (
+            <button
+              onClick={() => void editor.setIdentifier(value, [element.id])}
+            >
+              Use matching asset
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 const labels: Record<string, string> = {
   n: "Name",
   x: "X",
@@ -183,6 +245,7 @@ export function Inspector({ editor: e }: { editor: Editor }) {
                 ).map(field)}
               </div>
               <h3>Appearance</h3>
+              <IdentifierField key={o.id} element={o} editor={e} />
               {main[o.t].map(field)}
               {o.t === "text" && (
                 <>

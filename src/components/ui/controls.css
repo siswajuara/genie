@@ -280,9 +280,11 @@ button:has(> .ui-icon) {
   padding-left: 0;
   resize: none;
   box-shadow: none;
-  overflow: hidden;
+  box-sizing: border-box;
+  overflow: visible;
   white-space: pre;
   overflow-wrap: normal;
+  word-break: normal;
   transform-origin: center center;
   cursor: text;
 }

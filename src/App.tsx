@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Canvas } from "./editor/Canvas";
 import { Inspector } from "./editor/Inspector";
 import { useEditor } from "./editor/useEditor";
@@ -26,6 +26,8 @@ import {
   type Module,
 } from "./marketing/MarketingWorkspace";
 import type { Editor } from "./editor/useEditor";
+import { AssetBrowser } from "./editor/AssetBrowser";
+import { loadAsset, type LibraryAsset } from "./editor/assets";
 
 const elementIcons: Record<string, IconName> = {
   Text: "text",
@@ -156,10 +158,134 @@ function WorkspacePage({
     }
   }
   const [editorTab, setEditorTab] = useState("Elements");
+  const [pendingAsset, setPendingAsset] = useState<LibraryAsset>();
+  const latestEditor = useRef(e),
+    assetRequest = useRef(0),
+    mounted = useRef(true);
+  latestEditor.current = e;
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      assetRequest.current++;
+    };
+  }, []);
+  const cancelAsset = useCallback(() => {
+    assetRequest.current++;
+    setPendingAsset(undefined);
+  }, []);
+  const placeAsset = useCallback(
+    async (
+      asset: LibraryAsset,
+      at?: { x: number; y: number },
+      viewport?: { w: number; h: number },
+      slotId?: string,
+    ) => {
+      const request = ++assetRequest.current;
+      try {
+        const src = await loadAsset(asset);
+        if (!mounted.current || request !== assetRequest.current) return;
+        const live = latestEditor.current;
+        if (slotId) {
+          const slot = live.scene.byId.get(slotId);
+          if (
+            !slot ||
+            slot.t !== "img" ||
+            live.scene.isLocked(slot) ||
+            live.scene.isHidden(slot)
+          ) {
+            live.notify(
+              "Choose an unlocked, visible image slot to replace its image.",
+            );
+            return;
+          }
+          live.patch(
+            {
+              src,
+              identifier: asset.identifier,
+              label: asset.name,
+              fit: slot.fit || "contain",
+            },
+            [slotId],
+          );
+        } else {
+          if (!at) return;
+          const frame = live.scene.frames.findLast(
+            (f) =>
+              !live.scene.isLocked(f) &&
+              !live.scene.isHidden(f) &&
+              at.x >= f.x &&
+              at.x <= f.x + f.w &&
+              at.y >= f.y &&
+              at.y <= f.y + f.h,
+          );
+          const extent = Math.min(
+            320,
+            (viewport?.w ?? 800) * 0.45,
+            (viewport?.h ?? 600) * 0.45,
+            frame ? frame.w * 0.4 : Infinity,
+            frame ? frame.h * 0.4 : Infinity,
+          );
+          const scale = Math.min(
+            1,
+            Math.max(1, extent) / Math.max(asset.width, asset.height),
+          );
+          live.add(
+            {
+              id: uid(),
+              t: "img",
+              n: asset.name,
+              identifier: asset.identifier,
+              label: asset.name,
+              src,
+              x: 0,
+              y: 0,
+              w: asset.width * scale,
+              h: asset.height * scale,
+              fit: "contain",
+              op: 1,
+            },
+            at,
+          );
+        }
+        setPendingAsset(undefined);
+      } catch (err) {
+        if (mounted.current && request === assetRequest.current)
+          latestEditor.current.notify(
+            `Asset could not be placed: ${String(err)}`,
+          );
+      }
+    },
+    [],
+  );
+  const chooseAsset = useCallback(
+    (asset: LibraryAsset) => {
+      const live = latestEditor.current,
+        slot =
+          live.selected.length === 1 && live.active?.t === "img"
+            ? live.active
+            : undefined;
+      if (slot) {
+        if (live.scene.isLocked(slot) || live.scene.isHidden(slot)) {
+          live.notify(
+            "Unlock and show this image slot before choosing an asset.",
+          );
+          return;
+        }
+        void placeAsset(asset, undefined, undefined, slot.id);
+      } else {
+        assetRequest.current++;
+        setPendingAsset(asset);
+        void loadAsset(asset).catch(() => {
+          /* Placement reports an actionable loading error if retried. */
+        });
+      }
+    },
+    [placeAsset],
+  );
   const [zen, setZen] = useState(false),
     [exporting, setExporting] = useState(false),
     [json, setJson] = useState(""),
-    [name, setName] = useState(""),
     [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<"project" | "page">();
   const [saved, setSaved] = useState<Preset[]>(() => {
@@ -242,19 +368,6 @@ function WorkspacePage({
       } catch (err) {
         e.notify(String(err));
       }
-    }
-  }
-  function savePreset(kind: "object" | "template") {
-    try {
-      const preset = e.preset(
-        kind,
-        name.trim() ||
-          `${kind === "template" ? "Design" : "Preset"} ${saved.length + 1}`,
-      );
-      savePresets([...saved.filter((s) => s.name !== preset.name), preset]);
-      e.notify(`Saved “${preset.name}”.`);
-    } catch (err) {
-      e.notify(String(err));
     }
   }
   async function exportPNG() {
@@ -455,7 +568,7 @@ function WorkspacePage({
                     role="tablist"
                     aria-label="Editor library"
                   >
-                    {["Elements", "Templates"].map((t) => (
+                    {["Elements", "Templates", "Assets"].map((t) => (
                       <button
                         key={t}
                         role="tab"
@@ -519,12 +632,18 @@ function WorkspacePage({
                         ))}
                       </div>
                     </>
+                  ) : editorTab === "Assets" ? (
+                    <AssetBrowser
+                      onChoose={chooseAsset}
+                      pendingId={pendingAsset?.id}
+                      slotName={
+                        e.selected.length === 1 && e.active?.t === "img"
+                          ? e.active.n
+                          : undefined
+                      }
+                    />
                   ) : (
                     <>
-                      <div className="section-title">
-                        <h2>Templates & presets</h2>
-                        <span>{all.length}</span>
-                      </div>
                       <input
                         className="full"
                         placeholder="Search templates"
@@ -590,22 +709,6 @@ function WorkspacePage({
                               </div>
                             </article>
                           ))}
-                      </div>
-                      <h3>Save a preset</h3>
-                      <input
-                        className="full"
-                        aria-label="Preset name"
-                        placeholder="Preset name"
-                        value={name}
-                        onChange={(ev) => setName(ev.target.value)}
-                      />
-                      <div className="row section-actions">
-                        <button onClick={() => savePreset("object")}>
-                          Save selection
-                        </button>
-                        <button onClick={() => savePreset("template")}>
-                          Save frame
-                        </button>
                       </div>
                     </>
                   )}
@@ -700,7 +803,13 @@ function WorkspacePage({
             </div>
           </aside>
         )}
-        <Canvas editor={e} onImage={loadImages} />
+        <Canvas
+          editor={e}
+          onImage={loadImages}
+          pendingAsset={pendingAsset}
+          onAssetPlace={placeAsset}
+          onAssetCancel={cancelAsset}
+        />
         {!zen && <Inspector editor={e} />}
       </main>
       <footer className="studio-footer">

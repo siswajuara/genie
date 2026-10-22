@@ -12,6 +12,7 @@ import {
 import { ensureFont } from "../lib/fonts";
 import { Icon } from "../components/ui/Icon";
 import { InlineText } from "./InlineText";
+import { assetMime, findAsset, type LibraryAsset } from "./assets";
 
 type Point = { x: number; y: number };
 type View = Point & { z: number };
@@ -37,9 +38,20 @@ function rotate(p: Point, o: Element, direction = 1) {
 export function Canvas({
   editor: e,
   onImage,
+  pendingAsset,
+  onAssetPlace,
+  onAssetCancel,
 }: {
   editor: Editor;
   onImage: (files: File[], at?: Point) => void | Promise<void>;
+  pendingAsset?: LibraryAsset;
+  onAssetPlace: (
+    asset: LibraryAsset,
+    at: Point,
+    viewport: { w: number; h: number },
+    slotId?: string,
+  ) => Promise<void>;
+  onAssetCancel: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
@@ -61,6 +73,12 @@ export function Canvas({
   const moveFrame = useRef<number | undefined>(undefined);
   const space = useRef(false);
   const pointer = useRef<Point | undefined>(undefined);
+  useEffect(() => {
+    if (pendingAsset) {
+      setEditing(undefined);
+      canvas.current?.focus();
+    }
+  }, [pendingAsset]);
   useEffect(() => {
     pointer.current = undefined;
   }, [view]);
@@ -96,6 +114,17 @@ export function Canvas({
     at: Point,
   ): Promise<boolean> {
     try {
+      const asset = findAsset(data.getData(assetMime));
+      if (asset) {
+        const target = hit(at);
+        await onAssetPlace(
+          asset,
+          at,
+          { w: size.w / view.z, h: size.h / view.z },
+          target?.t === "img" ? target.id : undefined,
+        );
+        return true;
+      }
       const kind = data.getData("genie/element");
       if (kind) {
         e.add(makeElement(kind), at);
@@ -536,6 +565,11 @@ export function Canvas({
         return;
       }
       if (k === "escape") {
+        if (pendingAsset) {
+          ev.preventDefault();
+          onAssetCancel();
+          return;
+        }
         if (drag.current) {
           cancelDrag();
           return;
@@ -650,6 +684,20 @@ export function Canvas({
   }
   function down(ev: React.PointerEvent<HTMLCanvasElement>) {
     if (ev.button === 2) return;
+    if (pendingAsset && ev.button === 0 && !space.current) {
+      ev.preventDefault();
+      setMenu(undefined);
+      canvas.current?.focus();
+      const at = pos(ev),
+        target = hit(at);
+      void onAssetPlace(
+        pendingAsset,
+        at,
+        { w: size.w / view.z, h: size.h / view.z },
+        target?.t === "img" ? target.id : undefined,
+      );
+      return;
+    }
     setMenu(undefined);
     const p = pos(ev);
     let mode = "box",
@@ -1003,7 +1051,7 @@ export function Canvas({
         </div>
       </div>
       <div
-        className="canvas-stage"
+        className={`canvas-stage ${pendingAsset ? "is-placing-asset" : ""}`}
         ref={host}
         onDragOver={(ev) => ev.preventDefault()}
         onDrop={(ev) => {
@@ -1013,6 +1061,18 @@ export function Canvas({
           void placeTransfer(ev.dataTransfer, pointer.current);
         }}
       >
+        {pendingAsset && (
+          <div className="asset-placement-banner" role="status">
+            <img src={pendingAsset.thumbnail} alt="" />
+            <span>
+              Click the canvas to place this asset.
+              <small>Drag with Space to pan. Escape cancels.</small>
+            </span>
+            <button aria-label="Cancel asset placement" onClick={onAssetCancel}>
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+        )}
         <div className="canvas-zoom" role="toolbar" aria-label="Zoom tools">
           <button
             aria-label="Zoom out"

@@ -12,6 +12,9 @@ import {
   type Preset,
 } from "./model";
 import { buildScene, dropLayer, orderLayers } from "./scene";
+import { slugify } from "./identifiers";
+import { loadAsset, matchLibraryAsset } from "./assets";
+import { resolvePresetAssets, unresolvedAssetSlots } from "./resolveAssets";
 
 export function useEditor(
   initial?: CanvasDocument,
@@ -39,6 +42,15 @@ export function useEditor(
   const current = useRef(doc);
   current.current = doc;
   const onChange = useRef(onDocumentChange);
+  const mounted = useRef(true),
+    presetRequest = useRef(0);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      presetRequest.current++;
+    };
+  }, []);
   onChange.current = onDocumentChange;
   const change = useCallback((next: CanvasDocument, commit = true) => {
     const value = stamp(next);
@@ -58,6 +70,34 @@ export function useEditor(
       cursor.current = history.current.length - 1;
     }
   }, []);
+  useEffect(() => {
+    let live = true;
+    const slots = unresolvedAssetSlots(current.current.elements);
+    if (slots.length)
+      void resolvePresetAssets({
+        name: "Initial canvas assets",
+        kind: "object",
+        objects: slots,
+      }).then((resolved) => {
+        if (!live || !mounted.current) return;
+        const replacements = new Map(
+          resolved.objects.filter((o) => o.src).map((o) => [o.id, o]),
+        );
+        if (!replacements.size) return;
+        const document = current.current;
+        const elements = document.elements.map((o) => {
+          const match = replacements.get(o.id);
+          return match && !o.src && o.identifier === match.identifier
+            ? { ...o, src: match.src, fit: o.fit || "contain" }
+            : o;
+        });
+        if (elements.some((o, i) => o !== document.elements[i]))
+          change({ ...document, elements });
+      });
+    return () => {
+      live = false;
+    };
+  }, [change]);
   const commit = () => change(current.current);
   useEffect(() => {
     if (onChange.current) {
@@ -278,13 +318,74 @@ export function useEditor(
     change({ ...doc, elements: [...doc.elements, ...objects] });
     select([idMap.get(frame.id)!]);
   }
-  function template(p: Preset, replace = false) {
+  async function template(p: Preset, replace = false) {
+    const request = ++presetRequest.current,
+      targetId = frame?.id;
     try {
-      const next = applyPreset(doc, p, frame?.id, replace);
+      notify("Loading preset assets…");
+      const resolved = await resolvePresetAssets(p);
+      if (!mounted.current || (replace && request !== presetRequest.current))
+        return;
+      const live = current.current;
+      if (
+        targetId &&
+        !live.elements.some((o) => o.id === targetId) &&
+        replace
+      ) {
+        notify("That frame was removed before the preset finished loading.");
+        return;
+      }
+      const next = applyPreset(live, resolved, targetId, replace);
       change(next);
-      select([replace && frame ? frame.id : frames(next).at(-1)!.id]);
+      select([
+        (replace || p.kind === "object") && targetId
+          ? targetId
+          : frames(next).at(-1)!.id,
+      ]);
+      const images = resolved.objects.filter((o) => o.t === "img"),
+        filled = images.filter((o) => o.src).length;
+      notify(
+        `${p.name} loaded. ${filled} image slots filled${images.length > filled ? `; ${images.length - filled} remain available for your own images` : ""}.`,
+      );
     } catch (e) {
       notify(String(e));
+    }
+  }
+  async function setIdentifier(value: string, ids = selection) {
+    const identifier = slugify(value);
+    if (!identifier) {
+      notify("Use letters or numbers in the identifier.");
+      return;
+    }
+    patch({ identifier }, ids);
+    const asset = matchLibraryAsset(identifier);
+    const initialScene = buildScene(current.current.elements);
+    const targets = current.current.elements.filter(
+      (o) => ids.includes(o.id) && o.t === "img" && !initialScene.isLocked(o),
+    );
+    if (!targets.length) return;
+    if (!asset) {
+      notify(
+        "No matching library asset. The current image is kept; you can choose one from Assets.",
+      );
+      return;
+    }
+    try {
+      const src = await loadAsset(asset);
+      if (!mounted.current) return;
+      const targetIds = new Set(targets.map((o) => o.id)),
+        live = current.current,
+        scene = buildScene(live.elements);
+      const elements = live.elements.map((o) =>
+        targetIds.has(o.id) && o.identifier === identifier && !scene.isLocked(o)
+          ? { ...o, src, fit: o.fit || "contain" }
+          : o,
+      );
+      if (elements.some((o, i) => o !== live.elements[i]))
+        change({ ...live, elements });
+    } catch (err) {
+      if (mounted.current)
+        notify(`The matching asset could not be loaded: ${String(err)}`);
     }
   }
   function order(direction: number, end = false) {
@@ -409,6 +510,7 @@ export function useEditor(
     if (!objects.length) throw new Error("Select elements first.");
     return {
       name,
+      identifier: slugify(name),
       kind,
       ...(kind === "template" ? { W: frame.w, H: frame.h } : {}),
       objects: objects.map((o) => ({
@@ -433,6 +535,7 @@ export function useEditor(
     active,
     frame,
     patch,
+    setIdentifier,
     undo,
     redo,
     remove,

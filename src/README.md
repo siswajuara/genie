@@ -1,6 +1,6 @@
 # Siswa Juara Marketing Workspace
 
-React editor ported from `reference/siswa-juara-editor.html`. The 13 templates and five object presets live in `editor/presets.json`; the reference drawing routines live in `editor/reference-renderer.js`.
+React editor ported from `reference/siswa-juara-editor.html`. The built-in templates live in `editor/presets.json`; the reference drawing routines live in `editor/reference-renderer.js`.
 
 ## Marketing modules
 
@@ -28,7 +28,7 @@ Development requires Node and an installed official Codex CLI. Packaged desktop 
 
 ## Projects and pages
 
-Inside Canvas, the tabs are **Chat | Editor | Debug**. Editor contains Elements and Templates.
+Inside Canvas, the tabs are **Chat | Editor | Debug**. Editor contains Elements, Templates, and Assets.
 
 Use the header selector to switch projects and `+ Project` to create one. Project settings support rename, duplicate, deletion, and a JSON export of all projects. Each project has pages in the bar below the header. `+ Page` creates an empty canvas; Page settings support rename, duplicate, and deletion. The final project or page cannot be deleted. Deletion requires confirmation.
 
@@ -75,5 +75,15 @@ Changing stack order or clicking an element never changes its parent frame. Chil
 Canvas interaction coalesces pointer events to animation frames, indexes parent relationships once per document update, precomputes snap targets for each drag, and saves/history-commits after a completed gesture. Unchanged frames reuse cached rasters during panning, selection, and edits elsewhere; offscreen frames are culled and raster memory is bounded. Export always renders from document elements at full frame resolution. Layers avoids rerendering its tree for transient geometry previews. Escape cancels an active transform, and drag cancellation restores its starting document.
 
 ## Direct placement
+
+Every built-in preset and element has a semantic `identifier`, separate from its stable Canvas `id`. Image slots use `searchable-name-color-facing`, such as `laptop-computer-blue-front` or `owl-student-mascot-using-laptop-happy-blue-front`. Appearance > Identifier accepts normal text and converts it to a lowercase slug on blur/Enter. Editing an image identifier applies its matching library image; the inspector also offers Use matching asset. Picking an asset manually stores its canonical identifier.
+
+Templates and object presets resolve missing image sources before being added or replacing a frame, preserving slot geometry, rotation, opacity, and fit. The initial page also resolves named empty slots. Matching considers meaningful subject/activity words and ranks color and facing deterministically; it does not substitute unrelated images. Unavailable subjects, photos, brand marks, and social logos stay editable slots. Existing uploaded or embedded images are kept when loading a saved preset. Four loading workers and the shared asset cache bound concurrent work. Identifier edits never alter element IDs or parent-frame references.
+
+Editor > Assets lists the images in `src/assets/elements`, with searchable names and category filters. Its grid renders only visible rows and a small overscan area; thumbnails load lazily and decode asynchronously. Asset cards stay memoized during unrelated canvas interactions. Drag an asset onto the canvas, or click one and then click the canvas to place it. Escape or the placement banner cancels click placement. Clicking an asset with a single unlocked image slot selected fills that slot, keeping its position, size, rotation, corner radius, opacity, and fit. Dropping onto an image slot also replaces its image.
+
+New assets keep their aspect ratio, never upscale beyond their prepared dimensions, and have a maximum side of 320 canvas units, further limited to 40% of the target frame and 45% of the visible viewport. Selected images are embedded in document JSON so saved projects and exports remain independent of asset-library URLs.
+
+`npm run assets:prepare` creates 192px WebP thumbnails and optimized images up to 1600px from the original sources. It runs automatically before `npm run dev` and `npm run build`, including desktop/CI builds. Generation is incremental, uses four workers with bounded Sharp caching, and leaves originals unchanged. Generated files in `src/assets/generated` are ignored by Git and rebuilt from source. Run the command again after adding assets to an already-running dev server. This source library has 159 images; its prepared images and thumbnails total approximately 27 MB instead of the originals' 254 MB.
 
 The left tools are Chat, Editor, and Debug. Drop image files, text files, browser images, or text directly onto the canvas. Ctrl/Cmd-V places clipboard images, text, or copied canvas elements. Content dropped inside an unlocked frame becomes a child of that frame; content dropped onto empty workspace stays on the canvas. Clipboard copy/cut also carries canvas elements between pages. Input fields and inline text editing retain normal clipboard behavior. The context-menu Paste action reads the system clipboard when the WebView supports it and otherwise falls back to the editor clipboard.

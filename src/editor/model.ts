@@ -1,7 +1,9 @@
 import builtins from "./presets.json";
+import { slugify } from "./identifiers";
 
 export type Element = {
   id: string;
+  identifier?: string;
   t: "frame" | "text" | "rect" | "ellipse" | "line" | "img";
   n: string;
   x: number;
@@ -42,6 +44,7 @@ export type Element = {
 };
 export type Preset = {
   name: string;
+  identifier?: string;
   kind: "template" | "object";
   W?: number;
   H?: number;
@@ -82,12 +85,14 @@ export function applyPreset(
         w: preset.W || 1122,
         h: preset.H || 1402,
         n: preset.name,
+        identifier: preset.identifier || slugify(preset.name) || undefined,
       });
     } else {
       frame = {
         id: uid(),
         t: "frame",
         n: preset.name,
+        identifier: preset.identifier || slugify(preset.name) || undefined,
         x: Math.max(20, ...frames(next).map((f) => f.x + f.w + 100)),
         y: 80,
         w: preset.W || 1122,
@@ -101,6 +106,7 @@ export function applyPreset(
   next.elements.push(
     ...preset.objects.map((o) => ({
       ...copy(o),
+      identifier: o.identifier || slugify(o.n) || undefined,
       id: uid(),
       x: o.x + frame.x,
       y: o.y + frame.y,
@@ -154,10 +160,26 @@ export function validateElements(value: unknown): Element[] {
     const o = { ...raw } as Element;
     if (!types.has(o.t) || typeof o.n !== "string")
       throw new Error(`Element ${i + 1} needs a valid type and name.`);
-    for (const key of ["id", "fid", "gid", "src", "font", "label", "text"]) {
+    for (const key of [
+      "id",
+      "identifier",
+      "fid",
+      "gid",
+      "src",
+      "font",
+      "label",
+      "text",
+    ]) {
       const v = (o as unknown as Record<string, unknown>)[key];
       if (v !== undefined && typeof v !== "string")
         throw new Error(`Invalid ${key} on ${o.n}.`);
+    }
+    if (o.identifier !== undefined) {
+      o.identifier = slugify(o.identifier);
+      if (!o.identifier)
+        throw new Error(
+          `Identifier on ${o.n} must contain letters or numbers.`,
+        );
     }
     for (const key of numbers) {
       const v = (o as unknown as Record<string, unknown>)[key];
@@ -236,11 +258,21 @@ export function parsePresets(value: unknown): Preset[] {
     )
       throw new Error("A preset needs name, kind, and objects.");
     if (
+      p.identifier !== undefined &&
+      (typeof p.identifier !== "string" || !slugify(p.identifier))
+    )
+      throw new Error("A preset identifier must contain letters or numbers.");
+    if (
       p.kind === "template" &&
       (!(p.W! > 0) || !(p.H! > 0) || p.W! > 16000 || p.H! > 16000)
     )
       throw new Error("Template dimensions must be between 1 and 16,000.");
-    return { ...p, b: undefined, objects: validateElements(p.objects) };
+    return {
+      ...p,
+      identifier: p.identifier ? slugify(p.identifier) : slugify(p.name),
+      b: undefined,
+      objects: validateElements(p.objects),
+    };
   });
 }
 export const elementKinds = [
@@ -258,6 +290,7 @@ export const elementKinds = [
 export function makeElement(kind: string): Element {
   const base: Element = {
     id: uid(),
+    identifier: slugify(kind) || undefined,
     t: "rect",
     n: kind,
     x: 0,
@@ -304,6 +337,7 @@ export function makeElement(kind: string): Element {
       w: 300,
       h: 300,
       label: "Image slot",
+      identifier: "image-slot-original-front",
       fit: "contain",
     };
   return { ...base, r: kind === "Rounded box" ? 40 : 0 };

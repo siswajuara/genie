@@ -12,19 +12,28 @@ export function InlineText({
   onCommit: (text: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const fill = o.color || "#14226e";
   const style: CSSProperties = {
     left: o.x * view.z + view.x,
     top: o.y * view.z + view.y,
     width: o.w * view.z,
     height: o.h * view.z,
+    boxSizing: "border-box",
     fontSize: (o.size || 44) * view.z,
-    fontFamily: JSON.stringify(o.font || "Nunito"),
+    fontFamily: `"${o.font || "Nunito"}", sans-serif`,
     fontWeight: o.weight || 800,
-    color: o.color || "#14226e",
+    color: fill,
+    // Canvas paints outline first and fill on top. Mirror that order so a
+    // thick white outline cannot swallow the fill while editing.
+    WebkitTextFillColor: fill,
+    paintOrder: "stroke fill",
     textAlign:
       o.align === "left" ? "left" : o.align === "right" ? "right" : "center",
     lineHeight: o.lh || 1.15,
     letterSpacing: (o.ls || 0) * view.z,
+    whiteSpace: "pre",
+    overflowWrap: "normal",
+    wordBreak: "normal",
     paddingTop:
       Math.max(
         0,
@@ -57,6 +66,7 @@ export function InlineText({
         const span = document.createElement("span");
         span.dataset.color = color;
         span.style.color = color;
+        span.style.webkitTextFillColor = color;
         span.textContent = part;
         el.append(span);
       } else el.append(document.createTextNode(part));
@@ -68,12 +78,36 @@ export function InlineText({
     window.getSelection()?.removeAllRanges();
     window.getSelection()?.addRange(range);
   }, [o.id]);
-  function serialize(node: Node): string {
-    if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
-    if (!(node instanceof HTMLElement)) return "";
-    if (node.tagName === "BR") return "\n";
-    const text = Array.from(node.childNodes).map(serialize).join("");
-    return node.dataset.color ? `[c=${node.dataset.color}]${text}[/c]` : text;
+  // Browsers insert DIV/P blocks for new lines; serialize them back to \n
+  // so multi-line edits round-trip to the canvas model.
+  function serializeChildren(parent: Node): string {
+    const parts: string[] = [];
+    parent.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        parts.push(node.textContent || "");
+        return;
+      }
+      if (!(node instanceof HTMLElement)) return;
+      if (node.tagName === "BR") {
+        parts.push("\n");
+        return;
+      }
+      if (/^(DIV|P|LI|H[1-6]|BLOCKQUOTE)$/.test(node.tagName)) {
+        parts.push(serializeChildren(node));
+        parts.push("\n");
+        return;
+      }
+      const text = serializeChildren(node);
+      parts.push(
+        node.dataset.color ? `[c=${node.dataset.color}]${text}[/c]` : text,
+      );
+    });
+    return parts.join("");
+  }
+  function serializeRoot(root: Node): string {
+    // Each block above appends \n; drop the single trailing one that only
+    // marks the end of the last block.
+    return serializeChildren(root).replace(/\n$/, "");
   }
   return (
     <div
@@ -86,7 +120,7 @@ export function InlineText({
       spellCheck={false}
       className="inline-text"
       style={style}
-      onBlur={() => onCommit(serialize(ref.current!))}
+      onBlur={() => onCommit(serializeRoot(ref.current!))}
       onKeyDown={(ev) => {
         ev.stopPropagation();
         if (ev.key === "Escape") {
