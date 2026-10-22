@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.22.2'
+          node-version: "22.22.2"
           architecture: ${{ matrix.arch }}
           cache: npm
           cache-dependency-path: |
@@ -105,7 +105,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPIMAGE_EXTRACT_AND_RUN: '1'
+          APPIMAGE_EXTRACT_AND_RUN: "1"
         run: npm run build:desktop -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
       - name: Smoke test packaged runtime without global installations
         run: npm run sidecar:check

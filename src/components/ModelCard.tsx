@@ -13,10 +13,18 @@ type Props = {
 };
 
 const MODES = ["text", "image", "audio", "video", "pdf"] as const;
-const label = (s: string) => (s === "pdf" ? "PDF" : s[0].toUpperCase() + s.slice(1));
+const label = (s: string) =>
+  s === "pdf" ? "PDF" : s[0].toUpperCase() + s.slice(1);
 const usd = (n: number) => (n === 0 ? "$0" : `$${n}`);
 
-export function ModelCard({ id, model, usage, contextTokens, anchor, placement }: Props) {
+export function ModelCard({
+  id,
+  model,
+  usage,
+  contextTokens,
+  anchor,
+  placement,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: -9999, top: 0 });
 
@@ -41,8 +49,15 @@ export function ModelCard({ id, model, usage, contextTokens, anchor, placement }
   }, [anchor, placement, model.id]);
 
   const c = model.capabilities;
-  const caps = [c.toolcall && "Tool calling", c.reasoning && "Reasoning", c.attachment && "Attachments"].filter(Boolean) as string[];
-  const ctxPct = contextTokens && model.limit.context ? Math.min(100, (contextTokens / model.limit.context) * 100) : null;
+  const caps = [
+    c.toolcall && "Tool calling",
+    c.reasoning && "Reasoning",
+    c.attachment && "Attachments",
+  ].filter(Boolean) as string[];
+  const ctxPct =
+    contextTokens && model.limit.context
+      ? Math.min(100, (contextTokens / model.limit.context) * 100)
+      : null;
 
   return (
     <div ref={ref} id={id} role="tooltip" className="mcard" style={pos}>
@@ -54,42 +69,70 @@ export function ModelCard({ id, model, usage, contextTokens, anchor, placement }
 
       <h4>Modalities</h4>
       <dl>
-        <dt>Input</dt><dd>{MODES.filter((m) => c.input[m]).map(label).join(", ") || "None"}</dd>
-        <dt>Output</dt><dd>{MODES.filter((m) => c.output[m]).map(label).join(", ") || "None"}</dd>
+        <dt>Input</dt>
+        <dd>
+          {MODES.filter((m) => c.input[m])
+            .map(label)
+            .join(", ") || "None"}
+        </dd>
+        <dt>Output</dt>
+        <dd>
+          {MODES.filter((m) => c.output[m])
+            .map(label)
+            .join(", ") || "None"}
+        </dd>
       </dl>
 
       <h4>Cost ($ / 1M tokens)</h4>
       <dl>
-        <dt>Input</dt><dd>{usd(model.cost.input)}</dd>
-        <dt>Output</dt><dd>{usd(model.cost.output)}</dd>
-        <dt>Cache read</dt><dd>{usd(model.cost.cache.read)}</dd>
-        <dt>Cache write</dt><dd>{usd(model.cost.cache.write)}</dd>
+        <dt>Input</dt>
+        <dd>{usd(model.cost.input)}</dd>
+        <dt>Output</dt>
+        <dd>{usd(model.cost.output)}</dd>
+        <dt>Cache read</dt>
+        <dd>{usd(model.cost.cache.read)}</dd>
+        <dt>Cache write</dt>
+        <dd>{usd(model.cost.cache.write)}</dd>
       </dl>
 
       <h4>Limits</h4>
       <dl>
-        <dt>Context window</dt><dd>{fmtTokens(model.limit.context)}</dd>
-        <dt>Max output</dt><dd>{fmtTokens(model.limit.output)}</dd>
+        <dt>Context window</dt>
+        <dd>{fmtTokens(model.limit.context)}</dd>
+        <dt>Max output</dt>
+        <dd>{fmtTokens(model.limit.output)}</dd>
       </dl>
 
       <h4>Usage in this chat</h4>
       {usage ? (
         <dl>
-          <dt>Replies</dt><dd>{usage.replies}</dd>
-          <dt>Tokens in</dt><dd>{fmtTokens(usage.input)}</dd>
-          <dt>Tokens out</dt><dd>{fmtTokens(usage.output)}</dd>
-          <dt>Cache hits</dt><dd>{fmtTokens(usage.cached)}</dd>
+          <dt>Replies</dt>
+          <dd>{usage.replies}</dd>
+          <dt>Tokens in</dt>
+          <dd>{fmtTokens(usage.input)}</dd>
+          <dt>Tokens out</dt>
+          <dd>{fmtTokens(usage.output)}</dd>
+          <dt>Cache hits</dt>
+          <dd>{fmtTokens(usage.cached)}</dd>
         </dl>
       ) : (
         <p className="muted">Not used in this chat yet.</p>
       )}
       {ctxPct !== null && (
-        <div className="mcard-ctx" aria-label={`Context ${ctxPct.toFixed(1)} percent used`}>
-          <div className="bar"><span style={{ width: `${ctxPct}%` }} /></div>
+        <div
+          className="mcard-ctx"
+          aria-label={`Context ${ctxPct.toFixed(1)} percent used`}
+        >
+          <div className="bar">
+            <span style={{ width: `${ctxPct}%` }} />
+          </div>
           <span>{ctxPct.toFixed(1)}% of context used</span>
         </div>
       )}
-      <p className="mcard-foot">Zen rate limits are not exposed by the local server, so only your own token usage is shown.</p>
+      <p className="mcard-foot">
+        Zen rate limits are not exposed by the local server, so only your own
+        token usage is shown.
+      </p>
     </div>
   );
 }

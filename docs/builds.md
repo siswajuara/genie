@@ -27,14 +27,14 @@ Pushing a `v*` tag also builds installers. A tag does not change the application
 
 The workflow runs builds on each operating system and CPU architecture, following Tauri's [GitHub Actions guidance](https://v2.tauri.app/distribute/pipelines/github/) and GitHub's [supported native runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 
-| Platform | Runner | Rust target | Installer |
-| --- | --- | --- | --- |
-| macOS Apple Silicon | macos-15 | aarch64-apple-darwin | DMG |
-| macOS Intel | macos-15-intel | x86_64-apple-darwin | DMG |
-| Windows x64 | windows-2022 | x86_64-pc-windows-msvc | NSIS EXE |
-| Windows ARM64 | windows-11-arm | aarch64-pc-windows-msvc | NSIS EXE |
-| Linux x64 | ubuntu-22.04 | x86_64-unknown-linux-gnu | DEB, AppImage |
-| Linux ARM64 | ubuntu-22.04-arm | aarch64-unknown-linux-gnu | DEB, AppImage |
+| Platform            | Runner           | Rust target               | Installer     |
+| ------------------- | ---------------- | ------------------------- | ------------- |
+| macOS Apple Silicon | macos-15         | aarch64-apple-darwin      | DMG           |
+| macOS Intel         | macos-15-intel   | x86_64-apple-darwin       | DMG           |
+| Windows x64         | windows-2022     | x86_64-pc-windows-msvc    | NSIS EXE      |
+| Windows ARM64       | windows-11-arm   | aarch64-pc-windows-msvc   | NSIS EXE      |
+| Linux x64           | ubuntu-22.04     | x86_64-unknown-linux-gnu  | DEB, AppImage |
+| Linux ARM64         | ubuntu-22.04-arm | aarch64-unknown-linux-gnu | DEB, AppImage |
 
 These are six native builds dispatched from one command. There is no emulation or cross-compiling macOS from Linux. The preparation script rejects mismatched Rust/Node targets to prevent packaging an executable for the wrong architecture. Linux is built on Ubuntu 22.04 to avoid unnecessarily raising the runtime glibc requirement. Windows ARM64 uses NSIS instead of MSI.
 

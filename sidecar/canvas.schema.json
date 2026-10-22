@@ -4,29 +4,79 @@
   "type": "object",
   "required": ["version", "metadata", "elements"],
   "properties": {
-    "version": {"const": 1},
-    "metadata": {"type":"object","required":["name"],"properties":{"name":{"type":"string"},"updatedAt":{"type":"string"}}},
-    "elements": {"type":"array","maxItems":10000,"items":{"$ref":"#/$defs/element"}}
+    "version": { "const": 1 },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "dateRange": {
+          "type": "object",
+          "required": ["from"],
+          "properties": {
+            "from": { "type": "string", "format": "date" },
+            "to": { "type": "string", "format": "date" }
+          }
+        }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/element" }
+    }
   },
   "$defs": {
     "element": {
-      "type":"object",
-      "required":["id","t","n","x","y","w","h"],
+      "type": "object",
+      "required": ["id", "t", "n", "x", "y", "w", "h"],
       "properties": {
-        "id":{"type":"string","minLength":1},
-        "t":{"enum":["frame","text","rect","ellipse","line","img"]},
-        "n":{"type":"string"},
-        "fid":{"type":"string","description":"Parent frame ID. Coordinates remain absolute."},
-        "gid":{"type":"string","description":"Elements sharing this ID select as a group."},
-        "x":{"type":"number"},"y":{"type":"number"},"w":{"type":"number"},"h":{"type":"number"},
-        "text":{"type":"string"},"font":{"type":"string"},"size":{"type":"number","exclusiveMinimum":0},
-        "weight":{"type":"number"},"color":{"type":"string"},"align":{"enum":["left","center","right"]},
-        "curve":{"type":"number"},"ls":{"type":"number"},"lh":{"type":"number"},"tstroke":{"type":"string"},"tsw":{"type":"number","minimum":0},
-        "fill":{"type":"string"},"fill2":{"type":"string"},"stroke":{"type":"string"},"lw":{"type":"number","minimum":0},"r":{"type":"number","minimum":0},
-        "bend":{"type":"number"},"dash":{"type":"number"},
-        "src":{"type":"string"},"fit":{"enum":["contain","cover"]},"label":{"type":"string"},
-        "rot":{"type":"number"},"op":{"type":"number","minimum":0,"maximum":1},"hide":{"type":"boolean"},"lock":{"type":"boolean"},
-        "sh":{"type":"number","minimum":0},"shc":{"type":"string"},"shx":{"type":"number"},"shy":{"type":"number"}
+        "id": { "type": "string", "minLength": 1 },
+        "t": { "enum": ["frame", "text", "rect", "ellipse", "line", "img"] },
+        "n": { "type": "string" },
+        "fid": {
+          "type": "string",
+          "description": "Parent frame ID. Coordinates remain absolute."
+        },
+        "gid": {
+          "type": "string",
+          "description": "Elements sharing this ID select as a group."
+        },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" },
+        "text": { "type": "string" },
+        "font": { "type": "string" },
+        "size": { "type": "number", "exclusiveMinimum": 0 },
+        "weight": { "type": "number" },
+        "color": { "type": "string" },
+        "align": { "enum": ["left", "center", "right"] },
+        "curve": { "type": "number" },
+        "ls": { "type": "number" },
+        "lh": { "type": "number" },
+        "tstroke": { "type": "string" },
+        "tsw": { "type": "number", "minimum": 0 },
+        "fill": { "type": "string" },
+        "fill2": { "type": "string" },
+        "stroke": { "type": "string" },
+        "lw": { "type": "number", "minimum": 0 },
+        "r": { "type": "number", "minimum": 0 },
+        "bend": { "type": "number" },
+        "dash": { "type": "number" },
+        "src": { "type": "string" },
+        "fit": { "enum": ["contain", "cover"] },
+        "label": { "type": "string" },
+        "rot": { "type": "number" },
+        "op": { "type": "number", "minimum": 0, "maximum": 1 },
+        "hide": { "type": "boolean" },
+        "lock": { "type": "boolean" },
+        "sh": { "type": "number", "minimum": 0 },
+        "shc": { "type": "string" },
+        "shx": { "type": "number" },
+        "shy": { "type": "number" }
       }
     }
   }

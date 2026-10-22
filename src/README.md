@@ -44,6 +44,10 @@ Browser mode supports editing and Debug; Chat requires the desktop app. Chat set
 
 ## Controls and checks
 
+Shared controls live in `components/ui`: Hugeicons, keyboard-accessible selects and popovers, number fields with minus/plus buttons, react-colorful hex/alpha colors, and single-date/range calendars. Page settings saves optional `metadata.date` and `metadata.dateRange` values as local calendar dates in JSON.
+
+The searchable Google Fonts picker uses `react-fontpicker-ts` with bundled previews and no API key. Nunito and Baloo 2 are packaged locally. `lib/fonts.ts` caches font loading, loads selected Google Fonts before applying them, and loads imported document fonts before PNG export. Additional Google Fonts require a connection on first use. Inline text editing has a transparent background and preserves font family, weight, size, alignment, spacing, opacity, and inline word colors.
+
 Drag to move; use handles to resize and the upper dot to rotate. Shift constrains movement, proportions, and rotation; Alt resizes around the center. Ctrl/Cmd disables snapping while dragging. Shift-click selects multiple objects. Double-click edits text. Layers provides access to hidden and locked elements.
 
 Space-drag pans; Ctrl/Cmd-wheel zooms. Ctrl/Cmd-0 fits the frame; Ctrl/Cmd-1 sets 100%. Arrow keys nudge (Shift: 10px). Ctrl/Cmd-C/V/D copies/pastes/duplicates; G groups; Shift-G ungroups; brackets reorder (Shift: front/back); Z undoes; Shift-Z/Y redoes. Delete removes selections and frame children. PNG export excludes controls and image placeholders; remote images require CORS permission.

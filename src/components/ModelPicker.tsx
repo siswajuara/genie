@@ -12,7 +12,13 @@ type Props = {
   context: { tokens: number; key: string } | null;
 };
 
-export function ModelPicker({ models, selected, onSelect, usage, context }: Props) {
+export function ModelPicker({
+  models,
+  selected,
+  onSelect,
+  usage,
+  context,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [chipHover, setChipHover] = useState(false);
@@ -23,26 +29,51 @@ export function ModelPicker({ models, selected, onSelect, usage, context }: Prop
 
   useEffect(() => {
     if (!open) return;
-    const away = (e: MouseEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(false); };
+    const away = (e: MouseEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("mousedown", away);
     menu.current?.focus();
     return () => document.removeEventListener("mousedown", away);
   }, [open]);
 
   const openMenu = () => {
-    setActive(Math.max(0, models.findIndex((m) => m === selected)));
+    setActive(
+      Math.max(
+        0,
+        models.findIndex((m) => m === selected),
+      ),
+    );
     setChipHover(false);
     setOpen(true);
   };
-  const choose = (m: Model) => { onSelect(m); setOpen(false); chip.current?.focus(); };
+  const choose = (m: Model) => {
+    onSelect(m);
+    setOpen(false);
+    chip.current?.focus();
+  };
 
   const onMenuKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") { e.preventDefault(); setOpen(false); chip.current?.focus(); }
-    else if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % models.length); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + models.length) % models.length); }
-    else if (e.key === "Home") { e.preventDefault(); setActive(0); }
-    else if (e.key === "End") { e.preventDefault(); setActive(models.length - 1); }
-    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (models[active]) choose(models[active]); }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      chip.current?.focus();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => (a + 1) % models.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => (a - 1 + models.length) % models.length);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActive(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActive(models.length - 1);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (models[active]) choose(models[active]);
+    }
   };
 
   const disabled = models.length === 0;
@@ -68,7 +99,12 @@ export function ModelPicker({ models, selected, onSelect, usage, context }: Prop
         aria-expanded={open}
         aria-describedby={cardModel && !open ? "model-card" : undefined}
         onClick={() => (open ? setOpen(false) : openMenu())}
-        onKeyDown={(e) => { if (!open && e.key === "ArrowUp") { e.preventDefault(); openMenu(); } }}
+        onKeyDown={(e) => {
+          if (!open && e.key === "ArrowUp") {
+            e.preventDefault();
+            openMenu();
+          }
+        }}
         onMouseEnter={() => setChipHover(true)}
         onMouseLeave={() => setChipHover(false)}
         onFocus={() => setChipHover(true)}
@@ -93,7 +129,9 @@ export function ModelPicker({ models, selected, onSelect, usage, context }: Prop
             <button
               key={modelKey(m.providerID, m.id)}
               id={`mopt-${i}`}
-              ref={(el) => { opts.current[i] = el; }}
+              ref={(el) => {
+                opts.current[i] = el;
+              }}
               type="button"
               role="option"
               tabIndex={-1}
@@ -104,7 +142,11 @@ export function ModelPicker({ models, selected, onSelect, usage, context }: Prop
               onClick={() => choose(m)}
             >
               <span>{m.name}</span>
-              <span className="muted">{m === selected ? "Selected" : `${Math.round(m.limit.context / 1000)}K`}</span>
+              <span className="muted">
+                {m === selected
+                  ? "Selected"
+                  : `${Math.round(m.limit.context / 1000)}K`}
+              </span>
             </button>
           ))}
         </div>
