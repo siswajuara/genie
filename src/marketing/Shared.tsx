@@ -99,7 +99,10 @@ export function Dialog({
       ref={ref}
       className="marketing-dialog"
       aria-labelledby="marketing-dialog-title"
-      onCancel={onClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
       onClick={(ev) => {
         if (ev.target === ev.currentTarget) onClose();
       }}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SocialProvider } from './social/client';
 import { Canvas } from "./editor/Canvas";
 import { Inspector } from "./editor/Inspector";
 import { useEditor } from "./editor/useEditor";
@@ -82,7 +83,7 @@ export default function App() {
     if (window.location.hash !== hash) window.location.hash = hash;
   }
   return (
-    <PageSession
+    <SocialProvider><PageSession
       key={`${projects.page.id}:${projects.importRevision}`}
       projects={projects}
       tab={tab}
@@ -90,7 +91,7 @@ export default function App() {
       module={module}
       setModule={setModule}
       ideaView={ideaView}
-    />
+    /></SocialProvider>
   );
 }
 function PageSession({

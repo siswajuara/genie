@@ -1,13 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
-import ReactMarkdown from "react-markdown";
-import { isTauri } from "@tauri-apps/api/core";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Projects } from "../editor/projects";
 import type { Editor } from "../editor/useEditor";
 import { Icon, type IconName } from "../components/ui/Icon";
 import { SelectField } from "../components/ui/Controls";
-import { CodexPanel } from "../components/CodexPanel";
-import { FramePreview } from "./FramePreview";
-import { Dialog, EmptyState, PageIntro, Segments } from "./Shared";
+import { CodexPanel, type ChatMode } from "../components/CodexPanel";
+import { Dialog } from "./Shared";
 import {
   chatEvent,
   conversationPage,
@@ -20,8 +17,10 @@ import {
   type Post,
 } from "./store";
 import { Publish } from "./Publish";
-import { Schedule, Insight, Community, Setting } from "./Modules";
+import { Setting } from "./Modules";
+import { Schedule, Insight, Community } from "../social/Views";
 import "./marketing.css";
+import "./chat.css";
 
 export type Module =
   | "Idea"
@@ -31,13 +30,11 @@ export type Module =
   | "Insight"
   | "Community"
   | "Setting";
+/** "list" is kept so existing callers compile; history now lives in the sidebar. */
 export type IdeaView = "new" | "conversation" | "list";
+
 const navigation: { name: Module; icon: IconName; description: string }[] = [
-  {
-    name: "Idea",
-    icon: "idea",
-    description: "New chats and past conversations",
-  },
+  { name: "Idea", icon: "idea", description: "Chat, discuss, and draw" },
   { name: "Publish", icon: "publish", description: "Prepare a social post" },
   { name: "Schedule", icon: "calendar", description: "See your content plan" },
   { name: "Insight", icon: "insight", description: "Understand your results" },
@@ -48,6 +45,7 @@ const navigation: { name: Module; icon: IconName; description: string }[] = [
   },
   { name: "Setting", icon: "settings", description: "Manage your workspace" },
 ];
+
 export function MarketingWorkspace({
   projects: p,
   editor: e,
@@ -75,11 +73,18 @@ export function MarketingWorkspace({
     `genie.marketing.composer.${p.project.id}`,
     emptyPost(p.project.id),
   );
-  const [promptSeed, setPromptSeed] = useState<{ id: string; text: string }>();
+  const [promptSeed, setPromptSeed] = useState<{
+    id: string;
+    text: string;
+    mode?: ChatMode;
+  }>();
   const [help, setHelp] = useState(false),
-    [toast, setToast] = useState("");
+    [toast, setToast] = useState(""),
+    [search, setSearch] = useState(""),
+    [activeKey, setActiveKey] = useState("");
   const [chats, setChats] = useState(() => readConversations(p.workspace));
   const [conversationRevision, setConversationRevision] = useState(0);
+
   useEffect(() => {
     const refresh = () => setChats(readConversations(p.workspace));
     refresh();
@@ -97,18 +102,14 @@ export function MarketingWorkspace({
   }, [toast]);
   useEffect(() => {
     document.title = `${module} · Siswa Juara`;
-    const timer = requestAnimationFrame(() =>
-      document
-        .querySelector<HTMLElement>(".marketing-page-intro h1")
-        ?.focus({ preventScroll: true }),
-    );
-    return () => cancelAnimationFrame(timer);
-  }, [module, ideaView]);
+  }, [module]);
+
   function navigate(next: Module, view?: IdeaView) {
-    if (next !== "Idea" || view === "list") setPromptSeed(undefined);
+    if (next !== "Idea") setPromptSeed(undefined);
     setModule(next, view);
     setToast("");
   }
+
   function startIdea() {
     const scope = `${p.project.id}-${p.page.id}`;
     try {
@@ -133,26 +134,21 @@ export function MarketingWorkspace({
       window.dispatchEvent(new Event(chatEvent));
       navigate("Idea", "new");
     } catch {
-      setToast(
-        "Could not start a new conversation. Device storage may be full.",
-      );
+      setToast("Could not start a new chat. Device storage may be full.");
     }
   }
-  function ask(text: string) {
-    setPromptSeed({ id: crypto.randomUUID(), text });
-    navigate("Idea", ideaView === "conversation" ? "conversation" : "new");
-    requestAnimationFrame(() =>
-      document
-        .querySelector<HTMLTextAreaElement>(
-          '.idea-conversation textarea[aria-label="Chat message"]',
-        )
-        ?.focus(),
-    );
+
+  function startCanvas() {
+    p.createPage();
+    navigate("Canvas");
   }
-  function openConversation(
-    chat: Conversation,
-    destination: "Idea" | "Canvas",
-  ) {
+
+  function ask(text: string) {
+    setPromptSeed({ id: crypto.randomUUID(), text, mode: "discuss" });
+    navigate("Idea", "conversation");
+  }
+
+  function openConversation(chat: Conversation) {
     const source = conversationPage(p.workspace, chat.scope);
     if (!source) {
       setToast("The canvas for this conversation is no longer available.");
@@ -161,15 +157,16 @@ export function MarketingWorkspace({
     try {
       localStorage.setItem(`genie.chat.${chat.scope}`, JSON.stringify(chat));
     } catch {
-      setToast("Could not reopen this conversation. Device storage is full.");
+      setToast("Could not reopen this chat. Device storage is full.");
       return;
     }
     p.selectProject(source.project.id);
     p.selectPage(source.page.id);
     setPromptSeed(undefined);
     setConversationRevision((n) => n + 1);
-    navigate(destination, destination === "Idea" ? "conversation" : undefined);
+    navigate("Idea", "conversation");
   }
+
   function savePost(status: "draft" | "planned") {
     const value = {
       ...draft,
@@ -189,18 +186,34 @@ export function MarketingWorkspace({
     );
     if (status === "planned") setModule("Schedule");
   }
+
   const storageError =
     settingsError ||
     postsError ||
     draftError ||
     p.storageError ||
     e.storageError;
+
+  const projectChats = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return chats
+      .filter(
+        (chat) =>
+          conversationPage(p.workspace, chat.scope)?.project.id ===
+          p.project.id,
+      )
+      .filter(
+        (chat) =>
+          !term ||
+          conversationTitle(chat).toLowerCase().includes(term) ||
+          chat.messages.some((m) => m.text.toLowerCase().includes(term)),
+      )
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [chats, search, p.workspace, p.project.id]);
+
   if (module === "Canvas") return renderCanvas(() => navigate("Idea"));
   const active = navigation.find((item) => item.name === module)!;
-  const allChats = chats.filter(
-    (chat) =>
-      conversationPage(p.workspace, chat.scope)?.project.id === p.project.id,
-  );
+
   return (
     <div className="studio marketing-workspace" data-theme={settings.theme}>
       <a className="marketing-skip" href="#marketing-main">
@@ -243,12 +256,13 @@ export function MarketingWorkspace({
           </span>
         </button>
       </aside>
+
       <div className="marketing-body">
         <header className="marketing-header">
           <div className="marketing-breadcrumb">
             <span className="workspace-label">Siswa Juara</span>
             <Icon name="right" size={14} />
-            <span>{active.name}</span>
+            <h1 className="marketing-title">{active.name}</h1>
           </div>
           <div className="marketing-header-actions">
             <span className="device-save">
@@ -264,6 +278,12 @@ export function MarketingWorkspace({
                 label: project.name || "Untitled project",
               }))}
             />
+            <button onClick={startIdea}>
+              <Icon name="add" size={17} /> New chat
+            </button>
+            <button onClick={startCanvas}>
+              <Icon name="add" size={17} /> New canvas
+            </button>
             {module !== "Publish" && (
               <button className="primary" onClick={() => navigate("Publish")}>
                 <Icon name="add" size={17} /> Create post
@@ -276,59 +296,57 @@ export function MarketingWorkspace({
             {storageError}
           </div>
         )}
+
         <main
           id="marketing-main"
           className={`marketing-main module-${module.toLowerCase()}`}
         >
-          {module === "Idea" && ideaView !== "list" && (
-            <div className="idea-layout">
-              <div className="idea-main">
-                <PageIntro
-                  title="Good posts start with an idea."
-                  description="Think it through here. Bring it to life in Canvas."
-                  action={
-                    <button onClick={() => navigate("Idea", "list")}>
-                      <Icon name="chat" size={16} /> Conversations
-                    </button>
-                  }
-                />
-                <div className="idea-starters">
-                  <span className="eyebrow">A little help getting started</span>
-                  <div>
-                    {[
-                      {
-                        icon: "calendar" as IconName,
-                        title: "Plan my content",
-                        description: "A week of posts, one clear direction",
-                        prompt:
-                          "Help me plan a week of social media posts. Start by asking about my audience, my business, and my goal.",
-                      },
-                      {
-                        icon: "layers" as IconName,
-                        title: "Create a carousel",
-                        description: "Turn one topic into a story",
-                        prompt:
-                          "Help me turn a topic into a carousel. Ask me about the topic and audience, then suggest a slide outline before creating it.",
-                      },
-                      {
-                        icon: "text" as IconName,
-                        title: "Find the right words",
-                        description: "A caption that sounds like you",
-                        prompt:
-                          "Help me write a social media caption. Ask what I am sharing, who it is for, and the tone I want.",
-                      },
-                    ].map((starter) => (
-                      <button
-                        key={starter.title}
-                        onClick={() => ask(starter.prompt)}
-                      >
-                        <Icon name={starter.icon} size={21} />
-                        <strong>{starter.title}</strong>
-                        <span>{starter.description}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+          {module === "Idea" && (
+            <div className="chat-layout">
+              <aside className="chat-sidebar" aria-label="Conversations">
+                <label className="chat-search">
+                  <Icon name="search" size={15} />
+                  <input
+                    aria-label="Search conversations"
+                    placeholder="Search"
+                    value={search}
+                    onChange={(ev) => setSearch(ev.target.value)}
+                  />
+                </label>
+                {projectChats.length ? (
+                  <ul className="chat-list">
+                    {projectChats.map((chat) => {
+                      const page = conversationPage(p.workspace, chat.scope);
+                      return (
+                        <li key={chat.key}>
+                          <button
+                            aria-current={
+                              chat.key === activeKey ? "true" : undefined
+                            }
+                            onClick={() => openConversation(chat)}
+                          >
+                            <strong>{conversationTitle(chat)}</strong>
+                            <small>
+                              {page?.page.name || "Removed canvas"} ·{" "}
+                              {new Date(chat.updatedAt).toLocaleDateString(
+                                undefined,
+                                { month: "short", day: "numeric" },
+                              )}
+                            </small>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="chat-list-empty">
+                    {search
+                      ? "No chats match your search."
+                      : "Your chats appear here once you send a message."}
+                  </p>
+                )}
+              </aside>
+              <div className="chat-main">
                 <CodexPanel
                   key={`${p.page.id}:${ideaView}:${conversationRevision}`}
                   editor={e}
@@ -336,88 +354,11 @@ export function MarketingWorkspace({
                   variant="idea"
                   promptSeed={promptSeed}
                   startFresh={ideaView === "new"}
+                  onKeyChange={setActiveKey}
+                  onOpenCanvas={() => navigate("Canvas")}
                 />
               </div>
-              <aside className="idea-context">
-                <div className="context-heading">
-                  <Icon name="layers" size={18} />
-                  <h2>Your Canvas</h2>
-                  <span className="subtle-badge">
-                    {e.scene.frames.length}{" "}
-                    {e.scene.frames.length === 1 ? "frame" : "frames"}
-                  </span>
-                </div>
-                <div className="idea-canvas-preview">
-                  {e.scene.frames[0] ? (
-                    <FramePreview
-                      document={e.committed}
-                      frameId={e.scene.frames[0].id}
-                      label="Current canvas preview"
-                    />
-                  ) : (
-                    <EmptyState
-                      icon="layers"
-                      title="Space for your next idea"
-                      description="Add a frame in Canvas to start designing."
-                    />
-                  )}
-                </div>
-                <div className="canvas-context-copy">
-                  <strong>{p.page.name}</strong>
-                  <span>{p.project.name}</span>
-                </div>
-                <button
-                  className="primary context-open"
-                  onClick={() => navigate("Canvas")}
-                >
-                  Open Canvas
-                  <Icon name="right" size={16} />
-                </button>
-                <button
-                  className="context-publish"
-                  onClick={() => navigate("Publish")}
-                >
-                  Prepare a post
-                  <Icon name="publish" size={16} />
-                </button>
-                <p className="context-note">
-                  Your ideas, conversation, and design stay together.
-                </p>
-                <div className="idea-recent">
-                  <div>
-                    <h3>Recent conversations</h3>
-                    <button onClick={() => navigate("Idea", "list")}>
-                      View all
-                    </button>
-                  </div>
-                  {allChats.length ? (
-                    allChats.slice(0, 3).map((chat) => (
-                      <button
-                        key={chat.key}
-                        onClick={() => openConversation(chat, "Idea")}
-                      >
-                        <Icon name="chat" size={16} />
-                        <span>{conversationTitle(chat)}</span>
-                        <Icon name="right" size={14} />
-                      </button>
-                    ))
-                  ) : (
-                    <p>
-                      Your conversations will appear here once you start
-                      chatting.
-                    </p>
-                  )}
-                </div>
-              </aside>
             </div>
-          )}
-          {module === "Idea" && ideaView === "list" && (
-            <ChatHistory
-              chats={allChats}
-              projects={p}
-              onOpen={openConversation}
-              onNew={startIdea}
-            />
           )}
           {module === "Publish" && (
             <Publish
@@ -472,6 +413,7 @@ export function MarketingWorkspace({
           )}
         </main>
       </div>
+
       {toast && (
         <div className="marketing-toast" role="status">
           <Icon name="check" size={18} />
@@ -491,17 +433,18 @@ export function MarketingWorkspace({
         >
           <ol className="help-steps">
             <li>
-              <strong>Start in Idea.</strong>
+              <strong>Chat in Idea.</strong>
               <p>
-                Talk through a topic, find your message, or plan a carousel.
-                Chat runs in the desktop app.
+                Pick <b>Discuss</b> to talk through topics and captions. Pick{" "}
+                <b>Draw</b> to have the assistant build on your canvas. Chat
+                runs in the desktop app.
               </p>
             </li>
             <li>
-              <strong>Make it in Canvas.</strong>
+              <strong>Review the canvas.json revision.</strong>
               <p>
-                Open Canvas from Idea or a conversation. Use the back button to
-                return.
+                Each Draw reply ends with a revision you can preview, restore,
+                or download.
               </p>
             </li>
             <li>
@@ -514,8 +457,9 @@ export function MarketingWorkspace({
             <li>
               <strong>Keep track in Schedule.</strong>
               <p>
-                Drafts and planned posts are saved on this device. Social
-                account connections and live publishing are not available yet.
+                Drafts are saved on this device. Connect Buffer or Zernio in
+                Setting to publish and schedule posts. Provider queues and
+                delivery statuses appear in Schedule.
               </p>
             </li>
           </ol>
@@ -525,163 +469,5 @@ export function MarketingWorkspace({
         </Dialog>
       )}
     </div>
-  );
-}
-
-function ChatHistory({
-  chats,
-  projects: p,
-  onOpen,
-  onNew,
-}: {
-  chats: Conversation[];
-  projects: Projects;
-  onOpen: (chat: Conversation, destination: "Idea" | "Canvas") => void;
-  onNew: () => void;
-}) {
-  const [search, setSearch] = useState(""),
-    [filter, setFilter] = useState("All conversations"),
-    [selected, setSelected] = useState<string>();
-  const filtered = chats.filter(
-    (chat) =>
-      (filter === "All conversations" ||
-        chat.scope === `${p.project.id}-${p.page.id}`) &&
-      chat.messages.some((m) =>
-        m.text.toLowerCase().includes(search.toLowerCase()),
-      ),
-  );
-  const current = filtered.find((c) => c.key === selected) || filtered[0];
-  return (
-    <>
-      <PageIntro
-        title="Pick up where you left off."
-        description="Every conversation, including chats from Canvas, in one place."
-        action={
-          <button className="primary" onClick={onNew}>
-            <Icon name="add" size={17} /> New chat
-          </button>
-        }
-      />
-      <div className="history-layout">
-        <section className="history-list">
-          <label className="marketing-search">
-            <Icon name="search" size={17} />
-            <input
-              aria-label="Search conversations"
-              placeholder="Search conversations"
-              value={search}
-              onChange={(ev) => setSearch(ev.target.value)}
-            />
-          </label>
-          <Segments
-            label="Conversation scope"
-            values={["All conversations", "This canvas"]}
-            value={filter}
-            onChange={setFilter}
-          />
-          <div className="history-results">
-            {filtered.length ? (
-              filtered.map((chat) => {
-                const source = conversationPage(p.workspace, chat.scope);
-                return (
-                  <button
-                    className={`history-row ${current?.key === chat.key ? "selected" : ""}`}
-                    key={chat.key}
-                    onClick={() => setSelected(chat.key)}
-                  >
-                    <span className="history-row-icon">
-                      <Icon name="chat" />
-                    </span>
-                    <span>
-                      <strong>{conversationTitle(chat)}</strong>
-                      <small>
-                        {source?.page.name || "Removed canvas"} ·{" "}
-                        {new Date(chat.updatedAt).toLocaleDateString(
-                          undefined,
-                          { month: "short", day: "numeric" },
-                        )}
-                      </small>
-                      <p>
-                        {chat.messages
-                          .filter((m) => m.role !== "tool")
-                          .at(-1)
-                          ?.text.slice(0, 95)}
-                      </p>
-                    </span>
-                    <Icon name="right" size={15} />
-                  </button>
-                );
-              })
-            ) : (
-              <EmptyState
-                icon="chat"
-                title={
-                  search
-                    ? "No matching conversations"
-                    : "Your ideas have a home here"
-                }
-                description={
-                  search
-                    ? "Try a different word or clear your search."
-                    : "Start in Idea or chat while editing in Canvas. Your conversations will be saved here."
-                }
-                action={
-                  search ? (
-                    <button onClick={() => setSearch("")}>Clear search</button>
-                  ) : (
-                    <button onClick={onNew}>Start an idea</button>
-                  )
-                }
-              />
-            )}
-          </div>
-        </section>
-        <section className="history-detail" aria-label="Conversation preview">
-          {current ? (
-            <>
-              <div className="history-detail-head">
-                <div>
-                  <span className="eyebrow">Conversation</span>
-                  <h2>{conversationTitle(current)}</h2>
-                </div>
-                <div className="row">
-                  <button onClick={() => onOpen(current, "Idea")}>
-                    Continue in Idea
-                  </button>
-                  <button
-                    className="primary"
-                    onClick={() => onOpen(current, "Canvas")}
-                  >
-                    <Icon name="layers" size={16} /> Open Canvas
-                  </button>
-                </div>
-              </div>
-              <div className="history-messages">
-                {current.messages
-                  .filter((m) => m.role !== "tool")
-                  .map((m) => (
-                    <article className={`history-message ${m.role}`} key={m.id}>
-                      <span>{m.role === "user" ? "You" : "Assistant"}</span>
-                      <ReactMarkdown>{m.text}</ReactMarkdown>
-                    </article>
-                  ))}
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              icon="idea"
-              title="A conversation, with its context"
-              description="Choose a conversation to read it or open the Canvas it belongs to."
-            />
-          )}
-        </section>
-      </div>
-      {!isTauri() && (
-        <p className="marketing-footnote">
-          You can read saved conversations here. Use the desktop app to chat
-          with your assistant.
-        </p>
-      )}
-    </>
   );
 }

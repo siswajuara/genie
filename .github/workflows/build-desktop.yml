@@ -95,8 +95,8 @@ jobs:
         run: |
           npm ci
           npm ci --prefix sidecar --include=optional
-      - name: Validate platform target mappings
-        run: node --test tests/sidecar.test.mjs
+      - name: Validate platform mappings and social request contracts
+        run: node --test tests/sidecar.test.mjs tests/social.test.mjs
       - name: Build native installer and self-contained sidecar
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}

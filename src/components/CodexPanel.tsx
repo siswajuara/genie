@@ -1,15 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
 import ReactMarkdown from "react-markdown";
 import { parseDocument, uid, type CanvasDocument } from "../editor/model";
 import type { Editor } from "../editor/useEditor";
+import { Icon } from "./ui/Icon";
+import { FramePreview } from "../marketing/FramePreview";
 import { chatEvent } from "../marketing/store";
+
+export type ChatMode = "discuss" | "draw";
 type Message = {
   id: string;
   role: "user" | "assistant" | "tool";
   text: string;
+  /** Set on the closing message of a Draw turn: points at a saved canvas revision. */
+  artifact?: { n: number };
 };
 type SavedChat = { key: string; thread?: string; messages: Message[] };
+type Revision = { n: number; at: string; doc: unknown };
 type Status = { ok: boolean; path?: string; message: string };
 type Event = {
   type: string;
@@ -32,18 +39,174 @@ type Event = {
     };
   };
 };
+
+const MODE_KEY = "genie.chat.mode";
+const MAX_REVISIONS = 20;
+const modePrefix: Record<ChatMode, string> = {
+  discuss:
+    "[Mode: Discuss] Answer in plain text only. Do not edit the canvas or return canvas JSON.\n\n",
+  draw: "[Mode: Draw] Create or edit the canvas to fulfil this request, then summarize what you changed in one or two sentences.\n\n",
+};
+const starters: { mode: ChatMode; label: string; prompt: string }[] = [
+  {
+    mode: "discuss",
+    label: "Plan a week of posts",
+    prompt:
+      "Help me plan a week of social media posts. Ask about my audience, my business, and my goal first.",
+  },
+  {
+    mode: "discuss",
+    label: "Write a caption",
+    prompt:
+      "Help me write a caption. Ask what I am sharing, who it is for, and the tone I want.",
+  },
+  {
+    mode: "draw",
+    label: "Design a carousel",
+    prompt:
+      "Create a five-slide carousel on this canvas. Ask me for the topic and audience if you need them.",
+  },
+];
+
+const revisionKey = (chatKey: string) => `genie.revisions.${chatKey}`;
+function readRevisions(chatKey: string): Revision[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(revisionKey(chatKey)) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+/** Appends a revision and returns its number. Throws when storage is full. */
+function addRevision(chatKey: string, doc: unknown): number {
+  const list = readRevisions(chatKey);
+  const n = (list.at(-1)?.n ?? 0) + 1;
+  const next = [...list, { n, at: new Date().toISOString(), doc }].slice(
+    -MAX_REVISIONS,
+  );
+  localStorage.setItem(revisionKey(chatKey), JSON.stringify(next));
+  return n;
+}
+
+function CanvasArtifact({
+  chatKey,
+  n,
+  editor: e,
+  onOpenCanvas,
+}: {
+  chatKey: string;
+  n: number;
+  editor: Editor;
+  onOpenCanvas?: () => void;
+}) {
+  const revisions = useMemo(() => readRevisions(chatKey), [chatKey, n]);
+  const [picked, setPicked] = useState(n);
+  const revision = revisions.find((r) => r.n === picked);
+  const parsed = useMemo(() => {
+    if (!revision) return undefined;
+    try {
+      return parseDocument(revision.doc) as CanvasDocument;
+    } catch {
+      return undefined;
+    }
+  }, [revision]);
+  const frame = parsed?.elements.find((o) => o.t === "frame");
+
+  function download() {
+    if (!revision) return;
+    const body = JSON.stringify(
+      { revision: revision.n, savedAt: revision.at, canvas: revision.doc },
+      null,
+      2,
+    );
+    const url = URL.createObjectURL(
+      new Blob([body], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "canvas.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <figure className="chat-artifact">
+      <figcaption>
+        <span className="chat-artifact-file">
+          <Icon name="layers" size={16} />
+          canvas.json
+        </span>
+        <label className="chat-artifact-rev">
+          <span className="sr-only">Revision</span>
+          <select
+            value={picked}
+            onChange={(ev) => setPicked(Number(ev.target.value))}
+          >
+            {revisions.map((r) => (
+              <option key={r.n} value={r.n}>
+                Revision {r.n}
+                {r.n === n ? " (this reply)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      </figcaption>
+      <div className="chat-artifact-preview">
+        {parsed && frame ? (
+          <FramePreview
+            document={parsed}
+            frameId={frame.id}
+            label={`Canvas revision ${picked}`}
+          />
+        ) : (
+          <p className="chat-artifact-missing">
+            {revision
+              ? "This revision has no frame to preview."
+              : "This revision is no longer stored on this device."}
+          </p>
+        )}
+      </div>
+      <div className="chat-artifact-actions">
+        <button
+          disabled={!parsed}
+          onClick={() => {
+            if (!parsed) return;
+            e.change(parsed);
+            e.select([]);
+            e.notify(`Restored revision ${picked}. Undo is available.`);
+          }}
+        >
+          Restore this revision
+        </button>
+        <button disabled={!revision} onClick={download}>
+          Download
+        </button>
+        {onOpenCanvas && (
+          <button className="primary" onClick={onOpenCanvas}>
+            Open Canvas <Icon name="right" size={15} />
+          </button>
+        )}
+      </div>
+    </figure>
+  );
+}
+
 export function CodexPanel({
   editor: e,
   scope,
   variant = "canvas",
   promptSeed,
   startFresh = false,
+  onKeyChange,
+  onOpenCanvas,
 }: {
   editor: Editor;
   scope: string;
   variant?: "canvas" | "idea";
-  promptSeed?: { id: string; text: string };
+  promptSeed?: { id: string; text: string; mode?: ChatMode };
   startFresh?: boolean;
+  onKeyChange?: (key: string) => void;
+  onOpenCanvas?: () => void;
 }) {
   const storageKey = `genie.chat.${scope}`;
   const [initial] = useState<SavedChat>(() => {
@@ -66,16 +229,26 @@ export function CodexPanel({
     }
     return { key: uid(), messages: [] };
   });
+  const [mode, setMode] = useState<ChatMode>(() => {
+    try {
+      const saved = localStorage.getItem(MODE_KEY);
+      if (saved === "draw" || saved === "discuss") return saved;
+    } catch {
+      /* Fall back to the variant default. */
+    }
+    return variant === "canvas" ? "draw" : "discuss";
+  });
   const [prompt, setPrompt] = useState(() => {
-      try {
-        return localStorage.getItem(`genie.chat.draft.${initial.key}`) || "";
-      } catch {
-        return "";
-      }
-    }),
-    [busy, setBusy] = useState(false),
+    try {
+      return localStorage.getItem(`genie.chat.draft.${initial.key}`) || "";
+    } catch {
+      return "";
+    }
+  });
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [model, setModel] = useState("");
+    [model, setModel] = useState(""),
+    [showSettings, setShowSettings] = useState(false);
   const [key, setKey] = useState(initial.key),
     [thread, setThread] = useState(initial.thread),
     [messages, setMessages] = useState<Message[]>(initial.messages);
@@ -90,6 +263,16 @@ export function CodexPanel({
     latest = useRef(e),
     mounted = useRef(true);
   latest.current = e;
+  const desktop = isTauri();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch {
+      /* The mode is a convenience; ignore storage failures. */
+    }
+  }, [mode]);
+  useEffect(() => onKeyChange?.(key), [key]);
   useEffect(() => {
     try {
       if (prompt) localStorage.setItem(`genie.chat.draft.${key}`, prompt);
@@ -99,7 +282,9 @@ export function CodexPanel({
     }
   }, [prompt, key]);
   useEffect(() => {
-    if (promptSeed) setPrompt(promptSeed.text);
+    if (!promptSeed) return;
+    setPrompt(promptSeed.text);
+    if (promptSeed.mode) setMode(promptSeed.mode);
   }, [promptSeed]);
   useEffect(() => {
     try {
@@ -126,7 +311,7 @@ export function CodexPanel({
   }, [messages, key, thread, storageKey]);
   useEffect(() => {
     end.current?.scrollIntoView({ block: "nearest" });
-  }, [messages]);
+  }, [messages, busy]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -135,6 +320,7 @@ export function CodexPanel({
         void invoke("cancel_run", { requestId: run.current }).catch(() => {});
     };
   }, []);
+
   async function check() {
     setChecking(true);
     try {
@@ -150,6 +336,7 @@ export function CodexPanel({
       if (mounted.current) setChecking(false);
     }
   }
+
   async function send() {
     if (!prompt.trim() || busy) return;
     setError("");
@@ -157,12 +344,36 @@ export function CodexPanel({
     setBusy(true);
     if (!(await check())) {
       if (mounted.current) setBusy(false);
+      setShowSettings(true);
       return;
     }
     if (!mounted.current) return;
-    const value = prompt;
+    const value = prompt,
+      runMode = mode,
+      runKey = key;
+    let lastRevision = 0;
     setPrompt("");
     setMessages((m) => [...m, { id: uid(), role: "user", text: value }]);
+
+    // Closes a Draw turn with the canvas.json artifact, once per turn.
+    const finish = () => {
+      if (lastRevision) {
+        const n = lastRevision;
+        lastRevision = 0;
+        setMessages((m) => [
+          ...m,
+          {
+            id: uid(),
+            role: "assistant",
+            text: `canvas.json, revision ${n}`,
+            artifact: { n },
+          },
+        ]);
+      }
+      setBusy(false);
+      run.current = undefined;
+    };
+
     const channel = new Channel<Event>();
     channel.onmessage = (event) => {
       if (!mounted.current) return;
@@ -171,7 +382,7 @@ export function CodexPanel({
           item = ev.item;
         if (ev.type === "thread.started") setThread(ev.thread_id);
         if (ev.type === "turn.failed")
-          setError(ev.error?.message || "Agent turn failed.");
+          setError(ev.error?.message || "The assistant could not finish.");
         if (item) {
           const text =
             item.text ||
@@ -196,41 +407,42 @@ export function CodexPanel({
           });
         }
       }
-      if (event.type === "canvas") {
+      if (event.type === "canvas" && runMode === "draw") {
         try {
           const next = parseDocument(event.canvas);
+          try {
+            lastRevision = addRevision(runKey, event.canvas);
+          } catch {
+            setError(
+              "Could not store this revision. Device storage may be full.",
+            );
+          }
           if (latest.current.doc.metadata.updatedAt === event.baseUpdatedAt) {
             latest.current.change(next);
             latest.current.select([]);
-            latest.current.notify(
-              "Chat updated this page’s canvas. Undo is available.",
-            );
+            latest.current.notify("Canvas updated. Undo is available.");
           } else {
             setPending(next);
-            latest.current.notify(
-              "The agent update is ready to review in Chat.",
-            );
+            latest.current.notify("A canvas update is ready to review in Chat.");
           }
         } catch (err) {
-          setError(`The agent returned invalid canvas JSON: ${String(err)}`);
+          setError(`The assistant returned an invalid canvas: ${String(err)}`);
         }
       }
       if (event.type === "done") {
         if (event.codexThreadId) setThread(event.codexThreadId);
-        setBusy(false);
-        run.current = undefined;
+        finish();
       }
       if (event.type === "error") {
         setError(event.message || "Chat failed.");
-        setBusy(false);
-        run.current = undefined;
+        finish();
       }
     };
     try {
       const id = await invoke<string>("codex_run", {
         request: {
           key,
-          prompt: value,
+          prompt: modePrefix[runMode] + value,
           model: model.trim() || undefined,
           codexPath: codexPath.trim() || undefined,
           codexThreadId: thread,
@@ -251,6 +463,7 @@ export function CodexPanel({
       }
     }
   }
+
   async function cancel() {
     if (run.current)
       try {
@@ -259,124 +472,162 @@ export function CodexPanel({
         setError(String(err));
       }
   }
+
+  const blocks = useMemo(() => {
+    const out: (
+      | { kind: "tool"; id: string; items: Message[] }
+      | { kind: "msg"; m: Message }
+    )[] = [];
+    for (const m of messages) {
+      const last = out.at(-1);
+      if (m.role !== "tool") out.push({ kind: "msg", m });
+      else if (last?.kind === "tool") last.items.push(m);
+      else out.push({ kind: "tool", id: m.id, items: [m] });
+    }
+    return out;
+  }, [messages]);
+
   return (
-    <section
-      className={`codex-chat ${variant === "idea" ? "idea-conversation" : ""}`}
-    >
-      <div className="section-title">
-        <h2>{variant === "idea" ? "Your conversation" : "Chat"}</h2>
-        <button
-          disabled={busy}
-          onClick={() => {
-            setKey(uid());
-            setThread(undefined);
-            setMessages([]);
-            setPrompt("");
-            setError("");
-            setPending(undefined);
-          }}
-        >
-          New chat
-        </button>
-      </div>
-      <p className="hint">
-        {variant === "idea"
-          ? "Talk through an idea, write a caption, or turn a topic into a design. Your conversation stays linked to this canvas."
-          : "Ask the agent to edit this page’s canvas, selected elements, or carousel frames. Each page has its own conversation."}
-      </p>
-      {!isTauri() && (
-        <p className="connection-note">
-          Chat is available in the desktop app. The editor works in this
-          browser.
-        </p>
-      )}
-      <details className="cli-settings">
-        <summary>Chat settings · Codex CLI</summary>
-        <p className="hint">
-          Desktop builds include Codex. Leave the path empty to use it, or
-          select your own installation.
-        </p>
-        <label>
-          Codex executable
-          <input
-            aria-label="Codex executable"
-            placeholder="Bundled CLI or automatic detection"
-            value={codexPath}
-            disabled={busy}
-            onChange={(ev) => {
-              setCodexPath(ev.target.value);
-              localStorage.setItem("genie.codexPath", ev.target.value);
-              setStatus(undefined);
-            }}
-          />
-        </label>
-        <button
-          disabled={!isTauri() || checking || busy}
-          onClick={() => void check()}
-        >
-          {checking ? "Checking…" : "Check installation"}
-        </button>
-      </details>
-      {status && (
-        <div className={`cli-status ${status.ok ? "" : "error"}`} role="status">
-          {status.ok ? "Ready: " + status.path : status.message}
-          {!status.ok && (
-            <p>
-              Reinstall the{" "}
-              <a
-                href="https://developers.openai.com/codex/cli/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                official Codex CLI
-              </a>{" "}
-              if macOS blocks your current installation.
-            </p>
+    <section className={`chat-panel chat-${variant}`}>
+      <header className="chat-head">
+        <h2>{variant === "idea" ? "Conversation" : "Chat"}</h2>
+        <div className="chat-head-actions">
+          {variant === "canvas" && (
+            <button
+              disabled={busy}
+              onClick={() => {
+                setKey(uid());
+                setThread(undefined);
+                setMessages([]);
+                setPrompt("");
+                setError("");
+                setPending(undefined);
+              }}
+            >
+              New chat
+            </button>
+          )}
+        </div>
+      </header>
+
+      {showSettings && (
+        <div className="chat-settings" id="chat-settings">
+          <label>
+            Model
+            <input
+              placeholder="Default model"
+              value={model}
+              disabled={busy}
+              onChange={(ev) => setModel(ev.target.value)}
+            />
+          </label>
+          <label>
+            Codex executable
+            <input
+              aria-label="Codex executable"
+              placeholder="Bundled CLI or automatic detection"
+              value={codexPath}
+              disabled={busy}
+              onChange={(ev) => {
+                setCodexPath(ev.target.value);
+                localStorage.setItem("genie.codexPath", ev.target.value);
+                setStatus(undefined);
+              }}
+            />
+          </label>
+          <button
+            disabled={!desktop || checking || busy}
+            onClick={() => void check()}
+          >
+            {checking ? "Checking…" : "Check installation"}
+          </button>
+          {desktop && (
+            <button
+              onClick={() =>
+                void invoke("reveal_workspace", { key }).catch((err) =>
+                  setError(String(err)),
+                )
+              }
+            >
+              Open workspace folder
+            </button>
           )}
         </div>
       )}
-      <div className="codex-messages" aria-live="polite">
+
+      <div className="chat-thread" aria-live="polite">
         {!messages.length && (
-          <div className="empty">
-            <strong>
+          <div className="chat-empty">
+            <h3>
               {variant === "idea"
-                ? "Start with a rough idea"
-                : "Design with your canvas"}
-            </strong>
+                ? "What are we making?"
+                : "Ask about this canvas"}
+            </h3>
             <p>
-              {variant === "idea"
-                ? "Describe your topic, audience, and what you want your post to achieve. You can open Canvas whenever you are ready."
-                : "Try “Create five carousel slides using this frame” or “Update the title on slide 2.”"}
+              <b>Discuss</b> is plain conversation. <b>Draw</b> edits your
+              canvas and saves each result as a revision.
             </p>
+            <div className="chat-starters">
+              {starters.map((s) => (
+                <button
+                  key={s.label}
+                  onClick={() => {
+                    setMode(s.mode);
+                    setPrompt(s.prompt);
+                  }}
+                >
+                  <span>{s.mode === "draw" ? "Draw" : "Discuss"}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
-        {messages.map((m) =>
-          m.role === "tool" ? (
-            <details className="codex-tool" key={m.id}>
-              <summary>Agent activity</summary>
-              <pre>{m.text}</pre>
+
+        {blocks.map((b) =>
+          b.kind === "tool" ? (
+            <details className="chat-activity" key={b.id}>
+              <summary>
+                Activity · {b.items.length} step
+                {b.items.length === 1 ? "" : "s"}
+              </summary>
+              <pre>{b.items.map((i) => i.text).join("\n\n")}</pre>
             </details>
+          ) : b.m.artifact ? (
+            <CanvasArtifact
+              key={b.m.id}
+              chatKey={key}
+              n={b.m.artifact.n}
+              editor={e}
+              onOpenCanvas={onOpenCanvas}
+            />
           ) : (
-            <article className={`codex-message ${m.role}`} key={m.id}>
-              <small>{m.role === "user" ? "You" : "Agent"}</small>
-              <ReactMarkdown>{m.text}</ReactMarkdown>
+            <article className={`chat-message ${b.m.role}`} key={b.m.id}>
+              <ReactMarkdown>{b.m.text}</ReactMarkdown>
             </article>
           ),
         )}
-        {busy && <p className="hint">Working with this page’s canvas…</p>}
+
+        {busy && (
+          <p className="chat-working" role="status">
+            {mode === "draw" ? "Drawing on your canvas…" : "Thinking…"}
+          </p>
+        )}
         <div ref={end} />
       </div>
+
       {error && (
-        <p className="error" role="alert">
+        <p className="chat-error" role="alert">
           {error}
         </p>
       )}
       {pending && (
-        <div className="pending-update">
+        <div className="chat-pending">
           <p>
-            The canvas changed while the agent was working. Its update is ready.
+            You changed the canvas while the assistant was working. Its
+            version is ready.
           </p>
-          <div className="row">
+          <div>
             <button
               onClick={() => {
                 e.change(pending);
@@ -384,50 +635,63 @@ export function CodexPanel({
                 setPending(undefined);
               }}
             >
-              Apply agent version
+              Apply assistant version
             </button>
             <button onClick={() => setPending(undefined)}>
-              Keep current canvas
+              Keep my canvas
             </button>
           </div>
         </div>
       )}
+
       <form
+        className="chat-composer"
         onSubmit={(ev) => {
           ev.preventDefault();
           void send();
         }}
-        className="codex-composer"
       >
-        <label>
-          Model
-          <input
-            placeholder="Default model"
-            value={model}
-            disabled={busy}
-            onChange={(ev) => setModel(ev.target.value)}
-          />
-        </label>
         <textarea
           aria-label="Chat message"
           placeholder={
-            variant === "idea"
-              ? "What would you like to create?"
-              : "Ask the agent to edit this canvas…"
+            mode === "draw"
+              ? "Describe what to draw or change on the canvas"
+              : "Ask, think out loud, or write a caption"
           }
-          rows={4}
+          rows={2}
           value={prompt}
           onChange={(ev) => setPrompt(ev.target.value)}
           onKeyDown={(ev) => {
-            if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) {
+            if (
+              ev.key === "Enter" &&
+              !ev.shiftKey &&
+              !ev.nativeEvent.isComposing
+            ) {
               ev.preventDefault();
               void send();
             }
           }}
         />
-        <div className="row">
-          <span className="hint">
-            {e.selection.length} selected · Canvas attached
+        <div className="chat-composer-bar">
+          <div className="chat-mode" role="group" aria-label="Chat mode">
+            {(["discuss", "draw"] as const).map((m) => (
+              <button
+                type="button"
+                key={m}
+                aria-pressed={mode === m}
+                disabled={busy}
+                onClick={() => setMode(m)}
+              >
+                {m === "discuss" ? "Discuss" : "Draw"}
+              </button>
+            ))}
+          </div>
+          <span className="chat-hint">
+            {!desktop
+              ? "Chat runs in the desktop app"
+              : mode === "draw"
+                ? `Canvas attached · ${e.selection.length} selected`
+                : "Text only, canvas untouched"}
           </span>
           {busy ? (
             <button
@@ -441,23 +705,13 @@ export function CodexPanel({
             <button
               className="primary"
               type="submit"
-              disabled={!prompt.trim() || !isTauri() || checking}
+              disabled={!prompt.trim() || !desktop || checking}
             >
               Send
             </button>
           )}
         </div>
       </form>
-      <button
-        disabled={!isTauri()}
-        onClick={() =>
-          void invoke("reveal_workspace", { key }).catch((err) =>
-            setError(String(err)),
-          )
-        }
-      >
-        Open workspace & artifacts
-      </button>
     </section>
   );
 }

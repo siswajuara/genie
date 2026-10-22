@@ -1,4 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
+import { Connections } from '../social/Connections';
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Projects, Workspace } from "../editor/projects";
 import { Icon } from "../components/ui/Icon";
@@ -95,8 +96,7 @@ export function Schedule({
             Your plan is saved here. Connect accounts to share it.
           </strong>
           <p>
-            Posts in this version are local drafts. They will not publish
-            automatically.
+            Local drafts stay on this device until you submit them through Publish. Provider-scheduled posts are shown separately above.
           </p>
         </div>
         <button onClick={onSettings}>
@@ -505,7 +505,6 @@ export function Setting({
   notify: (message: string) => void;
 }) {
   const [section, setSection] = useState("Social accounts"),
-    [connect, setConnect] = useState<string>(),
     [checking, setChecking] = useState(false),
     [chatStatus, setChatStatus] = useState(""),
     [cliPath, setCliPath] = useState(
@@ -559,39 +558,7 @@ export function Setting({
         </nav>
         <section className="settings-content">
           {section === "Social accounts" && (
-            <>
-              <div className="panel-heading">
-                <div>
-                  <h2>Social accounts</h2>
-                  <p>Your channels are managed here.</p>
-                </div>
-                <span className="subtle-badge">0 connected</span>
-              </div>
-              <p className="settings-explanation">
-                Connect your accounts here when social integrations are
-                available. For now, you can create designs, save post drafts,
-                and plan your content.
-              </p>
-              <div className="social-account-list">
-                {platforms.map((platform) => (
-                  <div key={platform.id}>
-                    <PlatformIcon id={platform.id} size={24} />
-                    <div>
-                      <strong>{platform.name}</strong>
-                      <span>Not connected</span>
-                    </div>
-                    <button onClick={() => setConnect(platform.name)}>
-                      <Icon name="link" size={15} /> Connection details
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <p className="settings-privacy">
-                <Icon name="lock" size={16} /> Account sign-in will use each
-                platform’s authorization. You will not need to share your social
-                password here.
-              </p>
-            </>
+            <Connections/>
           )}
           {section === "Brand" && (
             <>
@@ -804,27 +771,6 @@ export function Setting({
           )}
         </section>
       </div>
-      {connect && (
-        <Dialog
-          title={`${connect} connection`}
-          description="Social account connections are not available in this version."
-          onClose={() => setConnect(undefined)}
-        >
-          <p>
-            Once available, this will open {connect} so you can authorize your
-            account. No account has been connected yet.
-          </p>
-          <p>
-            You can already prepare captions, choose media, and save planned
-            dates in Publish.
-          </p>
-          <div className="dialog-footer">
-            <button className="primary" onClick={() => setConnect(undefined)}>
-              Got it
-            </button>
-          </div>
-        </Dialog>
-      )}
     </>
   );
 }

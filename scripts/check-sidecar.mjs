@@ -40,6 +40,8 @@ try {
       timeout: 30000,
     }).trim();
   assert.equal(run(node, ["--version"]), "v" + manifest.nodeVersion);
+  for (const name of ["social-core.mjs", "social-bridge.mjs"])
+    run(node, ["--check", path.join(directory, name)]);
   const status = JSON.parse(run(node, [bridge, "--status"]));
   assert.equal(status.ok, true, status.message);
   assert.ok(

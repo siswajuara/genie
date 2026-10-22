@@ -60,6 +60,7 @@ import {
   Attachment01Icon,
   HelpCircleIcon,
   Bookmark01Icon,
+  ThreadsIcon,
 } from "@hugeicons/core-free-icons";
 
 const icons = {
@@ -123,6 +124,7 @@ const icons = {
   help: HelpCircleIcon,
   delete: Delete02Icon,
   bookmark: Bookmark01Icon,
+  threads: ThreadsIcon,
 };
 export type IconName = keyof typeof icons;
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

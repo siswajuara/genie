@@ -19,3 +19,5 @@ npm run build:ci -- --repo OWNER/REPO --ref main
 See [desktop build instructions](docs/builds.md) for installer downloads and macOS signing secrets.
 
 See [editor and integration documentation](src/README.md) for the JSON contract, controls, packaging, and checks.
+
+Buffer and Zernio connections are configured in **Setting → Social accounts**. Keys are saved in the desktop operating system credential vault. See [social integration setup](docs/social.md) for publishing, scheduling, insights, comments, and media requirements.

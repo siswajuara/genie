@@ -41,6 +41,8 @@ for (const file of [
   "codex-executable.mjs",
   "platform.mjs",
   "canvas.schema.json",
+  "social-bridge.mjs",
+  "social-core.mjs",
 ])
   await fs.copyFile(path.join(source, file), path.join(destination, file));
 await fs.writeFile(

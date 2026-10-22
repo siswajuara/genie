@@ -10,6 +10,8 @@ import {
 import { Dialog, PageIntro, PlatformIcon } from "./Shared";
 import { FramePreview, MediaPreview } from "./FramePreview";
 import { platforms, type BrandSettings, type Media, type Post } from "./store";
+import { useSocial, type PublishResult } from "../social/client";
+import { prepareSocialMedia } from "../social/media";
 
 export function Publish({
   projects: p,
@@ -33,19 +35,31 @@ export function Publish({
   notify: (message: string) => void;
 }) {
   const file = useRef<HTMLInputElement>(null);
+  const social = useSocial();
+  const [sending, setSending] = useState(false),
+    [progress, setProgress] = useState(""),
+    [results, setResults] = useState<PublishResult[]>(draft.delivery || []),
+    [mediaUrl, setMediaUrl] = useState("");
+  const uploaded = useRef(
+    new Map<string, { url: string; type: "image" | "video" }>(),
+  );
   const [mediaDialog, setMediaDialog] = useState(false),
     [connectionDialog, setConnectionDialog] = useState(false),
     [previewIndex, setPreviewIndex] = useState(0),
     [previewPlatform, setPreviewPlatform] = useState("instagram"),
     [validation, setValidation] = useState("");
   const [picking, setPicking] = useState(false);
-  const patch = (value: Partial<Post>) =>
+  const patch = (value: Partial<Post>) => {
+    setResults([]);
     setDraft((old) => ({
       ...old,
       ...value,
       status: "draft",
+      submissionId: undefined,
+      delivery: undefined,
       updatedAt: new Date().toISOString(),
     }));
+  };
   const selected =
     draft.media[Math.min(previewIndex, Math.max(0, draft.media.length - 1))];
   const frames = p.project.pages.flatMap((page) =>
@@ -89,6 +103,8 @@ export function Publish({
         ...old,
         media: [...old.media, ...media],
         status: "draft",
+        submissionId: undefined,
+        delivery: undefined,
         updatedAt: new Date().toISOString(),
       }));
     } catch (err) {
@@ -103,8 +119,21 @@ export function Publish({
       setValidation("Add media or write a caption first.");
       return;
     }
-    if (!draft.platforms.length) {
-      setValidation("Choose at least one social channel.");
+    if (!draft.accountKeys?.length) {
+      setValidation("Choose at least one connected account.");
+      return;
+    }
+    if (
+      draft.accountKeys.some(
+        (key) =>
+          !social.accounts.some(
+            (account) => account.key === key && account.active,
+          ),
+      )
+    ) {
+      setValidation(
+        "A selected account is disconnected. Refresh your accounts in Setting.",
+      );
       return;
     }
     if (draft.timing === "schedule") {
@@ -120,10 +149,87 @@ export function Publish({
         setValidation("Choose a date and time in the future.");
         return;
       }
-      onSave("planned");
-    } else {
-      onSave("draft");
-      setConnectionDialog(true);
+    }
+    if (!draft.caption.trim()) {
+      setValidation("Write a caption before submitting.");
+      return;
+    }
+    if (draft.delivery?.some((result) => result.success || result.uncertain)) {
+      setValidation(
+        "This draft already has delivery results. Refresh Schedule before starting a new submission.",
+      );
+      return;
+    }
+    setConnectionDialog(true);
+  }
+  async function publish() {
+    if (sending) return;
+    setSending(true);
+    setValidation("");
+    setResults([]);
+    const requestId = draft.submissionId || crypto.randomUUID();
+    setDraft((old) => ({ ...old, submissionId: requestId }));
+    try {
+      const media = [];
+      for (const [index, item] of draft.media.entries()) {
+        setProgress(`Preparing media ${index + 1} of ${draft.media.length}…`);
+        const key =
+          JSON.stringify(item) +
+          (item.kind === "frame"
+            ? p.workspace.projects
+                .find((project) => project.id === item.projectId)
+                ?.pages.find((page) => page.id === item.pageId)?.canvas.metadata
+                .updatedAt
+            : "");
+        let prepared = uploaded.current.get(key);
+        if (!prepared) {
+          prepared = await prepareSocialMedia(
+            item,
+            p.workspace,
+            social.config.zernio.configured,
+          );
+          uploaded.current.set(key, prepared);
+        }
+        media.push(prepared);
+      }
+      setProgress(
+        draft.timing === "now"
+          ? "Submitting your post…"
+          : "Scheduling your post…",
+      );
+      const response = await social.request<{ results: PublishResult[] }>(
+        "publish",
+        {
+          requestId,
+          content: draft.caption,
+          mode: draft.timing,
+          accountKeys: draft.accountKeys,
+          media,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ...(draft.timing === "schedule"
+            ? {
+                scheduledFor: new Date(
+                  `${draft.date}T${draft.time}:00`,
+                ).toISOString(),
+              }
+            : {}),
+        },
+      );
+      setResults(response.results);
+      setDraft((old) => ({ ...old, delivery: response.results }));
+      notify(
+        response.results.every((r) => r.success)
+          ? draft.timing === "now"
+            ? "Post accepted by your social providers. Check Schedule for delivery status."
+            : "Post scheduled with your social providers."
+          : "Some channels need attention. Review the individual results before retrying.",
+      );
+      setConnectionDialog(false);
+    } catch (err) {
+      setValidation(String(err));
+    } finally {
+      setSending(false);
+      setProgress("");
     }
   }
   function toggleFrame(pageId: string, frameId: string, name: string) {
@@ -165,7 +271,7 @@ export function Publish({
         }
       />
       <div className="publish-layout">
-        <section className="publish-editor">
+        <section className="publish-editor" inert={sending}>
           <div className="publish-step">
             <div className="step-heading">
               <span>1</span>
@@ -272,6 +378,48 @@ export function Publish({
               />
             </label>
             <div className="caption-label">
+              <div className="public-media-url">
+                <input
+                  aria-label="Public media URL"
+                  type="url"
+                  value={mediaUrl}
+                  onChange={(ev) => setMediaUrl(ev.target.value)}
+                  placeholder="Public HTTPS image/video URL"
+                />
+                <button
+                  onClick={() => {
+                    try {
+                      const url = new URL(mediaUrl);
+                      if (
+                        url.protocol !== "https:" ||
+                        url.username ||
+                        url.password
+                      )
+                        throw Error("Use a public HTTPS URL.");
+                      patch({
+                        media: [
+                          ...draft.media,
+                          {
+                            id: crypto.randomUUID(),
+                            kind: /\.(mp4|mov|webm)(?:[?#]|$)/i.test(url.href)
+                              ? "video"
+                              : "image",
+                            src: url.href,
+                            name:
+                              url.pathname.split("/").at(-1) || "Linked media",
+                          },
+                        ],
+                      });
+                      setMediaUrl("");
+                    } catch (err) {
+                      setValidation(String(err));
+                    }
+                  }}
+                  disabled={!mediaUrl.trim()}
+                >
+                  Add URL
+                </button>
+              </div>
               <label htmlFor="post-caption">Caption</label>
               <button onClick={onIdea}>
                 <Icon name="idea" size={15} /> Write with Idea
@@ -320,33 +468,52 @@ export function Publish({
               </div>
             </div>
             <div className="channel-choices">
-              {platforms.map((platform) => (
-                <button
-                  key={platform.id}
-                  className={
-                    draft.platforms.includes(platform.id) ? "chosen" : ""
-                  }
-                  aria-pressed={draft.platforms.includes(platform.id)}
-                  onClick={() => {
-                    patch({
-                      platforms: draft.platforms.includes(platform.id)
-                        ? draft.platforms.filter((id) => id !== platform.id)
-                        : [...draft.platforms, platform.id],
-                    });
-                    setPreviewPlatform(platform.id);
-                  }}
-                >
-                  <PlatformIcon id={platform.id} size={20} />
-                  <span>{platform.name}</span>
-                  {draft.platforms.includes(platform.id) && (
-                    <Icon name="check" size={15} />
-                  )}
-                </button>
-              ))}
+              {social.accounts
+                .filter((account) => account.active)
+                .map((account) => (
+                  <button
+                    key={account.key}
+                    className={
+                      draft.accountKeys?.includes(account.key) ? "chosen" : ""
+                    }
+                    aria-pressed={!!draft.accountKeys?.includes(account.key)}
+                    onClick={() => {
+                      const keys = draft.accountKeys?.includes(account.key)
+                        ? draft.accountKeys.filter((key) => key !== account.key)
+                        : [...(draft.accountKeys || []), account.key];
+                      patch({
+                        accountKeys: keys,
+                        platforms: [
+                          ...new Set(
+                            social.accounts
+                              .filter((a) => keys.includes(a.key))
+                              .map((a) => a.platform),
+                          ),
+                        ],
+                      });
+                      setPreviewPlatform(account.platform);
+                    }}
+                  >
+                    <PlatformIcon id={account.platform} size={20} />
+                    <span>
+                      {account.name}
+                      <small className="account-provider-label">
+                        {account.platform} · {account.provider}
+                      </small>
+                    </span>
+                    {draft.accountKeys?.includes(account.key) && (
+                      <Icon name="check" size={15} />
+                    )}
+                  </button>
+                ))}
             </div>
             <div className="connection-inline">
               <Icon name="link" size={16} />
-              <span>No accounts connected yet.</span>
+              <span>
+                {social.accounts.length
+                  ? `${social.accounts.filter((a) => a.active).length} connected accounts available.`
+                  : "No accounts connected yet."}
+              </span>
               <button onClick={onSettings}>Manage accounts</button>
             </div>
           </div>
@@ -434,9 +601,10 @@ export function Publish({
               </div>
             )}
             <p className="local-plan-note">
-              This version saves drafts and planned dates on your device.
-              Connecting accounts and sending posts to social media will be
-              available in a future update.
+              Drafts stay on this device. Publishing and scheduling send the
+              post to selected providers after you confirm. Local media and
+              Canvas frames upload through Zernio; public HTTPS URLs work with
+              either provider.
             </p>
             {validation && (
               <p className="publish-validation" role="alert">
@@ -445,16 +613,40 @@ export function Publish({
             )}
             <div className="publish-submit">
               <button onClick={() => onSave("draft")}>Save draft</button>
-              <button className="primary" onClick={submit}>
+              <button className="primary" disabled={sending} onClick={submit}>
                 <Icon
                   name={draft.timing === "schedule" ? "calendar" : "publish"}
                   size={17}
                 />
-                {draft.timing === "schedule"
-                  ? "Schedule draft"
-                  : "Prepare to publish"}
+                {draft.timing === "schedule" ? "Schedule post" : "Publish now"}
               </button>
             </div>
+            {progress && <p role="status">{progress}</p>}
+            {results.length > 0 && (
+              <div className="delivery-results" aria-label="Delivery results">
+                {results.map((result) => (
+                  <div
+                    className={result.success ? "success" : "error"}
+                    key={result.accountKey}
+                  >
+                    <strong>
+                      {result.accountName} · {result.provider}
+                    </strong>
+                    <span>
+                      {result.success
+                        ? `Accepted · ${result.status || "processing"}`
+                        : result.error}
+                    </span>
+                    {result.uncertain && (
+                      <p>
+                        Result uncertain. Refresh Schedule and check the
+                        provider before starting another submission.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
         <aside className="publish-preview">
@@ -627,17 +819,59 @@ export function Publish({
       )}
       {connectionDialog && (
         <Dialog
-          title="Your draft is ready. Connect next."
-          description="Your post has been saved. Sending it to social media is not available in this version, so nothing has been published."
-          onClose={() => setConnectionDialog(false)}
+          title={
+            draft.timing === "now"
+              ? "Publish this post now?"
+              : "Schedule this post?"
+          }
+          description={
+            draft.timing === "now"
+              ? "This sends the post to the accounts below now."
+              : "Your provider will publish this post at the selected date and time, even when this app is closed."
+          }
+          onClose={() => {
+            if (!sending) setConnectionDialog(false);
+          }}
         >
-          <p>You can keep preparing posts and planning dates in Schedule.</p>
+          <p>{draft.caption}</p>
+          <ul>
+            {social.accounts
+              .filter((a) => draft.accountKeys?.includes(a.key))
+              .map((account) => (
+                <li key={account.key}>
+                  {account.name} · {account.platform} · {account.provider}
+                </li>
+              ))}
+          </ul>
+          <p>
+            {draft.media.length} media items
+            {draft.timing === "schedule"
+              ? ` · ${draft.date} at ${draft.time} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`
+              : ""}
+          </p>
+          {progress && <p role="status">{progress}</p>}
+          {validation && (
+            <p className="error" role="alert">
+              {validation}
+            </p>
+          )}
           <div className="dialog-footer">
-            <button onClick={() => setConnectionDialog(false)}>
+            <button
+              disabled={sending}
+              onClick={() => setConnectionDialog(false)}
+            >
               Keep editing
             </button>
-            <button className="primary" onClick={onSettings}>
-              View social accounts
+            <button
+              className="primary"
+              disabled={sending}
+              onClick={() => void publish()}
+            >
+              {sending
+                ? "Sending…"
+                : draft.timing === "now"
+                  ? "Confirm & publish"
+                  : "Confirm & schedule"}
             </button>
           </div>
         </Dialog>

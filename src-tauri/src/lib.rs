@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+mod social;
 use std::{collections::HashMap, fs, io::{BufRead, BufReader, Read, Write}, path::PathBuf, process::{Child, ChildStdin, Command, Stdio}, sync::{Arc, Mutex}, time::{SystemTime, UNIX_EPOCH}};
 use tauri::{ipc::{Channel, InvokeBody, Request}, Manager, State};
 #[derive(Default)]
@@ -103,7 +104,8 @@ fn reveal_workspace(app:tauri::AppHandle,key:String)->Result<(),String>{
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(tauri_plugin_dialog::init()).manage(Runs::default())
-        .invoke_handler(tauri::generate_handler![save_export,codex_run,codex_status,cancel_run,reveal_workspace])
+        .manage(social::SocialLock::default())
+        .invoke_handler(tauri::generate_handler![save_export,codex_run,codex_status,cancel_run,reveal_workspace,social::social_settings,social::social_request])
         .on_window_event(|window,event|{if matches!(event,tauri::WindowEvent::Destroyed){for run in window.state::<Runs>().0.lock().unwrap().values(){let _=writeln!(run.stdin.lock().unwrap(),"{{\"type\":\"cancel\"}}");let _=run.child.lock().unwrap().kill();}}})
         .run(tauri::generate_context!()).expect("error while running tauri application");
 }

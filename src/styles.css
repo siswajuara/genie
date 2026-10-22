@@ -37,7 +37,7 @@ textarea {
   padding: 7px 10px;
   min-width: 0;
 }
-button:hover:not(:disabled) {
+button:hover:not(:disabled):not(.primary) {
   border-color: var(--accent);
   background: var(--hover);
 }
@@ -58,8 +58,10 @@ button.primary {
   border-color: var(--accent);
   color: white;
 }
-button.primary:hover {
-  filter: brightness(1.1);
+button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, #000);
+  border-color: color-mix(in srgb, var(--accent) 88%, #000);
+  color: white;
 }
 button.danger,
 .error {

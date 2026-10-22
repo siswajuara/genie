@@ -14,6 +14,7 @@ export const platforms: {
   { id: "linkedin", name: "LinkedIn", icon: "linkedin", color: "#0a66a2" },
   { id: "youtube", name: "YouTube", icon: "youtube", color: "#c42b30" },
   { id: "x", name: "X", icon: "x", color: "#424252" },
+  { id: "threads", name: "Threads", icon: "threads", color: "#424252" },
 ];
 export type Media = {
   id: string;
@@ -32,6 +33,9 @@ export type Post = {
   caption: string;
   media: Media[];
   platforms: string[];
+  accountKeys?: string[];
+  submissionId?: string;
+  delivery?: {provider:'buffer'|'zernio';accountKey:string;accountName:string;success:boolean;id?:string;status?:string;error?:string;uncertain?:boolean}[];
   timing: "now" | "schedule";
   date?: string;
   time: string;
