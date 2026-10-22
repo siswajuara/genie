@@ -1,6 +1,18 @@
-# Siswa Juara Canvas Studio
+# Siswa Juara Marketing Workspace
 
 React editor ported from `reference/siswa-juara-editor.html`. The 13 templates and five object presets live in `editor/presets.json`; the reference drawing routines live in `editor/reference-renderer.js`.
+
+## Marketing modules
+
+The app opens in **Idea** with a fresh chat. Its icon sidebar contains **Idea, Publish, Schedule, Insight, Community, and Setting**. Idea combines new conversations and chat history: choose Conversations to view the list, or New chat to start another. Hover or focus a sidebar icon to read its label and purpose. **Canvas** opens from Idea or a conversation; it has no marketing sidebar, and its Back to Idea button returns to the conversation list. The page editor stays mounted across module changes, preserving the current document and undo history.
+
+Idea uses the existing desktop assistant with marketing prompt starters and a preview of the current Canvas. Its conversation list indexes both Idea and Canvas conversations, including previously saved page chats. Conversations retain links to their project/page and can reopen in Idea or Canvas. Starting a new conversation archives the previous one. Idea views use `#idea/new`, `#idea/list`, and `#idea/conversation`; old `#chat` links open the Idea conversation list.
+
+Publish supports multiple Canvas frames, uploaded images/videos, a caption, media descriptions, channel choices, a live visual preview, and local date/time planning. Drafts and planned posts persist in local storage and can be filtered, edited, or removed in Schedule. They are **not sent to social media**. Uploads are limited to 8 MB per file while draft storage is local; storage failures remain visible.
+
+Insight and Community provide channel/date/status controls and honest empty states. Setting includes account connection details, brand information, theme preferences, Canvas project backups, and assistant connection settings. Social authorization, live publishing, automatic scheduling, analytics, and comment APIs are not implemented in this interface phase. No mock metrics or comments are presented as real data.
+
+Marketing components live in `marketing/`. Marketing state uses `genie.marketing.*`; archived conversations use `genie.conversation.*` alongside the existing `genie.chat.<project>-<page>` page conversation pointer. Existing Canvas storage formats are unchanged.
 
 ## Run
 
@@ -16,7 +28,7 @@ Development requires Node and an installed official Codex CLI. Packaged desktop 
 
 ## Projects and pages
 
-The tabs are **Chat | Editor | Debug**. Editor contains Elements and Templates.
+Inside Canvas, the tabs are **Chat | Editor | Debug**. Editor contains Elements and Templates.
 
 Use the header selector to switch projects and `+ Project` to create one. Project settings support rename, duplicate, deletion, and a JSON export of all projects. Each project has pages in the bar below the header. `+ Page` creates an empty canvas; Page settings support rename, duplicate, and deletion. The final project or page cannot be deleted. Deletion requires confirmation.
 

@@ -3,6 +3,7 @@ import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
 import ReactMarkdown from "react-markdown";
 import { parseDocument, uid, type CanvasDocument } from "../editor/model";
 import type { Editor } from "../editor/useEditor";
+import { chatEvent } from "../marketing/store";
 type Message = {
   id: string;
   role: "user" | "assistant" | "tool";
@@ -34,21 +35,44 @@ type Event = {
 export function CodexPanel({
   editor: e,
   scope,
+  variant = "canvas",
+  promptSeed,
+  startFresh = false,
 }: {
   editor: Editor;
   scope: string;
+  variant?: "canvas" | "idea";
+  promptSeed?: { id: string; text: string };
+  startFresh?: boolean;
 }) {
   const storageKey = `genie.chat.${scope}`;
   const [initial] = useState<SavedChat>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
-      if (saved?.key && Array.isArray(saved.messages)) return saved;
+      if (saved?.key && Array.isArray(saved.messages)) {
+        if (!startFresh) return saved;
+        if (saved.messages.length)
+          localStorage.setItem(
+            `genie.conversation.${saved.key}`,
+            JSON.stringify({
+              ...saved,
+              scope,
+              updatedAt: new Date().toISOString(),
+            }),
+          );
+      }
     } catch {
       /* Start a new page conversation when its saved chat is invalid. */
     }
     return { key: uid(), messages: [] };
   });
-  const [prompt, setPrompt] = useState(""),
+  const [prompt, setPrompt] = useState(() => {
+      try {
+        return localStorage.getItem(`genie.chat.draft.${initial.key}`) || "";
+      } catch {
+        return "";
+      }
+    }),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [model, setModel] = useState("");
@@ -68,10 +92,34 @@ export function CodexPanel({
   latest.current = e;
   useEffect(() => {
     try {
+      if (prompt) localStorage.setItem(`genie.chat.draft.${key}`, prompt);
+      else localStorage.removeItem(`genie.chat.draft.${key}`);
+    } catch {
+      setError("Your unsent message could not be saved on this device.");
+    }
+  }, [prompt, key]);
+  useEffect(() => {
+    if (promptSeed) setPrompt(promptSeed.text);
+  }, [promptSeed]);
+  useEffect(() => {
+    try {
       localStorage.setItem(
         storageKey,
         JSON.stringify({ key, thread, messages }),
       );
+      if (messages.length) {
+        localStorage.setItem(
+          `genie.conversation.${key}`,
+          JSON.stringify({
+            key,
+            thread,
+            messages,
+            scope,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
+        window.dispatchEvent(new Event(chatEvent));
+      }
     } catch {
       setError("Chat storage is full. Save a JSON backup of your project.");
     }
@@ -212,15 +260,18 @@ export function CodexPanel({
       }
   }
   return (
-    <section className="codex-chat">
+    <section
+      className={`codex-chat ${variant === "idea" ? "idea-conversation" : ""}`}
+    >
       <div className="section-title">
-        <h2>Chat</h2>
+        <h2>{variant === "idea" ? "Your conversation" : "Chat"}</h2>
         <button
           disabled={busy}
           onClick={() => {
             setKey(uid());
             setThread(undefined);
             setMessages([]);
+            setPrompt("");
             setError("");
             setPending(undefined);
           }}
@@ -229,8 +280,9 @@ export function CodexPanel({
         </button>
       </div>
       <p className="hint">
-        Ask the agent to edit this page’s canvas, selected elements, or carousel
-        frames. Each page has its own conversation.
+        {variant === "idea"
+          ? "Talk through an idea, write a caption, or turn a topic into a design. Your conversation stays linked to this canvas."
+          : "Ask the agent to edit this page’s canvas, selected elements, or carousel frames. Each page has its own conversation."}
       </p>
       {!isTauri() && (
         <p className="connection-note">
@@ -286,10 +338,15 @@ export function CodexPanel({
       <div className="codex-messages" aria-live="polite">
         {!messages.length && (
           <div className="empty">
-            <strong>Design with your canvas</strong>
+            <strong>
+              {variant === "idea"
+                ? "Start with a rough idea"
+                : "Design with your canvas"}
+            </strong>
             <p>
-              Try “Create five carousel slides using this frame” or “Update the
-              title on slide 2.”
+              {variant === "idea"
+                ? "Describe your topic, audience, and what you want your post to achieve. You can open Canvas whenever you are ready."
+                : "Try “Create five carousel slides using this frame” or “Update the title on slide 2.”"}
             </p>
           </div>
         )}
@@ -353,7 +410,11 @@ export function CodexPanel({
         </label>
         <textarea
           aria-label="Chat message"
-          placeholder="Ask the agent to edit this canvas…"
+          placeholder={
+            variant === "idea"
+              ? "What would you like to create?"
+              : "Ask the agent to edit this canvas…"
+          }
           rows={4}
           value={prompt}
           onChange={(ev) => setPrompt(ev.target.value)}

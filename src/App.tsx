@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Canvas } from "./editor/Canvas";
 import { Inspector } from "./editor/Inspector";
 import { useEditor } from "./editor/useEditor";
@@ -20,6 +20,12 @@ import { SelectField } from "./components/ui/Controls";
 import { Icon, type IconName } from "./components/ui/Icon";
 import { drawElement } from "./editor/reference-renderer";
 import { ensureDocumentFonts } from "./lib/fonts";
+import {
+  MarketingWorkspace,
+  type IdeaView,
+  type Module,
+} from "./marketing/MarketingWorkspace";
+import type { Editor } from "./editor/useEditor";
 
 const elementIcons: Record<string, IconName> = {
   Text: "text",
@@ -33,16 +39,92 @@ const elementIcons: Record<string, IconName> = {
   Curve: "curve",
   "Image slot": "image",
 };
+const modules: Module[] = [
+  "Idea",
+  "Canvas",
+  "Publish",
+  "Schedule",
+  "Insight",
+  "Community",
+  "Setting",
+];
+const currentModule = () =>
+  modules.find(
+    (module) =>
+      `#${module.toLowerCase()}` === window.location.hash.split("/")[0],
+  ) || "Idea";
+const currentIdeaView = (): IdeaView =>
+  window.location.hash === "#chat" || window.location.hash === "#idea/list"
+    ? "list"
+    : window.location.hash === "#idea/conversation"
+      ? "conversation"
+      : "new";
 
 export default function App() {
   const projects = useProjects();
   const [tab, setTab] = useState("Editor");
+  const [module, setRoute] = useState<Module>(currentModule);
+  const [ideaView, setIdeaView] = useState<IdeaView>(currentIdeaView);
+  useEffect(() => {
+    const onHash = () => {
+      setRoute(currentModule());
+      setIdeaView(currentIdeaView());
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  function setModule(next: Module, view: IdeaView = "list") {
+    setRoute(next);
+    if (next === "Idea") setIdeaView(view);
+    const hash = next === "Idea" ? `#idea/${view}` : `#${next.toLowerCase()}`;
+    if (window.location.hash !== hash) window.location.hash = hash;
+  }
   return (
-    <WorkspacePage
+    <PageSession
       key={`${projects.page.id}:${projects.importRevision}`}
       projects={projects}
       tab={tab}
       setTab={setTab}
+      module={module}
+      setModule={setModule}
+      ideaView={ideaView}
+    />
+  );
+}
+function PageSession({
+  projects,
+  tab,
+  setTab,
+  module,
+  setModule,
+  ideaView,
+}: {
+  projects: Projects;
+  tab: string;
+  setTab: (tab: string) => void;
+  module: Module;
+  setModule: (module: Module, view?: IdeaView) => void;
+  ideaView: IdeaView;
+}) {
+  const editor = useEditor(projects.page.canvas, (canvas) =>
+    projects.updatePage(projects.page.id, canvas),
+  );
+  return (
+    <MarketingWorkspace
+      projects={projects}
+      editor={editor}
+      module={module}
+      setModule={setModule}
+      ideaView={ideaView}
+      renderCanvas={(onBack) => (
+        <WorkspacePage
+          projects={projects}
+          editor={editor}
+          tab={tab}
+          setTab={setTab}
+          onBack={onBack}
+        />
+      )}
     />
   );
 }
@@ -50,14 +132,15 @@ function WorkspacePage({
   projects: p,
   tab,
   setTab,
+  editor: e,
+  onBack,
 }: {
   projects: Projects;
   tab: string;
   setTab: (tab: string) => void;
+  editor: Editor;
+  onBack: () => void;
 }) {
-  const e = useEditor(p.page.canvas, (canvas) =>
-    p.updatePage(p.page.id, canvas),
-  );
   async function download(value: string, filename: string) {
     try {
       e.notify(
@@ -74,7 +157,7 @@ function WorkspacePage({
   }
   const [editorTab, setEditorTab] = useState("Elements");
   const [zen, setZen] = useState(false),
-                [exporting, setExporting] = useState(false),
+    [exporting, setExporting] = useState(false),
     [json, setJson] = useState(""),
     [name, setName] = useState(""),
     [search, setSearch] = useState("");
@@ -236,10 +319,13 @@ function WorkspacePage({
   return (
     <div className="studio" data-theme={theme}>
       <header className="studio-header">
+        <button className="canvas-back" onClick={onBack}>
+          <Icon name="left" size={17} /> Back to Idea
+        </button>
         <div className="wordmark">
           <span className="brand-mark">SJ</span>
           <span>
-            Siswa Juara <small>Canvas studio</small>
+            Siswa Juara <small>Canvas</small>
           </span>
         </div>
         <div className="project-switcher">
@@ -289,8 +375,16 @@ function WorkspacePage({
         </div>
         <div className="row">
           <button
-            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-            title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+            aria-label={
+              theme === "light"
+                ? "Switch to dark theme"
+                : "Switch to light theme"
+            }
+            title={
+              theme === "light"
+                ? "Switch to dark theme"
+                : "Switch to light theme"
+            }
             onClick={() => {
               const next = theme === "light" ? "dark" : "light";
               setTheme(next);
@@ -335,270 +429,276 @@ function WorkspacePage({
       <main className={`studio-main ${zen ? "zen" : ""}`}>
         {!zen && (
           <aside className="library">
-          <div
-            className="library-tabs"
-            role="tablist"
-            aria-label="Workspace tools"
-          >
-            {["Chat", "Editor", "Debug"].map((t) => (
-              <button
-                role="tab"
-                aria-selected={tab === t}
-                key={t}
-                onClick={() => setTab(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <div
-            className={`library-content ${tab === "Chat" ? "chat-content" : ""}`}
-          >
-            {tab === "Editor" && (
-              <>
-                <div
-                  className="editor-tabs"
-                  role="tablist"
-                  aria-label="Editor library"
+            <div
+              className="library-tabs"
+              role="tablist"
+              aria-label="Workspace tools"
+            >
+              {["Chat", "Editor", "Debug"].map((t) => (
+                <button
+                  role="tab"
+                  aria-selected={tab === t}
+                  key={t}
+                  onClick={() => setTab(t)}
                 >
-                  {["Elements", "Templates"].map((t) => (
-                    <button
-                      key={t}
-                      role="tab"
-                      aria-selected={editorTab === t}
-                      onClick={() => setEditorTab(t)}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                {editorTab === "Elements" ? (
-                  <>
-                    <div className="section-title">
-                      <h2>Frames</h2>
-                    </div>
-                    <div className="format-grid">
-                      {[
-                        ["Post 4:5", 1122, 1402],
-                        ["Story 9:16", 940, 1672],
-                        ["Square", 1080, 1080],
-                        ["Wide 16:9", 1280, 720],
-                      ].map(([n, w, h]) => (
-                        <button
-                          key={n}
-                          onClick={() =>
-                            e.addFrame(
-                              Number(w),
-                              Number(h),
-                              `${n} ${artboards.length + 1}`,
-                            )
-                          }
-                        >
-                          <span
-                            className="format-preview"
-                            style={{ aspectRatio: `${w}/${h}` }}
-                          />
-                          <span>{n}</span>
-                          <small>
-                            {w} × {h}
-                          </small>
-                        </button>
-                      ))}
-                    </div>
-                    <h2 className="section-heading">Elements</h2>
-                    <div className="element-grid">
-                      {elementKinds.map((kind) => (
-                        <button
-                          draggable
-                          key={kind}
-                          aria-label={kind}
-                          onDragStart={(ev) =>
-                            ev.dataTransfer.setData("genie/element", kind)
-                          }
-                          onClick={() => e.add(makeElement(kind))}
-                        >
-                          <span aria-hidden="true" className="element-symbol">
-                            <Icon name={elementIcons[kind]} size={25} />
-                          </span>
-                          {kind}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="section-title">
-                      <h2>Templates & presets</h2>
-                      <span>{all.length}</span>
-                    </div>
-                    <input
-                      className="full"
-                      placeholder="Search templates"
-                      aria-label="Search templates"
-                      value={search}
-                      onChange={(ev) => setSearch(ev.target.value)}
-                    />
-                    <div className="template-list">
-                      {all
-                        .filter((preset) =>
-                          preset.name
-                            .toLowerCase()
-                            .includes(search.toLowerCase()),
-                        )
-                        .map((preset, i) => (
-                          <article
-                            className="template-card"
-                            key={preset.name + i}
-                          >
-                            <div className="template-icon">
-                              <Icon
-                                name={
-                                  preset.kind === "template" ? "layers" : "text"
-                                }
-                                size={24}
-                              />
-                            </div>
-                            <div>
-                              <strong>{preset.name}</strong>
-                              <small>
-                                {preset.kind === "template"
-                                  ? `${preset.W} × ${preset.H}`
-                                  : `${preset.objects.length} elements`}
-                                {preset.b ? " · Built-in" : " · Saved"}
-                              </small>
-                            </div>
-                            <div className="row">
-                              <button onClick={() => e.template(preset)}>
-                                Add
-                              </button>
-                              {preset.kind === "template" && (
-                                <button
-                                  disabled={!e.frame}
-                                  onClick={() => e.template(preset, true)}
-                                >
-                                  Replace frame
-                                </button>
-                              )}
-                              {!preset.b && (
-                                <button
-                                  className="danger"
-                                  onClick={() =>
-                                    savePresets(
-                                      saved.filter((s) => s !== preset),
-                                    )
-                                  }
-                                >
-                                  Delete
-                                </button>
-                              )}
-                            </div>
-                          </article>
-                        ))}
-                    </div>
-                    <h3>Save a preset</h3>
-                    <input
-                      className="full"
-                      aria-label="Preset name"
-                      placeholder="Preset name"
-                      value={name}
-                      onChange={(ev) => setName(ev.target.value)}
-                    />
-                    <div className="row section-actions">
-                      <button onClick={() => savePreset("object")}>
-                        Save selection
-                      </button>
-                      <button onClick={() => savePreset("template")}>
-                        Save frame
-                      </button>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-            <div hidden={tab !== "Chat"} className="codex-wrapper">
-              <CodexPanel editor={e} scope={`${p.project.id}-${p.page.id}`} />
+                  {t}
+                </button>
+              ))}
             </div>
-            {tab === "Debug" && (
-              <>
-                <h2>Canvas JSON</h2>
-                <p className="hint">
-                  Current page: {p.page.name}. Edit metadata and elements,
-                  import presets, or export a backup of all projects and pages.
-                </p>
-                <div className="row section-actions">
-                  <button
-                    onClick={() => setJson(JSON.stringify(e.doc, null, 2))}
+            <div
+              className={`library-content ${tab === "Chat" ? "chat-content" : ""}`}
+            >
+              {tab === "Editor" && (
+                <>
+                  <div
+                    className="editor-tabs"
+                    role="tablist"
+                    aria-label="Editor library"
                   >
-                    Read canvas
-                  </button>
-                  <button
-                    onClick={() => {
-                      try {
-                        setJson(
-                          JSON.stringify(
-                            e.preset("template", e.frame?.n || "Frame"),
-                            null,
-                            2,
-                          ),
-                        );
-                      } catch (err) {
-                        e.notify(String(err));
+                    {["Elements", "Templates"].map((t) => (
+                      <button
+                        key={t}
+                        role="tab"
+                        aria-selected={editorTab === t}
+                        onClick={() => setEditorTab(t)}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  {editorTab === "Elements" ? (
+                    <>
+                      <div className="section-title">
+                        <h2>Frames</h2>
+                      </div>
+                      <div className="format-grid">
+                        {[
+                          ["Post 4:5", 1122, 1402],
+                          ["Story 9:16", 940, 1672],
+                          ["Square", 1080, 1080],
+                          ["Wide 16:9", 1280, 720],
+                        ].map(([n, w, h]) => (
+                          <button
+                            key={n}
+                            onClick={() =>
+                              e.addFrame(
+                                Number(w),
+                                Number(h),
+                                `${n} ${artboards.length + 1}`,
+                              )
+                            }
+                          >
+                            <span
+                              className="format-preview"
+                              style={{ aspectRatio: `${w}/${h}` }}
+                            />
+                            <span>{n}</span>
+                            <small>
+                              {w} × {h}
+                            </small>
+                          </button>
+                        ))}
+                      </div>
+                      <h2 className="section-heading">Elements</h2>
+                      <div className="element-grid">
+                        {elementKinds.map((kind) => (
+                          <button
+                            draggable
+                            key={kind}
+                            aria-label={kind}
+                            onDragStart={(ev) =>
+                              ev.dataTransfer.setData("genie/element", kind)
+                            }
+                            onClick={() => e.add(makeElement(kind))}
+                          >
+                            <span aria-hidden="true" className="element-symbol">
+                              <Icon name={elementIcons[kind]} size={25} />
+                            </span>
+                            {kind}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="section-title">
+                        <h2>Templates & presets</h2>
+                        <span>{all.length}</span>
+                      </div>
+                      <input
+                        className="full"
+                        placeholder="Search templates"
+                        aria-label="Search templates"
+                        value={search}
+                        onChange={(ev) => setSearch(ev.target.value)}
+                      />
+                      <div className="template-list">
+                        {all
+                          .filter((preset) =>
+                            preset.name
+                              .toLowerCase()
+                              .includes(search.toLowerCase()),
+                          )
+                          .map((preset, i) => (
+                            <article
+                              className="template-card"
+                              key={preset.name + i}
+                            >
+                              <div className="template-icon">
+                                <Icon
+                                  name={
+                                    preset.kind === "template"
+                                      ? "layers"
+                                      : "text"
+                                  }
+                                  size={24}
+                                />
+                              </div>
+                              <div>
+                                <strong>{preset.name}</strong>
+                                <small>
+                                  {preset.kind === "template"
+                                    ? `${preset.W} × ${preset.H}`
+                                    : `${preset.objects.length} elements`}
+                                  {preset.b ? " · Built-in" : " · Saved"}
+                                </small>
+                              </div>
+                              <div className="row">
+                                <button onClick={() => e.template(preset)}>
+                                  Add
+                                </button>
+                                {preset.kind === "template" && (
+                                  <button
+                                    disabled={!e.frame}
+                                    onClick={() => e.template(preset, true)}
+                                  >
+                                    Replace frame
+                                  </button>
+                                )}
+                                {!preset.b && (
+                                  <button
+                                    className="danger"
+                                    onClick={() =>
+                                      savePresets(
+                                        saved.filter((s) => s !== preset),
+                                      )
+                                    }
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </article>
+                          ))}
+                      </div>
+                      <h3>Save a preset</h3>
+                      <input
+                        className="full"
+                        aria-label="Preset name"
+                        placeholder="Preset name"
+                        value={name}
+                        onChange={(ev) => setName(ev.target.value)}
+                      />
+                      <div className="row section-actions">
+                        <button onClick={() => savePreset("object")}>
+                          Save selection
+                        </button>
+                        <button onClick={() => savePreset("template")}>
+                          Save frame
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              <div hidden={tab !== "Chat"} className="codex-wrapper">
+                <CodexPanel editor={e} scope={`${p.project.id}-${p.page.id}`} />
+              </div>
+              {tab === "Debug" && (
+                <>
+                  <h2>Canvas JSON</h2>
+                  <p className="hint">
+                    Current page: {p.page.name}. Edit metadata and elements,
+                    import presets, or export a backup of all projects and
+                    pages.
+                  </p>
+                  <div className="row section-actions">
+                    <button
+                      onClick={() => setJson(JSON.stringify(e.doc, null, 2))}
+                    >
+                      Read canvas
+                    </button>
+                    <button
+                      onClick={() => {
+                        try {
+                          setJson(
+                            JSON.stringify(
+                              e.preset("template", e.frame?.n || "Frame"),
+                              null,
+                              2,
+                            ),
+                          );
+                        } catch (err) {
+                          e.notify(String(err));
+                        }
+                      }}
+                    >
+                      Read frame
+                    </button>
+                    <button
+                      onClick={() => {
+                        try {
+                          setJson(
+                            JSON.stringify(
+                              e.preset("object", "Selection"),
+                              null,
+                              2,
+                            ),
+                          );
+                        } catch (err) {
+                          e.notify(String(err));
+                        }
+                      }}
+                    >
+                      Read selection
+                    </button>
+                    <button
+                      onClick={() =>
+                        setJson(JSON.stringify(p.workspace, null, 2))
                       }
-                    }}
-                  >
-                    Read frame
-                  </button>
-                  <button
-                    onClick={() => {
-                      try {
-                        setJson(
-                          JSON.stringify(
-                            e.preset("object", "Selection"),
-                            null,
-                            2,
-                          ),
-                        );
-                      } catch (err) {
-                        e.notify(String(err));
-                      }
-                    }}
-                  >
-                    Read selection
-                  </button>
-                  <button
-                    onClick={() =>
-                      setJson(JSON.stringify(p.workspace, null, 2))
-                    }
-                  >
-                    Read projects
-                  </button>
-                  <button onClick={() => jsonInput.current?.click()}>
-                    Open .json
-                  </button>
-                </div>
-                <textarea
-                  className="json-editor"
-                  spellCheck={false}
-                  aria-label="Canvas or preset JSON"
-                  value={json}
-                  onChange={(ev) => setJson(ev.target.value)}
-                  placeholder="Read the canvas or paste JSON here"
-                />
-                <div className="row">
-                  <button className="primary" onClick={() => importJSON(json)}>
-                    Apply JSON
-                  </button>
-                  <button
-                    disabled={!json}
-                    onClick={() => download(json, "canvas.json")}
-                  >
-                    Download
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </aside>
+                    >
+                      Read projects
+                    </button>
+                    <button onClick={() => jsonInput.current?.click()}>
+                      Open .json
+                    </button>
+                  </div>
+                  <textarea
+                    className="json-editor"
+                    spellCheck={false}
+                    aria-label="Canvas or preset JSON"
+                    value={json}
+                    onChange={(ev) => setJson(ev.target.value)}
+                    placeholder="Read the canvas or paste JSON here"
+                  />
+                  <div className="row">
+                    <button
+                      className="primary"
+                      onClick={() => importJSON(json)}
+                    >
+                      Apply JSON
+                    </button>
+                    <button
+                      disabled={!json}
+                      onClick={() => download(json, "canvas.json")}
+                    >
+                      Download
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </aside>
         )}
         <Canvas editor={e} onImage={loadImages} />
         {!zen && <Inspector editor={e} />}

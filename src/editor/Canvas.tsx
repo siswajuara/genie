@@ -1000,27 +1000,6 @@ export function Canvas({
           >
             <Icon name="redo" />
           </button>
-          <span className="divider" />
-          <button
-            aria-label="Zoom out"
-            title="Zoom out"
-            onClick={() => zoom(view.z / 1.2)}
-          >
-            <Icon name="minus" />
-          </button>
-          <span className="zoom-value">{Math.round(view.z * 100)}%</span>
-          <button
-            aria-label="Zoom in"
-            title="Zoom in"
-            onClick={() => zoom(view.z * 1.2)}
-          >
-            <Icon name="add" />
-          </button>
-          <button onClick={fit}>Fit frame</button>
-          <button disabled={!frames(e.doc).length} onClick={fitAll}>
-            Fit all
-          </button>
-          <button onClick={() => zoom(1)}>100%</button>
         </div>
       </div>
       <div
@@ -1034,6 +1013,37 @@ export function Canvas({
           void placeTransfer(ev.dataTransfer, pointer.current);
         }}
       >
+        <div className="canvas-zoom" role="toolbar" aria-label="Zoom tools">
+          <button
+            aria-label="Zoom out"
+            title="Zoom out"
+            onClick={() => zoom(view.z / 1.2)}
+          >
+            <Icon name="minus" size={15} />
+          </button>
+          <span className="zoom-value">{Math.round(view.z * 100)}%</span>
+          <button
+            aria-label="Zoom in"
+            title="Zoom in"
+            onClick={() => zoom(view.z * 1.2)}
+          >
+            <Icon name="add" size={15} />
+          </button>
+          <button aria-label="Fit frame" title="Fit frame" onClick={fit}>
+            <Icon name="fit" size={15} />
+          </button>
+          <button
+            aria-label="Fit all"
+            title="Fit all"
+            disabled={!frames(e.doc).length}
+            onClick={fitAll}
+          >
+            <Icon name="expand" size={15} />
+          </button>
+          <button aria-label="100%" title="100%" onClick={() => zoom(1)}>
+            <Icon name="actual" size={15} />
+          </button>
+        </div>
         <canvas
           ref={canvas}
           style={{ width: size.w, height: size.h }}
