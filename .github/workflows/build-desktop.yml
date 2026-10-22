@@ -1,0 +1,128 @@
+name: Build desktop apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign_macos:
+        description: Require macOS Developer ID signing and notarization secrets
+        type: boolean
+        default: false
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-arm64
+            runner: macos-15
+            target: aarch64-apple-darwin
+            arch: arm64
+            bundles: app,dmg
+          - name: macos-x64
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            arch: x64
+            bundles: app,dmg
+          - name: windows-x64
+            runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            arch: x64
+            bundles: nsis
+          - name: windows-arm64
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            arch: arm64
+            bundles: nsis
+          - name: linux-x64
+            runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            arch: x64
+            bundles: deb,appimage
+          - name: linux-arm64
+            runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            arch: arm64
+            bundles: deb,appimage
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          architecture: ${{ matrix.arch }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            sidecar/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+      - name: Linux build prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2 xdg-utils
+      - name: Require macOS release credentials
+        if: runner.os == 'macOS' && (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: node scripts/check-signing.mjs
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          npm ci --prefix sidecar --include=optional
+      - name: Validate platform target mappings
+        run: node --test tests/sidecar.test.mjs
+      - name: Build native installer and self-contained sidecar
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: npm run build:desktop -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+      - name: Smoke test packaged runtime without global installations
+        run: npm run sidecar:check
+      - name: Check resources inside the final installer payload
+        env:
+          DESKTOP_TARGET: ${{ matrix.target }}
+        run: node scripts/check-bundle.mjs
+      - name: Upload installers and sidecar manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: genie-${{ matrix.name }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.deb
+            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            src-tauri/resources/sidecar/manifest.json
