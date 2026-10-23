@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.2 — 2026-10-23
+
+- fix(ci): install Tauri CLI Windows bindings on all runners
+
 ## v1.0.1 — 2026-10-23
 
 - fix(release): tolerate CRLF manifests, build Windows-only, configure updater key
