@@ -55,6 +55,9 @@ jobs:
         run: |
           npm ci
           npm ci --prefix sidecar --include=optional
+      - name: Ensure Tauri CLI native binding
+        run: |
+          node -e "require('./node_modules/@tauri-apps/cli')" 2>/dev/null || npm install --no-save "@tauri-apps/cli-win32-${{ matrix.arch }}-msvc@$(node -p "require('./node_modules/@tauri-apps/cli/package.json').version")"
       - name: Verify application version matches release tag
         env:
           RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
