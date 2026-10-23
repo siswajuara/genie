@@ -7,14 +7,10 @@ import { socialRequest } from "./client";
 export async function prepareSocialMedia(
   media: Media,
   workspace: Workspace,
-  zernioConfigured: boolean,
+  _zernioConfigured: boolean,
 ): Promise<{ url: string; type: "image" | "video" }> {
   if (media.kind !== "frame" && media.src?.startsWith("https://"))
     return { url: media.src, type: media.kind === "video" ? "video" : "image" };
-  if (!zernioConfigured)
-    throw Error(
-      "Add a Zernio API key in Setting to upload Canvas designs or local files. Buffer requires a public media URL.",
-    );
   let blob: Blob;
   if (media.kind === "frame") {
     const page = workspace.projects
@@ -79,15 +75,8 @@ export async function prepareSocialMedia(
   }
   if (blob.size > 32 * 1024 * 1024)
     throw Error("Media uploads must be under 32 MB.");
-  const data = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1]);
-    reader.onerror = () => reject(Error("Could not read media."));
-    reader.readAsDataURL(blob);
-  });
-  return socialRequest("upload", {
-    data,
-    filename: media.kind === "frame" ? `${media.name}.png` : media.name,
-    contentType: blob.type,
-  });
+  const upload=await socialRequest<{id:string;uploadUrl:string;url:string}>('media.prepare',{filename:media.kind==='frame'?`${media.name}.png`:media.name,contentType:blob.type,size:blob.size});
+  const response=await fetch(upload.uploadUrl,{method:'PUT',redirect:'error',signal:AbortSignal.timeout(120000),headers:{'Content-Type':blob.type},body:blob});
+  if(!response.ok)throw Error(`Media upload failed (${response.status}).`);
+  return socialRequest('media.complete',{id:upload.id});
 }

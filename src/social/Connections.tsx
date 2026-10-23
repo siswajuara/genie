@@ -5,6 +5,7 @@ import { platforms } from "../marketing/store";
 import { PlatformIcon } from "../marketing/Shared";
 import { useSocial, openSocialUrl, type Provider } from "./client";
 import "./social.css";
+import {ApiConnection} from './ApiConnection';
 export function Connections() {
   const social = useSocial();
   return (
@@ -12,7 +13,7 @@ export function Connections() {
       <div className="panel-heading">
         <div>
           <h2>Social connections</h2>
-          <p>Save your provider keys, test them, then choose your channels.</p>
+          <p>Connect your website, then manage its social providers.</p>
         </div>
         <button disabled={social.busy} onClick={() => void social.refresh()}>
           <Icon name="redo" size={15} />
@@ -24,11 +25,8 @@ export function Connections() {
           {social.error}
         </p>
       )}
-      <p className="settings-explanation">
-        {social.config.storage === "keychain"
-          ? "Keys are saved in your operating system credential vault. They are never included in project backups."
-          : "Browser development keeps keys in server memory until the server restarts. Use the desktop app to save keys in your operating system credential vault."}
-      </p>
+      <ApiConnection/>
+      <p className="settings-explanation">Provider credentials and social data belong to your website. Refresh reads its database; testing a provider explicitly checks the provider API.</p>
       {(["buffer", "zernio"] as const).map((provider) => (
         <ProviderConnection key={provider} provider={provider} />
       ))}
@@ -136,7 +134,7 @@ function ProviderConnection({ provider }: { provider: Provider }) {
       });
       await openSocialUrl(result.url);
       setStatus(
-        "Finish authorization in your browser, then refresh accounts here.",
+        "Finish authorization in your browser, then Test connection to import the new accounts into your website.",
       );
     } catch (err) {
       setError(String(err));

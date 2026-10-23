@@ -103,9 +103,20 @@ fn reveal_workspace(app:tauri::AppHandle,key:String)->Result<(),String>{
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(tauri_plugin_dialog::init()).manage(Runs::default())
+    tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init()).manage(Runs::default())
         .manage(social::SocialLock::default())
-        .invoke_handler(tauri::generate_handler![save_export,codex_run,codex_status,cancel_run,reveal_workspace,social::social_settings,social::social_request])
+        .invoke_handler(tauri::generate_handler![update_status,prepare_update,save_export,codex_run,codex_status,cancel_run,reveal_workspace,social::social_settings,social::social_request])
         .on_window_event(|window,event|{if matches!(event,tauri::WindowEvent::Destroyed){for run in window.state::<Runs>().0.lock().unwrap().values(){let _=writeln!(run.stdin.lock().unwrap(),"{{\"type\":\"cancel\"}}");let _=run.child.lock().unwrap().kill();}}})
         .run(tauri::generate_context!()).expect("error while running tauri application");
+}
+#[tauri::command]
+fn update_status(app:tauri::AppHandle)->Value {
+    let configured=app.config().plugins.0.get("updater").and_then(|v|v["pubkey"].as_str()).is_some_and(|key|!key.trim().is_empty());
+    let supported=!cfg!(target_os="linux")||std::env::var_os("APPIMAGE").is_some();
+    json!({"enabled":configured&&!cfg!(debug_assertions)&&supported,"version":app.package_info().version.to_string(),"reason":if cfg!(debug_assertions){"Updates are available in installed release builds."}else if !supported{"Automatic Linux updates require the AppImage build. Download DEB updates from GitHub releases."}else if !configured{"This build has no updater signing key. Download a signed release from GitHub."}else{""}})
+}
+#[tauri::command]
+fn prepare_update(runs:State<Runs>)->Result<(),String>{
+    if !runs.0.lock().map_err(|_|"Could not check active conversations.")?.is_empty(){return Err("Finish or stop the active assistant response before installing the update.".into());}Ok(())
 }

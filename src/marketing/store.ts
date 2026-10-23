@@ -35,7 +35,16 @@ export type Post = {
   platforms: string[];
   accountKeys?: string[];
   submissionId?: string;
-  delivery?: {provider:'buffer'|'zernio';accountKey:string;accountName:string;success:boolean;id?:string;status?:string;error?:string;uncertain?:boolean}[];
+  delivery?: {
+    provider: "buffer" | "zernio";
+    accountKey: string;
+    accountName: string;
+    success: boolean;
+    id?: string;
+    status?: string;
+    error?: string;
+    uncertain?: boolean;
+  }[];
   timing: "now" | "schedule";
   date?: string;
   time: string;
@@ -74,8 +83,7 @@ export function readConversations(workspace: Workspace): Conversation[] {
         if (
           record.key &&
           typeof record.scope === "string" &&
-          Array.isArray(record.messages) &&
-          record.messages.length
+          Array.isArray(record.messages)
         )
           records.set(record.key, record);
       } catch {
@@ -114,13 +122,22 @@ export function readConversations(workspace: Workspace): Conversation[] {
 export function conversationTitle(chat: Conversation) {
   return (
     chat.messages.find((m) => m.role === "user")?.text.slice(0, 90) ||
-    "Canvas conversation"
+    "New conversation"
   );
 }
 export function conversationPage(workspace: Workspace, scope: string) {
-  for (const project of workspace.projects)
+  for (const project of workspace.projects) {
+    if (project.id === scope)
+      return {
+        project,
+        page:
+          project.pages.find(
+            (p) => p.id === (project.activePageId || workspace.activePageId),
+          ) || project.pages[0],
+      };
     for (const page of project.pages)
       if (`${project.id}-${page.id}` === scope) return { project, page };
+  }
   return undefined;
 }
 export function useLocalState<T>(key: string, initial: T) {

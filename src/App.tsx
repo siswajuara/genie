@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SocialProvider } from './social/client';
+import { SocialProvider } from "./social/client";
 import { Canvas } from "./editor/Canvas";
 import { Inspector } from "./editor/Inspector";
 import { useEditor } from "./editor/useEditor";
 import { useProjects, type Projects } from "./editor/projects";
+import { CanvasVersions } from "./components/CanvasVersions";
+import { UpdateProvider, UpdateNotice } from "./components/AppUpdates";
 import {
   elementKinds,
   frames,
@@ -17,7 +19,6 @@ import {
 } from "./editor/model";
 import { CodexPanel } from "./components/CodexPanel";
 import { saveExport, exportMessage } from "./lib/export";
-import { SelectField } from "./components/ui/Controls";
 import { Icon, type IconName } from "./components/ui/Icon";
 import { drawElement } from "./editor/reference-renderer";
 import { ensureDocumentFonts } from "./lib/fonts";
@@ -83,15 +84,20 @@ export default function App() {
     if (window.location.hash !== hash) window.location.hash = hash;
   }
   return (
-    <SocialProvider><PageSession
-      key={`${projects.page.id}:${projects.importRevision}`}
-      projects={projects}
-      tab={tab}
-      setTab={setTab}
-      module={module}
-      setModule={setModule}
-      ideaView={ideaView}
-    /></SocialProvider>
+    <SocialProvider>
+      <UpdateProvider>
+        <PageSession
+          key={`${projects.page.id}:${projects.importRevision}`}
+          projects={projects}
+          tab={tab}
+          setTab={setTab}
+          module={module}
+          setModule={setModule}
+          ideaView={ideaView}
+        />
+        <UpdateNotice />
+      </UpdateProvider>
+    </SocialProvider>
   );
 }
 function PageSession({
@@ -436,53 +442,25 @@ function WorkspacePage({
         <button className="canvas-back" onClick={onBack}>
           <Icon name="left" size={17} /> Back to Idea
         </button>
-        <div className="wordmark">
-          <span className="brand-mark">SJ</span>
-          <span>
-            Siswa Juara <small>Canvas</small>
-          </span>
-        </div>
         <div className="project-switcher">
-          <SelectField
-            label="Project"
-            value={p.project.id}
-            onChange={p.selectProject}
-            options={p.workspace.projects.map((project) => ({
-              value: project.id,
-              label: project.name || "Untitled project",
-            }))}
+          <input
+            aria-label="Canvas name"
+            value={p.project.name}
+            onChange={(ev) => p.renameProject(ev.target.value)}
           />
-          <button onClick={p.createProject}>
-            <Icon name="add" size={15} /> Project
-          </button>
+          <CanvasVersions projects={p} document={e.doc} />
           <details className="workspace-settings">
-            <summary>Project settings</summary>
+            <summary>Canvas backup</summary>
             <div className="settings-popover">
-              <label>
-                Project name
-                <input
-                  aria-label="Project name"
-                  value={p.project.name}
-                  onChange={(ev) => p.renameProject(ev.target.value)}
-                />
-              </label>
-              <button onClick={p.duplicateProject}>Duplicate project</button>
               <button
                 onClick={() =>
                   download(
                     JSON.stringify(p.workspace, null, 2),
-                    "siswa-juara-projects.json",
+                    "siswa-juara-canvases.json",
                   )
                 }
               >
-                Export all projects
-              </button>
-              <button
-                className="danger"
-                disabled={p.workspace.projects.length < 2}
-                onClick={() => setConfirmDelete("project")}
-              >
-                Delete project
+                Export all canvases
               </button>
             </div>
           </details>
@@ -523,24 +501,32 @@ function WorkspacePage({
           </button>
         </div>
       </header>
-      <nav className="page-bar" aria-label="Project pages">
-        <span className="page-bar-label">Pages</span>
-        <div className="page-list">
-          {p.project.pages.map((page) => (
-            <button
-              key={page.id}
-              aria-current={page.id === p.page.id ? "page" : undefined}
-              onClick={() => p.selectPage(page.id)}
-            >
-              {page.name || "Untitled page"}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => p.createPage()}>
-          <Icon name="add" size={15} /> Page
-        </button>
-      </nav>
       <main className={`studio-main ${zen ? "zen" : ""}`}>
+        {!zen && (
+          <nav className="page-rail" aria-label="Project pages">
+            <span className="page-rail-label">Pages</span>
+            <div className="page-rail-list">
+              {p.project.pages.map((page) => (
+                <button
+                  key={page.id}
+                  title={page.name || "Untitled page"}
+                  aria-current={page.id === p.page.id ? "page" : undefined}
+                  onClick={() => p.selectPage(page.id)}
+                >
+                  {page.name || "Untitled page"}
+                </button>
+              ))}
+            </div>
+            <button
+              className="page-rail-add"
+              onClick={() => p.createPage()}
+              title="Add page"
+              aria-label="Add page"
+            >
+              <Icon name="add" size={15} /> <span>Page</span>
+            </button>
+          </nav>
+        )}
         {!zen && (
           <aside className="library">
             <div
@@ -716,14 +702,21 @@ function WorkspacePage({
                 </>
               )}
               <div hidden={tab !== "Chat"} className="codex-wrapper">
-                <CodexPanel editor={e} scope={`${p.project.id}-${p.page.id}`} />
+                <CodexPanel
+                  editor={e}
+                  scope={p.project.id}
+                  conversationKey={p.project.conversationId}
+                  pageId={p.page.id}
+                  onRestoreRevision={p.restoreChatRevision}
+                  onCanvasRevision={(doc, label) => p.recordVersion(label, doc)}
+                />
               </div>
               {tab === "Debug" && (
                 <>
                   <h2>Canvas JSON</h2>
                   <p className="hint">
                     Current page: {p.page.name}. Edit metadata and elements,
-                    import presets, or export a backup of all projects and
+                    import presets, or export a backup of all canvases and
                     pages.
                   </p>
                   <div className="row section-actions">
@@ -771,7 +764,7 @@ function WorkspacePage({
                         setJson(JSON.stringify(p.workspace, null, 2))
                       }
                     >
-                      Read projects
+                      Read canvases
                     </button>
                     <button onClick={() => jsonInput.current?.click()}>
                       Open .json

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Projects } from "../editor/projects";
 import type { Editor } from "../editor/useEditor";
 import { Icon, type IconName } from "../components/ui/Icon";
-import { SelectField } from "../components/ui/Controls";
 import { CodexPanel, type ChatMode } from "../components/CodexPanel";
 import { Dialog } from "./Shared";
 import {
@@ -19,6 +18,8 @@ import {
 import { Publish } from "./Publish";
 import { Setting } from "./Modules";
 import { Schedule, Insight, Community } from "../social/Views";
+import { useSocial } from "../social/client";
+import { prepareSocialMedia } from "../social/media";
 import "./marketing.css";
 import "./chat.css";
 
@@ -65,14 +66,28 @@ export function MarketingWorkspace({
     "genie.marketing.settings",
     initialSettings,
   );
-  const [posts, setPosts, postsError] = useLocalState<Post[]>(
-    "genie.marketing.posts",
-    [],
-  );
-  const [draft, setDraft, draftError] = useLocalState<Post>(
-    `genie.marketing.composer.${p.project.id}`,
-    emptyPost(p.project.id),
-  );
+  const social = useSocial();
+  const [posts, setPosts] = useState<Post[]>([]),
+    [postsError, setPostsError] = useState("");
+  const [draft, setDraft] = useState<Post>(() => emptyPost(p.project.id));
+  useEffect(() => {
+    let live = true;
+    setPosts([]);
+    void social
+      .request<{ posts: Post[] }>("drafts.list")
+      .then((result) => {
+        if (live) {
+          setPosts(result.posts);
+          setPostsError("");
+        }
+      })
+      .catch((error) => {
+        if (live) setPostsError(String(error));
+      });
+    return () => {
+      live = false;
+    };
+  }, [social.revision]);
   const [promptSeed, setPromptSeed] = useState<{
     id: string;
     text: string;
@@ -111,35 +126,13 @@ export function MarketingWorkspace({
   }
 
   function startIdea() {
-    const scope = `${p.project.id}-${p.page.id}`;
-    try {
-      const existing = JSON.parse(
-        localStorage.getItem(`genie.chat.${scope}`) || "null",
-      );
-      if (existing?.key && existing.messages?.length)
-        localStorage.setItem(
-          `genie.conversation.${existing.key}`,
-          JSON.stringify({
-            ...existing,
-            scope,
-            updatedAt: new Date().toISOString(),
-          }),
-        );
-      localStorage.setItem(
-        `genie.chat.${scope}`,
-        JSON.stringify({ key: crypto.randomUUID(), messages: [] }),
-      );
-      setConversationRevision((n) => n + 1);
-      setPromptSeed(undefined);
-      window.dispatchEvent(new Event(chatEvent));
-      navigate("Idea", "new");
-    } catch {
-      setToast("Could not start a new chat. Device storage may be full.");
-    }
+    p.createProject();
+    setConversationRevision((n) => n + 1);
+    setPromptSeed(undefined);
+    navigate("Idea", "new");
   }
 
   function startCanvas() {
-    p.createPage();
     navigate("Canvas");
   }
 
@@ -167,41 +160,59 @@ export function MarketingWorkspace({
     navigate("Idea", "conversation");
   }
 
-  function savePost(status: "draft" | "planned") {
-    const value = {
-      ...draft,
-      status,
-      updatedAt: new Date().toISOString(),
-      title:
-        draft.title.trim() ||
-        draft.caption.trim().split("\n")[0]?.slice(0, 70) ||
-        "Untitled post",
-    };
-    setPosts((old) => [value, ...old.filter((post) => post.id !== value.id)]);
-    setDraft(value);
-    setToast(
-      status === "planned"
-        ? "Added to your local content plan. Social publishing is not connected yet."
-        : "Draft saved on this device.",
-    );
-    if (status === "planned") setModule("Schedule");
+  async function savePost(status: "draft" | "planned") {
+    try {
+      const media = [];
+      for (const item of draft.media) {
+        const prepared = await prepareSocialMedia(
+          item,
+          p.workspace,
+          social.config.zernio.configured,
+        );
+        media.push({
+          id: item.id,
+          name: item.name,
+          kind: prepared.type,
+          src: prepared.url,
+        });
+      }
+      const value = {
+        id: draft.id,
+        caption: draft.caption,
+        platforms: draft.platforms,
+        accountKeys: draft.accountKeys,
+        timing: draft.timing,
+        date: draft.date,
+        time: draft.time,
+        submissionId: draft.submissionId,
+        media,
+        status,
+        updatedAt: new Date().toISOString(),
+        title:
+          draft.title.trim() ||
+          draft.caption.trim().split("\n")[0]?.slice(0, 70) ||
+          "Untitled post",
+      };
+      const saved = await social.request<Post>("drafts.save", { post: value });
+      setPosts((old) => [saved, ...old.filter((post) => post.id !== saved.id)]);
+      setDraft((old) => ({ ...old, title: saved.title, status: saved.status }));
+      setToast(
+        status === "planned"
+          ? "Saved to your website content plan. Confirm publication in Publish to submit it."
+          : "Draft saved to your website.",
+      );
+      if (status === "planned") setModule("Schedule");
+    } catch (error) {
+      setToast(`Could not save draft: ${String(error)}`);
+    }
   }
 
-  const storageError =
-    settingsError ||
-    postsError ||
-    draftError ||
-    p.storageError ||
-    e.storageError;
+  const storageError = settingsError || p.storageError || e.storageError;
 
   const projectChats = useMemo(() => {
     const term = search.trim().toLowerCase();
     return chats
-      .filter(
-        (chat) =>
-          conversationPage(p.workspace, chat.scope)?.project.id ===
-          p.project.id,
-      )
+      .filter((chat) => !!conversationPage(p.workspace, chat.scope))
       .filter(
         (chat) =>
           !term ||
@@ -252,7 +263,7 @@ export function MarketingWorkspace({
         >
           <Icon name="help" size={22} />
           <span className="rail-tooltip">
-            <strong>How to use this workspace</strong>
+            <strong>How to use the app</strong>
           </span>
         </button>
       </aside>
@@ -269,26 +280,12 @@ export function MarketingWorkspace({
               <Icon name={storageError ? "help" : "check"} size={14} />
               {storageError ? "Could not save" : "Saved on this device"}
             </span>
-            <SelectField
-              label="Current project"
-              value={p.project.id}
-              onChange={p.selectProject}
-              options={p.workspace.projects.map((project) => ({
-                value: project.id,
-                label: project.name || "Untitled project",
-              }))}
-            />
             <button onClick={startIdea}>
-              <Icon name="add" size={17} /> New chat
+              <Icon name="add" size={17} /> Chat
             </button>
             <button onClick={startCanvas}>
-              <Icon name="add" size={17} /> New canvas
+              <Icon name="layers" size={17} /> Open Canvas
             </button>
-            {module !== "Publish" && (
-              <button className="primary" onClick={() => navigate("Publish")}>
-                <Icon name="add" size={17} /> Create post
-              </button>
-            )}
           </div>
         </header>
         {storageError && (
@@ -327,7 +324,10 @@ export function MarketingWorkspace({
                           >
                             <strong>{conversationTitle(chat)}</strong>
                             <small>
-                              {page?.page.name || "Removed canvas"} ·{" "}
+                              {page
+                                ? `${page.project.pages.length} pages`
+                                : "Removed canvas"}{" "}
+                              ·{" "}
                               {new Date(chat.updatedAt).toLocaleDateString(
                                 undefined,
                                 { month: "short", day: "numeric" },
@@ -342,7 +342,7 @@ export function MarketingWorkspace({
                   <p className="chat-list-empty">
                     {search
                       ? "No chats match your search."
-                      : "Your chats appear here once you send a message."}
+                      : "Start a chat to create its canvas."}
                   </p>
                 )}
               </aside>
@@ -350,10 +350,13 @@ export function MarketingWorkspace({
                 <CodexPanel
                   key={`${p.page.id}:${ideaView}:${conversationRevision}`}
                   editor={e}
-                  scope={`${p.project.id}-${p.page.id}`}
+                  scope={p.project.id}
+                  conversationKey={p.project.conversationId}
+                  pageId={p.page.id}
+                  onRestoreRevision={p.restoreChatRevision}
+                  onCanvasRevision={(doc, label) => p.recordVersion(label, doc)}
                   variant="idea"
                   promptSeed={promptSeed}
-                  startFresh={ideaView === "new"}
                   onKeyChange={setActiveKey}
                   onOpenCanvas={() => navigate("Canvas")}
                 />
@@ -378,24 +381,38 @@ export function MarketingWorkspace({
             />
           )}
           {module === "Schedule" && (
-            <Schedule
-              posts={posts.filter((post) => post.projectId === p.project.id)}
-              workspace={p.workspace}
-              timezone={settings.timezone}
-              onCreate={() => {
-                setDraft(emptyPost(p.project.id));
-                navigate("Publish");
-              }}
-              onEdit={(post) => {
-                setDraft(post);
-                navigate("Publish");
-              }}
-              onRemove={(id) => {
-                setPosts((old) => old.filter((post) => post.id !== id));
-                setToast("Post removed from your plan.");
-              }}
-              onSettings={() => navigate("Setting")}
-            />
+            <>
+              {postsError && (
+                <p role="alert" className="error">
+                  {postsError}
+                </p>
+              )}
+              <Schedule
+                posts={posts}
+                workspace={p.workspace}
+                timezone={settings.timezone}
+                onCreate={() => {
+                  setDraft(emptyPost(p.project.id));
+                  navigate("Publish");
+                }}
+                onEdit={(post) => {
+                  setDraft(post);
+                  navigate("Publish");
+                }}
+                onRemove={async (id) => {
+                  try {
+                    await social.request("drafts.delete", { id });
+                    setPosts((old) => old.filter((post) => post.id !== id));
+                    setToast(
+                      "Draft removed from your website. Provider posts are unaffected.",
+                    );
+                  } catch (error) {
+                    setToast(String(error));
+                  }
+                }}
+                onSettings={() => navigate("Setting")}
+              />
+            </>
           )}
           {module === "Insight" && (
             <Insight onSettings={() => navigate("Setting")} />

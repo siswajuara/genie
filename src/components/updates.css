@@ -1,0 +1,72 @@
+.update-settings {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 12px;
+}
+.update-settings > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+.update-settings input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+.app-update-notice {
+  --surface: #fff;
+  --text: #1b2a7a;
+  --accent: #2f4bd8;
+  --hover: #edf0fc;
+  --border: #d9dcea;
+  --danger: #b52b3c;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 3000;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 75vh;
+  overflow: auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 24px #0002;
+}
+.update-notice-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.update-notice-heading button {
+  display: flex;
+  padding: 5px;
+}
+.app-update-notice progress,
+.update-settings progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.app-update-notice pre,
+.update-settings pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  max-height: 220px;
+  overflow: auto;
+}
+.app-update-notice .row {
+  flex-wrap: wrap;
+}
+.update-confirm {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-update-notice * {
+    transition: none;
+  }
+}

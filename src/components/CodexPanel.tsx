@@ -16,7 +16,7 @@ type Message = {
   artifact?: { n: number };
 };
 type SavedChat = { key: string; thread?: string; messages: Message[] };
-type Revision = { n: number; at: string; doc: unknown };
+type Revision = { n: number; at: string; doc: unknown; pageId?: string };
 type Status = { ok: boolean; path?: string; message: string };
 type Event = {
   type: string;
@@ -78,12 +78,13 @@ function readRevisions(chatKey: string): Revision[] {
   }
 }
 /** Appends a revision and returns its number. Throws when storage is full. */
-function addRevision(chatKey: string, doc: unknown): number {
+function addRevision(chatKey: string, doc: unknown, pageId?: string): number {
   const list = readRevisions(chatKey);
   const n = (list.at(-1)?.n ?? 0) + 1;
-  const next = [...list, { n, at: new Date().toISOString(), doc }].slice(
-    -MAX_REVISIONS,
-  );
+  const next = [
+    ...list,
+    { n, at: new Date().toISOString(), doc, pageId },
+  ].slice(-MAX_REVISIONS);
   localStorage.setItem(revisionKey(chatKey), JSON.stringify(next));
   return n;
 }
@@ -93,11 +94,15 @@ function CanvasArtifact({
   n,
   editor: e,
   onOpenCanvas,
+  onCanvasRevision,
+  onRestoreRevision,
 }: {
   chatKey: string;
   n: number;
   editor: Editor;
   onOpenCanvas?: () => void;
+  onCanvasRevision?: (doc: CanvasDocument, label: string) => void;
+  onRestoreRevision?: (doc: CanvasDocument, pageId?: string) => void;
 }) {
   const revisions = useMemo(() => readRevisions(chatKey), [chatKey, n]);
   const [picked, setPicked] = useState(n);
@@ -171,6 +176,15 @@ function CanvasArtifact({
           disabled={!parsed}
           onClick={() => {
             if (!parsed) return;
+            if (onRestoreRevision) {
+              try {
+                onRestoreRevision(parsed, revision?.pageId);
+              } catch (err) {
+                e.notify(String(err));
+              }
+              return;
+            }
+            onCanvasRevision?.(parsed, `Restored chat revision ${picked}`);
             e.change(parsed);
             e.select([]);
             e.notify(`Restored revision ${picked}. Undo is available.`);
@@ -199,6 +213,10 @@ export function CodexPanel({
   startFresh = false,
   onKeyChange,
   onOpenCanvas,
+  conversationKey,
+  onCanvasRevision,
+  onRestoreRevision,
+  pageId,
 }: {
   editor: Editor;
   scope: string;
@@ -207,6 +225,10 @@ export function CodexPanel({
   startFresh?: boolean;
   onKeyChange?: (key: string) => void;
   onOpenCanvas?: () => void;
+  conversationKey?: string;
+  onCanvasRevision?: (doc: CanvasDocument, label: string) => void;
+  onRestoreRevision?: (doc: CanvasDocument, pageId?: string) => void;
+  pageId?: string;
 }) {
   const storageKey = `genie.chat.${scope}`;
   const [initial] = useState<SavedChat>(() => {
@@ -227,7 +249,7 @@ export function CodexPanel({
     } catch {
       /* Start a new page conversation when its saved chat is invalid. */
     }
-    return { key: uid(), messages: [] };
+    return { key: conversationKey || uid(), messages: [] };
   });
   const [mode, setMode] = useState<ChatMode>(() => {
     try {
@@ -249,8 +271,8 @@ export function CodexPanel({
     [error, setError] = useState(""),
     [model, setModel] = useState(""),
     [showSettings, setShowSettings] = useState(false);
-  const [key, setKey] = useState(initial.key),
-    [thread, setThread] = useState(initial.thread),
+  const key = initial.key;
+  const [thread, setThread] = useState(initial.thread),
     [messages, setMessages] = useState<Message[]>(initial.messages);
   const [pending, setPending] = useState<CanvasDocument>();
   const [codexPath, setCodexPath] = useState(
@@ -292,7 +314,7 @@ export function CodexPanel({
         storageKey,
         JSON.stringify({ key, thread, messages }),
       );
-      if (messages.length) {
+      {
         localStorage.setItem(
           `genie.conversation.${key}`,
           JSON.stringify({
@@ -306,7 +328,7 @@ export function CodexPanel({
         window.dispatchEvent(new Event(chatEvent));
       }
     } catch {
-      setError("Chat storage is full. Save a JSON backup of your project.");
+      setError("Chat storage is full. Save a JSON backup of your canvas.");
     }
   }, [messages, key, thread, storageKey]);
   useEffect(() => {
@@ -411,19 +433,22 @@ export function CodexPanel({
         try {
           const next = parseDocument(event.canvas);
           try {
-            lastRevision = addRevision(runKey, event.canvas);
+            lastRevision = addRevision(runKey, event.canvas, pageId);
           } catch {
             setError(
               "Could not store this revision. Device storage may be full.",
             );
           }
           if (latest.current.doc.metadata.updatedAt === event.baseUpdatedAt) {
+            onCanvasRevision?.(next, `Chat: ${value.slice(0, 70)}`);
             latest.current.change(next);
             latest.current.select([]);
             latest.current.notify("Canvas updated. Undo is available.");
           } else {
             setPending(next);
-            latest.current.notify("A canvas update is ready to review in Chat.");
+            latest.current.notify(
+              "A canvas update is ready to review in Chat.",
+            );
           }
         } catch (err) {
           setError(`The assistant returned an invalid canvas: ${String(err)}`);
@@ -491,23 +516,7 @@ export function CodexPanel({
     <section className={`chat-panel chat-${variant}`}>
       <header className="chat-head">
         <h2>{variant === "idea" ? "Conversation" : "Chat"}</h2>
-        <div className="chat-head-actions">
-          {variant === "canvas" && (
-            <button
-              disabled={busy}
-              onClick={() => {
-                setKey(uid());
-                setThread(undefined);
-                setMessages([]);
-                setPrompt("");
-                setError("");
-                setPending(undefined);
-              }}
-            >
-              New chat
-            </button>
-          )}
-        </div>
+        <div className="chat-head-actions"></div>
       </header>
 
       {showSettings && (
@@ -541,6 +550,7 @@ export function CodexPanel({
           >
             {checking ? "Checking…" : "Check installation"}
           </button>
+          {status && <p role="status">{status.message}</p>}
           {desktop && (
             <button
               onClick={() =>
@@ -600,6 +610,8 @@ export function CodexPanel({
               n={b.m.artifact.n}
               editor={e}
               onOpenCanvas={onOpenCanvas}
+              onCanvasRevision={onCanvasRevision}
+              onRestoreRevision={onRestoreRevision}
             />
           ) : (
             <article className={`chat-message ${b.m.role}`} key={b.m.id}>
@@ -624,12 +636,13 @@ export function CodexPanel({
       {pending && (
         <div className="chat-pending">
           <p>
-            You changed the canvas while the assistant was working. Its
-            version is ready.
+            You changed the canvas while the assistant was working. Its version
+            is ready.
           </p>
           <div>
             <button
               onClick={() => {
+                onCanvasRevision?.(pending, "Applied reviewed chat update");
                 e.change(pending);
                 e.select([]);
                 setPending(undefined);

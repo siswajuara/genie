@@ -26,3 +26,9 @@ src/assets/generated/
 
 src-tauri/resources/sidecar/*
 !src-tauri/resources/sidecar/.gitkeep
+
+# Private updater signing material and generated CI override
+.keys/
+src-tauri/tauri.release.conf.json
+release-assets/
+release-publish/

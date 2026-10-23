@@ -95,8 +95,12 @@ jobs:
         run: |
           npm ci
           npm ci --prefix sidecar --include=optional
+      - name: Verify application version matches release tag
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: npm run version:check
       - name: Validate platform mappings and social request contracts
-        run: node --test tests/sidecar.test.mjs tests/social.test.mjs
+        run: node --test tests/sidecar.test.mjs tests/social-api.test.mjs tests/version.test.mjs
       - name: Build native installer and self-contained sidecar
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -106,7 +110,17 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: npm run build:desktop -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            node scripts/prepare-release.mjs
+            npm run build:desktop -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config src-tauri/tauri.release.conf.json
+          else
+            npm run build:desktop -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          fi
       - name: Smoke test packaged runtime without global installations
         run: npm run sidecar:check
       - name: Check resources inside the final installer payload
@@ -126,3 +140,40 @@ jobs:
             src-tauri/target/${{ matrix.target }}/release/bundle/**/*.deb
             src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
             src-tauri/resources/sidecar/manifest.json
+      - name: Stage signed update packages
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          DESKTOP_TARGET: ${{ matrix.target }}
+          DESKTOP_PLATFORM: ${{ matrix.name }}
+        run: node scripts/stage-release.mjs
+      - name: Upload signed release input
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.name }}
+          path: release-assets/*
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish complete GitHub release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Validate all platforms and publish release atomically
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/publish-release.mjs

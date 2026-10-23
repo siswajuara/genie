@@ -25,6 +25,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": false,
     "resources": { "resources/sidecar/": "sidecar/" },
     "targets": "all",
     "icon": [
@@ -34,5 +35,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": ["https://github.com/siswajuara/genie/releases/latest/download/latest.json"],
+      "windows": {"installMode":"passive"}
+    }
   }
 }

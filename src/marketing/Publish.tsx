@@ -81,7 +81,7 @@ export function Publish({
         }
         if (file.size > 8 * 1024 * 1024) {
           notify(
-            "Choose media under 8 MB while drafts are stored on this device.",
+            "Choose media under 8 MB for the desktop composer.",
           );
           continue;
         }
@@ -601,9 +601,9 @@ export function Publish({
               </div>
             )}
             <p className="local-plan-note">
-              Drafts stay on this device. Publishing and scheduling send the
-              post to selected providers after you confirm. Local media and
-              Canvas frames upload through Zernio; public HTTPS URLs work with
+              Saved drafts are stored on your website. Publishing and scheduling send the
+              post through your website after you confirm. Local media and
+              Canvas frames upload to your website storage; public HTTPS URLs work with
               either provider.
             </p>
             {validation && (
@@ -803,7 +803,7 @@ export function Publish({
           ) : (
             <div className="no-canvas-media">
               <Icon name="layers" size={30} />
-              <h3>No frames in this project yet</h3>
+              <h3>No frames in this canvas yet</h3>
               <p>Open Canvas to create a design, then add it to your post.</p>
               <button onClick={onCanvas}>Open Canvas</button>
             </div>

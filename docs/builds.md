@@ -13,7 +13,7 @@ Equivalent command:
 gh workflow run build-desktop.yml --repo OWNER/REPO --ref main
 ```
 
-The workflow must be on the repository's default branch before GitHub enables manual dispatch. `--ref` selects the branch or tag to build. No release is automatically published; download the `genie-*` artifacts from Actions. To list and watch runs:
+The workflow must be on the repository's default branch before GitHub enables manual dispatch. `--ref` selects the branch or tag to build. Manual dispatch produces preview artifacts; a pushed `v*` tag builds and publishes a complete signed GitHub release. To list and watch manual runs:
 
 ```sh
 gh run list --repo OWNER/REPO --workflow build-desktop.yml
@@ -21,7 +21,7 @@ gh run watch RUN_ID --repo OWNER/REPO
 gh run download RUN_ID --repo OWNER/REPO --dir installers
 ```
 
-Pushing a `v*` tag also builds installers. A tag does not change the application version; update `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` before tagging.
+Pushing a `v*` tag builds installers, signed update artifacts, and the updater feed. The tag must match all application manifests. Use `npm run release:patch` to synchronize version files and prepare release notes. See [automatic updates and release commands](updates.md) for signing keys, patch/minor/major scripts, and publication.
 
 ## Native build matrix
 

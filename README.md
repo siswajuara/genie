@@ -18,6 +18,8 @@ npm run build:ci -- --repo OWNER/REPO --ref main
 
 See [desktop build instructions](docs/builds.md) for installer downloads and macOS signing secrets.
 
+Automatic updates use signed GitHub releases. Run `npm run updater:setup` once, configure the signing secret, and prepare releases with `npm run release:patch`. See [versioning and auto-update setup](docs/updates.md).
+
 See [editor and integration documentation](src/README.md) for the JSON contract, controls, packaging, and checks.
 
-Buffer and Zernio connections are configured in **Setting → Social accounts**. Keys are saved in the desktop operating system credential vault. See [social integration setup](docs/social.md) for publishing, scheduling, insights, comments, and media requirements.
+Connect your website API in **Setting → Social accounts**. The desktop saves its website token in the OS credential vault; the website stores provider keys and social data. The Next.js backend reference and migration are in [website/genie-references](../website/genie-references/README.md). See [social integration setup](docs/social.md).

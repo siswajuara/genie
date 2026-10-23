@@ -7,7 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { invoke, isTauri } from "@tauri-apps/api/core";
+import { isTauri } from "@tauri-apps/api/core";
+import {websiteRequest} from './connection';
 import { openUrl } from "@tauri-apps/plugin-opener";
 export type Provider = "buffer" | "zernio";
 export type Account = {
@@ -23,7 +24,7 @@ export type Account = {
 };
 export type Issue = { provider: Provider; message: string };
 export type Config = {
-  storage: "keychain" | "memory";
+  storage: "server";
   buffer: { configured: boolean; organizationId: string };
   zernio: { configured: boolean; profileId: string };
 };
@@ -50,26 +51,7 @@ export async function socialRequest<T>(
   return transport<T>("request", { action, payload });
 }
 async function transport<T>(endpoint: string, body: unknown): Promise<T> {
-  if (isTauri())
-    return invoke<T>(
-      `social_${endpoint}`,
-      endpoint === "settings"
-        ? { payload: body }
-        : (body as Record<string, unknown>),
-    );
-  const response = await fetch(`/api/genie-social/${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.headers.get("content-type")?.includes("application/json"))
-    throw Error(
-      "Social connections require the desktop app or the local development server.",
-    );
-  const result = await response.json();
-  if (!response.ok || result.error)
-    throw Error(result.error || "The social request failed.");
-  return result.data as T;
+  return websiteRequest<T>(endpoint,body);
 }
 export async function openSocialUrl(url: string) {
   if (!url.startsWith("https://"))
@@ -104,7 +86,7 @@ type SocialContextValue = {
 };
 const Context = createContext<SocialContextValue | null>(null);
 const initial: Config = {
-  storage: "memory",
+  storage: "server",
   buffer: { configured: false, organizationId: "" },
   zernio: { configured: false, profileId: "" },
 };

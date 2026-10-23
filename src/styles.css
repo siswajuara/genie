@@ -63,6 +63,25 @@ button.primary:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--accent) 88%, #000);
   color: white;
 }
+.canvas-versions .settings-popover {
+  width: min(360px, 85vw);
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.canvas-versions summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.canvas-versions article {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+}
+.canvas-versions article small {
+  display: block;
+  color: var(--muted);
+  margin: 4px 0 8px;
+}
 button.danger,
 .error {
   color: var(--danger);
@@ -151,11 +170,11 @@ small {
 }
 .studio-main {
   display: grid;
-  grid-template-columns: 310px minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(64px, 5%) 310px minmax(0, 1fr) 280px;
   min-height: 0;
 }
 .studio-main.without-inspector {
-  grid-template-columns: 310px minmax(0, 1fr);
+  grid-template-columns: minmax(64px, 5%) 310px minmax(0, 1fr);
 }
 .studio-main.zen {
   grid-template-columns: minmax(0, 1fr);
@@ -697,10 +716,10 @@ summary {
 }
 @media (max-width: 1150px) {
   .studio-main {
-    grid-template-columns: 270px minmax(0, 1fr) 240px;
+    grid-template-columns: minmax(52px, 5%) 270px minmax(0, 1fr) 240px;
   }
   .studio-main.without-inspector {
-    grid-template-columns: 270px minmax(0, 1fr);
+    grid-template-columns: minmax(52px, 5%) 270px minmax(0, 1fr);
   }
   .library-tabs {
     padding: 0;
@@ -748,8 +767,11 @@ summary {
   }
   .studio-main,
   .studio-main.without-inspector {
-    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-columns: 52px 240px minmax(0, 1fr);
     grid-template-rows: minmax(500px, 75dvh) auto;
+  }
+  .page-rail {
+    grid-row: 1 / -1;
   }
   .inspector {
     grid-column: 1/-1;
@@ -790,6 +812,21 @@ summary {
   .studio-main.without-inspector {
     display: flex;
     flex-direction: column;
+  }
+  .page-rail {
+    flex-direction: row;
+    align-items: center;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 12px;
+  }
+  .page-rail-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 1;
   }
   .library {
     height: 330px;
@@ -865,9 +902,9 @@ summary {
     display: none;
   }
 }
-/* Projects and pages share one workspace; each page owns an independent canvas. */
+/* Each conversation owns one canvas; its pages contain the frames. */
 .studio {
-  grid-template-rows: 66px 44px minmax(0, 1fr) 30px;
+  grid-template-rows: 66px minmax(0, 1fr) 30px;
 }
 .sr-only {
   position: absolute;
@@ -925,45 +962,60 @@ summary {
   text-align: left;
   font-size: 12px;
 }
-.page-bar {
+.page-rail {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  padding: 5px 16px;
+  padding: 10px 8px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
-.page-bar-label {
+.page-rail-label {
   font-size: 11px;
   color: var(--muted);
-  margin-right: 6px;
+  text-align: center;
 }
-.page-list {
+.page-rail-list {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 5px;
-  overflow-x: auto;
-  min-width: 0;
+  overflow-y: auto;
+  min-height: 0;
   flex: 1;
 }
-.page-list button {
+.page-rail-list button {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border-color: transparent;
   background: transparent;
   font-size: 12px;
-  padding: 5px 12px;
+  padding: 5px 6px;
+  min-width: 0;
 }
-.page-list button[aria-current="page"] {
+.page-rail-list button[aria-current="page"] {
   background: var(--hover);
   border-color: var(--border);
   font-weight: 800;
   color: var(--accent);
 }
-.page-bar > button {
+.page-rail-add {
   font-size: 11px;
-  padding: 5px 10px;
+  padding: 5px 6px;
   white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.page-rail-add span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .library-tabs button {
   flex: 1;
@@ -1110,14 +1162,10 @@ summary {
     width: 100%;
     max-width: none;
   }
-  .page-bar {
-    padding: 6px 12px;
-    flex-wrap: wrap;
+  .page-rail {
+    padding: 8px 6px;
   }
-  .page-list {
-    min-width: 100px;
-  }
-  .page-bar-label {
+  .page-rail-label {
     display: none;
   }
   .canvas-toolbar .row {
@@ -1153,12 +1201,9 @@ summary {
   .settings-popover {
     width: 225px;
   }
-  .page-bar .workspace-settings > summary {
-    font-size: 10px;
-  }
-  .page-list button {
+  .page-rail-list button {
     font-size: 11px;
-    padding: 5px 8px;
+    padding: 5px 6px;
   }
   .studio-header > .row {
     margin-left: auto;

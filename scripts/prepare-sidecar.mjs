@@ -42,7 +42,7 @@ for (const file of [
   "platform.mjs",
   "canvas.schema.json",
   "social-bridge.mjs",
-  "social-core.mjs",
+  "social-api.mjs",
 ])
   await fs.copyFile(path.join(source, file), path.join(destination, file));
 await fs.writeFile(

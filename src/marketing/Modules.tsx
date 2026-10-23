@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { Connections } from '../social/Connections';
+import { Connections } from "../social/Connections";
+import { UpdateSettings } from "../components/AppUpdates";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Projects, Workspace } from "../editor/projects";
 import { Icon } from "../components/ui/Icon";
@@ -96,7 +97,8 @@ export function Schedule({
             Your plan is saved here. Connect accounts to share it.
           </strong>
           <p>
-            Local drafts stay on this device until you submit them through Publish. Provider-scheduled posts are shown separately above.
+            Saved drafts are stored on your website. Submit them through
+            Publish. Provider-scheduled posts are shown separately above.
           </p>
         </div>
         <button onClick={onSettings}>
@@ -522,7 +524,7 @@ export function Setting({
             new Blob([JSON.stringify(p.workspace, null, 2)], {
               type: "application/json",
             }),
-            "siswa-juara-projects.json",
+            "siswa-juara-canvases.json",
           ),
         ),
       );
@@ -533,7 +535,7 @@ export function Setting({
   return (
     <>
       <PageIntro
-        title="Make this workspace yours."
+        title="Your preferences and connections."
         description="Manage your social accounts, brand details, and preferences."
       />
       <div className="settings-layout">
@@ -542,7 +544,7 @@ export function Setting({
             { name: "Social accounts", icon: "link" as const },
             { name: "Brand", icon: "heading" as const },
             { name: "Preferences", icon: "settings" as const },
-            { name: "Projects & backup", icon: "layers" as const },
+            { name: "Canvas backup", icon: "layers" as const },
             { name: "Assistant", icon: "chat" as const },
           ].map((item) => (
             <button
@@ -557,9 +559,7 @@ export function Setting({
           ))}
         </nav>
         <section className="settings-content">
-          {section === "Social accounts" && (
-            <Connections/>
-          )}
+          {section === "Social accounts" && <Connections />}
           {section === "Brand" && (
             <>
               <div className="panel-heading">
@@ -631,32 +631,33 @@ export function Setting({
                 <div>
                   <strong>Storage</strong>
                   <p>
-                    Projects, drafts, and conversations are saved on this
-                    device.
+                    Chats, canvases, and versions stay on this device. Saved
+                    social drafts and provider data are stored on your website.
                   </p>
                 </div>
                 <span className="subtle-badge">Local</span>
               </div>
               <p className="settings-explanation">
-                You can download a backup of your Canvas projects under Projects
-                & backup. Posts and conversations stay in this app’s local
-                storage.
+                Download local designs under Canvas backup. Use the website
+                connection for saved social drafts, schedules, insights, and
+                comments.
               </p>
+              <UpdateSettings />
             </>
           )}
-          {section === "Projects & backup" && (
+          {section === "Canvas backup" && (
             <>
               <div className="panel-heading">
                 <div>
-                  <h2>Projects & backup</h2>
-                  <p>Keep each brand or campaign’s Canvas work together.</p>
+                  <h2>Canvas backup</h2>
+                  <p>
+                    Each conversation has one canvas with its own pages and
+                    versions.
+                  </p>
                 </div>
-                <button onClick={p.createProject}>
-                  <Icon name="add" size={16} /> New project
-                </button>
               </div>
               <label className="marketing-field">
-                Current project name
+                Current canvas name
                 <input
                   value={p.project.name}
                   onChange={(ev) => p.renameProject(ev.target.value)}
@@ -673,7 +674,7 @@ export function Setting({
                   >
                     <Icon name="layers" size={20} />
                     <span>
-                      <strong>{project.name || "Untitled project"}</strong>
+                      <strong>{project.name || "Untitled canvas"}</strong>
                       <small>
                         {project.pages.length}{" "}
                         {project.pages.length === 1 ? "page" : "pages"}
@@ -690,7 +691,8 @@ export function Setting({
                 <div>
                   <h3>Keep a copy of your designs</h3>
                   <p>
-                    Download all Canvas projects and pages as a JSON backup.
+                    Download all canvases, pages, and saved versions as a JSON
+                    backup.
                   </p>
                 </div>
                 <button onClick={() => void exportBackup()}>

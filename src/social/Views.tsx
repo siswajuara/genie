@@ -1,10 +1,5 @@
 import { useEffect, useState, type ComponentProps } from "react";
-import {
-  useSocial,
-  useSocialResource,
-  openSocialUrl,
-  type Issue,
-} from "./client";
+import { useSocial, useSocialResource, type Issue } from "./client";
 import { Schedule as LocalSchedule } from "../marketing/Modules";
 import { Icon } from "../components/ui/Icon";
 import {
@@ -74,10 +69,7 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
   const social = useSocial(),
     enabled =
       social.config.buffer.configured || social.config.zernio.configured;
-  const [status, setStatus] = useState("All provider posts"),
-    [provider, setProvider] = useState("all"),
-    [query, setQuery] = useState(""),
-    [page, setPage] = useState(1),
+  const [page, setPage] = useState(1),
     [collected, setCollected] = useState<ProviderPost[]>([]);
   const feed = useSocialResource<PostsResponse>(
     "posts",
@@ -96,28 +88,63 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
           : [
               ...new Map(
                 [...old, ...feed.data!.posts].map((post) => [
-                  `${post.provider}:${post.id}`,
+                  `${post.provider}:${post.id}:${post.accountId}`,
                   post,
                 ]),
               ).values(),
             ],
       );
   }, [feed.data, page]);
-  const filtered = collected
-    .filter(
-      (post) =>
-        (provider === "all" || post.provider === provider) &&
-        post.content?.toLowerCase().includes(query.toLowerCase()) &&
-        (status === "All provider posts" ||
-          post.status?.toLowerCase().includes(status.toLowerCase())),
-    )
-    .sort((a, b) =>
-      (a.scheduledFor || a.publishedAt || "").localeCompare(
-        b.scheduledFor || b.publishedAt || "",
-      ),
-    );
   return (
     <div className={enabled ? "social-connected" : ""}>
+      {enabled && (
+        <section className="social-data-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Published & scheduled</h2>
+              <p>
+                Read from your website database. Provider statuses refresh
+                through its scheduled sync.
+              </p>
+            </div>
+            <Refresh
+              loading={feed.loading}
+              onClick={() => {
+                setPage(1);
+                feed.refresh();
+              }}
+            />
+          </div>
+          <Issues error={feed.error} issues={feed.data?.issues} />
+          {collected.map((post) => (
+            <article
+              key={`${post.provider}:${post.id}:${post.accountId}`}
+              className="live-post-list"
+            >
+              <p>
+                <strong>{post.content || "Media post"}</strong>
+              </p>
+              <small>
+                {post.provider} · {post.platform} · {post.status}{" "}
+                {post.scheduledFor
+                  ? `· ${new Date(post.scheduledFor).toLocaleString()}`
+                  : ""}
+              </small>
+            </article>
+          ))}
+          {!collected.length && !feed.loading && (
+            <p>No provider posts have been saved yet.</p>
+          )}
+          {feed.data?.zernioHasMore && (
+            <button
+              disabled={feed.loading}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Load more posts
+            </button>
+          )}
+        </section>
+      )}
       <LocalSchedule {...props} />
     </div>
   );
@@ -504,9 +531,10 @@ export function Community({ onSettings }: { onSettings: () => void }) {
         }
       />
       <p className="social-coverage-note">
-        Buffer does not expose comment listing or replies in its public API.
-        Zernio covers connected accounts with Inbox access; its feed can be
-        cached for up to ten minutes. Ads comments are managed in Zernio.
+        Comments are read from your website database and refreshed by its
+        scheduled sync. Replies are forwarded through your website to Zernio.
+        Buffer's public API does not expose comments. Ads comments are managed
+        in Zernio.
       </p>
       {social.config.zernio.configured ? (
         <>

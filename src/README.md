@@ -6,11 +6,15 @@ React editor ported from `reference/siswa-juara-editor.html`. The built-in templ
 
 The app opens in **Idea** with a fresh chat. Its icon sidebar contains **Idea, Publish, Schedule, Insight, Community, and Setting**. Idea combines new conversations and chat history: choose Conversations to view the list, or New chat to start another. Hover or focus a sidebar icon to read its label and purpose. **Canvas** opens from Idea or a conversation; it has no marketing sidebar, and its Back to Idea button returns to the conversation list. The page editor stays mounted across module changes, preserving the current document and undo history.
 
+Ownership is **conversation → canvas → pages → frames**. New chat creates a separate canvas; opening Canvas reopens that conversation's canvas. All conversations appear together in Idea, with no project selector. Switching pages keeps the same chat thread. Legacy chats that shared a page are migrated to independent canvases with copies of the existing pages; legacy storage remains readable for backup compatibility.
+
+The Canvas header's **Versions** menu saves and restores snapshots of every page and frame. Applied chat edits create versions automatically; manual checkpoints use **Save current version**. The most recent 20 versions are retained in the canvas backup. Restoring saves the current state first. Chat artifact revisions also remember their original page, so restoring an artifact cannot overwrite a different page by accident. Version history is separate from the editor's Undo stack.
+
 Idea uses the existing desktop assistant with marketing prompt starters and a preview of the current Canvas. Its conversation list indexes both Idea and Canvas conversations, including previously saved page chats. Conversations retain links to their project/page and can reopen in Idea or Canvas. Starting a new conversation archives the previous one. Idea views use `#idea/new`, `#idea/list`, and `#idea/conversation`; old `#chat` links open the Idea conversation list.
 
-Publish supports multiple Canvas frames, uploaded images/videos, public HTTPS media URLs, captions, connected account choices, previews, and scheduling. Drafts remain local until the user reviews and confirms submission. Published and scheduled posts are sent to Buffer or Zernio; Schedule shows provider posts separately from local drafts. Uploads are limited to 8 MB per file while draft storage is local; storage failures remain visible.
+Publish supports multiple Canvas frames, uploaded images/videos, public HTTPS media URLs, captions, connected accounts, previews, and scheduling. Unsaved composer state stays in memory; explicitly saved social drafts are stored by the website. Publish requests go through the website to Buffer or Zernio after confirmation. Schedule reads saved drafts and provider delivery records from the website database. Selected media files are capped at 8 MB in the desktop composer and uploaded directly to signed website storage URLs.
 
-Setting accepts Buffer and Zernio API keys, tests connections, discovers organizations/profiles and channels, and opens provider authorization. Desktop keys are stored in the operating system credential vault. Browser development keeps keys in server memory until restart. Insight displays provider metrics with date and account filters. Community lists Zernio Inbox comments and replies; Buffer's public API does not support these operations. See [social integration details](../docs/social.md) for setup, media requirements, and limitations.
+Setting connects to the website API using a user-scoped token. Provider keys are encrypted by the website; only the website token is stored in the desktop credential vault. Browser previews keep that token in memory until reload. Publishing and replies are forwarded by the website, while schedules, insights, and comments are read from its database and refreshed by its cron worker. Codex, chat, Canvas, pages, frames, and Canvas versions remain local. The copyable Next.js implementation and SQL migration have moved to `website/genie-references/social-api`; see [social integration details](../docs/social.md).
 
 Marketing components live in `marketing/`. Marketing state uses `genie.marketing.*`; archived conversations use `genie.conversation.*` alongside the existing `genie.chat.<project>-<page>` page conversation pointer. Existing Canvas storage formats are unchanged.
 
@@ -87,3 +91,20 @@ New assets keep their aspect ratio, never upscale beyond their prepared dimensio
 `npm run assets:prepare` creates 192px WebP thumbnails and optimized images up to 1600px from the original sources. It runs automatically before `npm run dev` and `npm run build`, including desktop/CI builds. Generation is incremental, uses four workers with bounded Sharp caching, and leaves originals unchanged. Generated files in `src/assets/generated` are ignored by Git and rebuilt from source. Run the command again after adding assets to an already-running dev server. This source library has 159 images; its prepared images and thumbnails total approximately 27 MB instead of the originals' 254 MB.
 
 The left tools are Chat, Editor, and Debug. Drop image files, text files, browser images, or text directly onto the canvas. Ctrl/Cmd-V places clipboard images, text, or copied canvas elements. Content dropped inside an unlocked frame becomes a child of that frame; content dropped onto empty workspace stays on the canvas. Clipboard copy/cut also carries canvas elements between pages. Input fields and inline text editing retain normal clipboard behavior. The context-menu Paste action reads the system clipboard when the WebView supports it and otherwise falls back to the editor clipboard.
+
+The React build, native check, version checks, and workflow YAML validation pass. The app also blocks installation if it cannot save the canvases or if an assistant response is still running.
+
+The remaining one-time setup is to generate the updater signing key and add it to GitHub Actions. I’ve documented that, along with patch/minor/major release commands and prerelease handling.
+Implemented automatic update checks/downloads, install/restart controls, and signed six-platform GitHub releases from v* tags.
+
+Version scripts synchronize all manifests and support patch, minor, major, and prereleases.
+
+One-time setup:
+
+npm run updater:setup
+
+Then configure the GitHub signing secrets. After committing your changes, release a patch with:
+
+npm run release:patch -- --tag --push
+
+Build and native checks pass. Full setup guide (docs/updates.md).
