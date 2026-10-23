@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { localStore, useLocalStorageStatus } from "../lib/localStore";
 import type { Projects } from "../editor/projects";
 import type { Editor } from "../editor/useEditor";
 import { Icon, type IconName } from "../components/ui/Icon";
@@ -10,21 +11,25 @@ import {
   conversationTitle,
   emptyPost,
   initialSettings,
+  pruneEmptyConversations,
   readConversations,
   useLocalState,
   type Conversation,
   type Post,
 } from "./store";
 import { Publish } from "./Publish";
+import { Canvases } from "./Canvases";
 import { Setting } from "./Modules";
 import { Schedule, Insight, Community } from "../social/Views";
 import { useSocial } from "../social/client";
 import { prepareSocialMedia } from "../social/media";
+import { projectLogo } from "../lib/brand";
 import "./marketing.css";
 import "./chat.css";
 
 export type Module =
   | "Idea"
+  | "Canvases"
   | "Canvas"
   | "Publish"
   | "Schedule"
@@ -36,6 +41,7 @@ export type IdeaView = "new" | "conversation" | "list";
 
 const navigation: { name: Module; icon: IconName; description: string }[] = [
   { name: "Idea", icon: "idea", description: "Chat, discuss, and draw" },
+  { name: "Canvases", icon: "layers", description: "Open and manage canvases" },
   { name: "Publish", icon: "publish", description: "Prepare a social post" },
   { name: "Schedule", icon: "calendar", description: "See your content plan" },
   { name: "Insight", icon: "insight", description: "Understand your results" },
@@ -101,7 +107,10 @@ export function MarketingWorkspace({
   const [conversationRevision, setConversationRevision] = useState(0);
 
   useEffect(() => {
-    const refresh = () => setChats(readConversations(p.workspace));
+    const refresh = () => {
+      pruneEmptyConversations();
+      setChats(readConversations(p.workspace));
+    };
     refresh();
     window.addEventListener(chatEvent, refresh);
     window.addEventListener("storage", refresh);
@@ -133,6 +142,12 @@ export function MarketingWorkspace({
   }
 
   function startCanvas() {
+    p.createProject();
+    navigate("Canvas");
+  }
+
+  function openCanvas(id: string) {
+    if (id) p.selectProject(id);
     navigate("Canvas");
   }
 
@@ -148,9 +163,15 @@ export function MarketingWorkspace({
       return;
     }
     try {
-      localStorage.setItem(`genie.chat.${chat.scope}`, JSON.stringify(chat));
+      localStore.setItem(`genie.chat.${chat.scope}`, JSON.stringify(chat));
+      localStore.setItem(
+        `genie.chat.${source.project.id}`,
+        JSON.stringify(chat),
+      );
     } catch {
-      setToast("Could not reopen this chat. Device storage is full.");
+      setToast(
+        "Could not reopen this chat. Check Settings > Storage and retry saving.",
+      );
       return;
     }
     p.selectProject(source.project.id);
@@ -208,6 +229,7 @@ export function MarketingWorkspace({
   }
 
   const storageError = settingsError || p.storageError || e.storageError;
+  const diskStatus = useLocalStorageStatus();
 
   const projectChats = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -237,7 +259,7 @@ export function MarketingWorkspace({
           title="Siswa Juara"
           onClick={() => navigate("Idea")}
         >
-          SJ
+          <img src={projectLogo} alt="Siswa Juara" width={40} height={40} />
         </button>
         <nav aria-label="Main navigation">
           {navigation.map((item) => (
@@ -278,10 +300,14 @@ export function MarketingWorkspace({
           <div className="marketing-header-actions">
             <span className="device-save">
               <Icon name={storageError ? "help" : "check"} size={14} />
-              {storageError ? "Could not save" : "Saved on this device"}
+              {storageError
+                ? "Could not save"
+                : diskStatus.saving
+                  ? "Saving…"
+                  : "Saved on this device"}
             </span>
             <button onClick={startIdea}>
-              <Icon name="add" size={17} /> Chat
+              <Icon name="add" size={17} /> New Idea
             </button>
             <button onClick={startCanvas}>
               <Icon name="layers" size={17} /> Open Canvas
@@ -363,6 +389,14 @@ export function MarketingWorkspace({
               </div>
             </div>
           )}
+          {module === "Canvases" && (
+            <Canvases
+              projects={p}
+              onOpen={openCanvas}
+              onNew={startCanvas}
+              notify={setToast}
+            />
+          )}
           {module === "Publish" && (
             <Publish
               projects={p}
@@ -370,7 +404,7 @@ export function MarketingWorkspace({
               setDraft={setDraft}
               settings={settings}
               onSave={savePost}
-              onCanvas={() => navigate("Canvas")}
+              onCanvas={startCanvas}
               onIdea={() =>
                 ask(
                   `Help me write a caption for this post${draft.caption ? `: ${draft.caption}` : ". Ask me what I want to share."}`,
@@ -421,12 +455,7 @@ export function MarketingWorkspace({
             <Community onSettings={() => navigate("Setting")} />
           )}
           {module === "Setting" && (
-            <Setting
-              settings={settings}
-              setSettings={setSettings}
-              projects={p}
-              notify={setToast}
-            />
+            <Setting settings={settings} setSettings={setSettings} />
           )}
         </main>
       </div>

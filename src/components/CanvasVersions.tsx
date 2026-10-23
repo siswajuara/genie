@@ -12,8 +12,9 @@ export function CanvasVersions({
   const versions = p.project.versions || [];
   return (
     <details className="workspace-settings canvas-versions">
-      <summary>
-        <Icon name="clock" size={16} /> Versions ({versions.length})
+      <summary className="pill-btn" title="View saved canvas versions">
+        <Icon name="clock" size={15} />
+        <span>Versions ({versions.length})</span>
       </summary>
       <div className="settings-popover">
         <h2>Canvas versions</h2>

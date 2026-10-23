@@ -1,0 +1,37 @@
+[
+  {
+    "id": "auto",
+    "label": "Choose automatically",
+    "description": "Select a relevant skill from your request."
+  },
+  {
+    "id": "genie-brainstorm",
+    "label": "Brainstorm",
+    "description": "Explore distinct content directions and recommend a useful angle.",
+    "mode": "discuss"
+  },
+  {
+    "id": "genie-create-idea",
+    "label": "Create an idea",
+    "description": "Turn a topic into a production-ready educational post, caption, or script.",
+    "mode": "discuss"
+  },
+  {
+    "id": "genie-create-carousel",
+    "label": "Create a carousel",
+    "description": "Design one canvas page with multiple ordered, editable frames.",
+    "mode": "draw"
+  },
+  {
+    "id": "genie-create-campaign",
+    "label": "Plan a campaign",
+    "description": "Plan connected posts with objectives, captions, assets, dates, and measurement.",
+    "mode": "discuss"
+  },
+  {
+    "id": "genie-content-review",
+    "label": "Review content",
+    "description": "Review educational accuracy, natural language, claims, and readiness.",
+    "mode": "discuss"
+  }
+]

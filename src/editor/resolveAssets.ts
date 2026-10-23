@@ -1,5 +1,6 @@
 import type { Element, Preset } from "./model";
 import { loadAsset, matchLibraryAsset } from "./assets";
+import { brandImageSource } from "../lib/brand";
 
 export async function resolvePresetAssets(preset: Preset): Promise<Preset> {
   const loaded = new Map<string, Promise<string>>();
@@ -10,6 +11,11 @@ export async function resolvePresetAssets(preset: Preset): Promise<Preset> {
       const at = index++,
         object = objects[at];
       if (object.t !== "img" || object.src || !object.identifier) continue;
+      const brand = brandImageSource(object.identifier);
+      if (brand) {
+        objects[at] = { ...object, src: brand, fit: object.fit || "contain" };
+        continue;
+      }
       const asset = matchLibraryAsset(object.identifier);
       if (!asset) continue;
       if (!loaded.has(asset.id)) loaded.set(asset.id, loadAsset(asset));
@@ -33,6 +39,6 @@ export function unresolvedAssetSlots(elements: Element[]) {
       o.t === "img" &&
       !o.src &&
       o.identifier &&
-      matchLibraryAsset(o.identifier),
+      (brandImageSource(o.identifier) || matchLibraryAsset(o.identifier)),
   );
 }

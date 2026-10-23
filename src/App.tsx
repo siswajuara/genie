@@ -1,3 +1,4 @@
+import { localStore } from "./lib/localStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SocialProvider } from "./social/client";
 import { Canvas } from "./editor/Canvas";
@@ -29,6 +30,8 @@ import {
 } from "./marketing/MarketingWorkspace";
 import type { Editor } from "./editor/useEditor";
 import { AssetBrowser } from "./editor/AssetBrowser";
+import { TemplateCard } from "./editor/TemplateCard";
+import { projectLogo } from "./lib/brand";
 import { loadAsset, type LibraryAsset } from "./editor/assets";
 
 const elementIcons: Record<string, IconName> = {
@@ -45,6 +48,7 @@ const elementIcons: Record<string, IconName> = {
 };
 const modules: Module[] = [
   "Idea",
+  "Canvases",
   "Canvas",
   "Publish",
   "Schedule",
@@ -166,6 +170,14 @@ function WorkspacePage({
   }
   const [editorTab, setEditorTab] = useState("Elements");
   const [pendingAsset, setPendingAsset] = useState<LibraryAsset>();
+  useEffect(() => {
+    const openAssets = () => {
+      setTab("Editor");
+      setEditorTab("Assets");
+    };
+    window.addEventListener("genie:open-assets", openAssets);
+    return () => window.removeEventListener("genie:open-assets", openAssets);
+  }, []);
   const latestEditor = useRef(e),
     assetRequest = useRef(0),
     mounted = useRef(true);
@@ -295,27 +307,34 @@ function WorkspacePage({
     [json, setJson] = useState(""),
     [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<"project" | "page">();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFrameId, setExportFrameId] = useState<string>("");
+  const [exportScale, setExportScale] = useState<1 | 2 | 3>(2);
+  const [exportFormat, setExportFormat] = useState<"png" | "jpeg">("png");
+  const [exportTransparent, setExportTransparent] = useState(false);
+  const [exportName, setExportName] = useState("");
   const [saved, setSaved] = useState<Preset[]>(() => {
     try {
       return parsePresets(
-        JSON.parse(localStorage.getItem("genie.presets") || "[]"),
+        JSON.parse(localStore.getItem("genie.presets") || "[]"),
       );
     } catch {
       return [];
     }
   });
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem("genie.theme") || "light",
-  );
+  const [theme] = useState(() => localStore.getItem("genie.theme") || "light");
   const jsonInput = useRef<HTMLInputElement>(null);
   const all = [...presets, ...saved],
     artboards = frames(e.doc);
   function savePresets(next: Preset[]) {
     setSaved(next);
     try {
-      localStorage.setItem("genie.presets", JSON.stringify(next));
+      localStore.setItem("genie.presets", JSON.stringify(next));
     } catch {
-      e.notify("Preset storage is full. Export JSON to keep your preset.");
+      e.notify(
+        "Could not save this template. Check Settings > Storage or export a JSON backup.",
+      );
     }
   }
   function importJSON(value: string) {
@@ -377,56 +396,80 @@ function WorkspacePage({
       }
     }
   }
-  async function exportPNG() {
-    const f = e.frame;
-    if (!f || exporting) return;
+  async function renderFrame(
+    f: Element,
+    scale: number,
+    format: "png" | "jpeg",
+    transparent: boolean,
+  ) {
     const objects = e.scene.frameChildren.get(f.id) || [];
+    if (f.w * f.h * scale * scale > 256000000)
+      throw new Error("Frame is too large to export. Reduce its dimensions.");
+    await ensureDocumentFonts(objects);
+    await document.fonts.ready;
+    const images = new Map<string, HTMLImageElement>();
+    for (const o of objects) {
+      if (!o.src || o.hide) continue;
+      let img = images.get(o.src);
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = o.src;
+        images.set(o.src, img);
+      }
+      try {
+        await img.decode();
+      } catch {
+        throw new Error(
+          `Image “${o.n}” could not be loaded. Upload it again, or use a URL that allows CORS.`,
+        );
+      }
+    }
+    const cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.round(f.w * scale));
+    cv.height = Math.max(1, Math.round(f.h * scale));
+    const ctx = cv.getContext("2d");
+    if (!ctx) throw new Error("Could not create the export canvas.");
+    ctx.scale(scale, scale);
+    if (!(format === "png" && transparent)) {
+      ctx.fillStyle = f.fill || "#fff";
+      ctx.fillRect(f.x, f.y, f.w, f.h);
+    }
+    ctx.translate(-f.x, -f.y);
+    for (const o of objects)
+      drawElement(
+        ctx,
+        { ...o, img: o.src ? images.get(o.src) : undefined },
+        true,
+      );
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      cv.toBlob(
+        (value) =>
+          value ? resolve(value) : reject(new Error("Image encoding failed.")),
+        format === "png" ? "image/png" : "image/jpeg",
+        0.92,
+      ),
+    );
+    return blob;
+  }
+  async function exportPNG() {
+    const list = frames(e.doc);
+    const target =
+      list.find((f) => f.id === (exportFrameId || e.frame?.id)) || e.frame;
+    if (!target || exporting) return;
+    const scale = exportScale;
+    const format = exportFormat;
+    const transparent = exportFormat === "png" && exportTransparent;
+    const base =
+      (exportName.trim() || target.n || "frame").replace(
+        /\.(png|jpe?g)$/i,
+        "",
+      ) + (format === "png" ? ".png" : ".jpg");
     setExporting(true);
     try {
-      if (f.w * f.h > 64000000)
-        throw new Error("Frame is too large to export. Reduce its dimensions.");
-      await ensureDocumentFonts(objects);
-      await document.fonts.ready;
-      const images = new Map<string, HTMLImageElement>();
-      for (const o of objects) {
-        if (!o.src || o.hide) continue;
-        let img = images.get(o.src);
-        if (!img) {
-          img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = o.src;
-          images.set(o.src, img);
-        }
-        try {
-          await img.decode();
-        } catch {
-          throw new Error(
-            `Image “${o.n}” could not be loaded. Upload it again, or use a URL that allows CORS.`,
-          );
-        }
-      }
-      const cv = document.createElement("canvas");
-      cv.width = f.w;
-      cv.height = f.h;
-      const ctx = cv.getContext("2d");
-      if (!ctx) throw new Error("Could not create the export canvas.");
-      ctx.fillStyle = f.fill || "#fff";
-      ctx.fillRect(0, 0, f.w, f.h);
-      ctx.translate(-f.x, -f.y);
-      for (const o of objects)
-        drawElement(
-          ctx,
-          { ...o, img: o.src ? images.get(o.src) : undefined },
-          true,
-        );
-      const blob = await new Promise<Blob>((resolve, reject) =>
-        cv.toBlob(
-          (value) =>
-            value ? resolve(value) : reject(new Error("PNG encoding failed.")),
-          "image/png",
-        ),
-      );
-      e.notify(exportMessage(await saveExport(blob, f.n + ".png")));
+      const blob = await renderFrame(target, scale, format, transparent);
+      e.notify(exportMessage(await saveExport(blob, base)));
+      setExportOpen(false);
     } catch (err) {
       e.notify(
         `Export failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -435,57 +478,73 @@ function WorkspacePage({
       setExporting(false);
     }
   }
+  async function exportAllFrames() {
+    const list = frames(e.doc);
+    if (!list.length || exporting) return;
+    setExporting(true);
+    try {
+      for (const f of list) {
+        const blob = await renderFrame(
+          f,
+          exportScale,
+          exportFormat,
+          exportFormat === "png" && exportTransparent,
+        );
+        const name =
+          (f.n || "frame").replace(/\.(png|jpe?g)$/i, "") +
+          (exportFormat === "png" ? ".png" : ".jpg");
+        e.notify(exportMessage(await saveExport(blob, name)));
+      }
+      setExportOpen(false);
+    } catch (err) {
+      e.notify(
+        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+  function openExport() {
+    const list = frames(e.doc);
+    const current = e.frame;
+    setExportFrameId(current?.id || list[0]?.id || "");
+    setExportName(current?.n || list[0]?.n || "frame");
+    setExportOpen(true);
+  }
 
   return (
     <div className="studio" data-theme={theme}>
       <header className="studio-header">
-        <button className="canvas-back" onClick={onBack}>
-          <Icon name="left" size={17} /> Back to Idea
-        </button>
-        <div className="project-switcher">
+        <div className="header-left">
+          <button
+            className="canvas-back icon-text-btn"
+            onClick={onBack}
+            title="Back to Idea"
+          >
+            <Icon name="left" size={16} />
+          </button>
+          <span className="header-divider" aria-hidden="true" />
+          <img
+            className="project-logo"
+            src={projectLogo}
+            alt="Siswa Juara"
+            width={32}
+            height={32}
+          />
           <input
+            className="project-name"
             aria-label="Canvas name"
             value={p.project.name}
+            placeholder="Untitled canvas"
             onChange={(ev) => p.renameProject(ev.target.value)}
           />
-          <CanvasVersions projects={p} document={e.doc} />
-          <details className="workspace-settings">
-            <summary>Canvas backup</summary>
-            <div className="settings-popover">
-              <button
-                onClick={() =>
-                  download(
-                    JSON.stringify(p.workspace, null, 2),
-                    "siswa-juara-canvases.json",
-                  )
-                }
-              >
-                Export all canvases
-              </button>
-            </div>
-          </details>
         </div>
-        <div className="row">
+        <div className="header-center">
+          <CanvasVersions projects={p} document={e.doc} />
+        </div>
+        <div className="header-right">
           <button
-            aria-label={
-              theme === "light"
-                ? "Switch to dark theme"
-                : "Switch to light theme"
-            }
-            title={
-              theme === "light"
-                ? "Switch to dark theme"
-                : "Switch to light theme"
-            }
-            onClick={() => {
-              const next = theme === "light" ? "dark" : "light";
-              setTheme(next);
-              localStorage.setItem("genie.theme", next);
-            }}
-          >
-            <Icon name={theme === "light" ? "moon" : "sun"} size={16} />
-          </button>
-          <button
+            className="icon-btn"
             aria-label={zen ? "Exit zen mode" : "Zen mode"}
             title={zen ? "Exit zen mode" : "Zen mode"}
             onClick={() => setZen(!zen)}
@@ -493,11 +552,22 @@ function WorkspacePage({
             <Icon name={zen ? "minimize" : "maximize"} size={16} />
           </button>
           <button
-            className="primary"
-            disabled={!e.frame || exporting}
-            onClick={() => void exportPNG()}
+            className="icon-btn"
+            aria-label="Canvas settings"
+            title="Canvas settings"
+            aria-haspopup="dialog"
+            onClick={() => setSettingsOpen(true)}
           >
-            {exporting ? "Exporting…" : "Export frame PNG"}
+            <Icon name="settings" size={16} />
+          </button>
+          <button
+            className="primary export-btn"
+            disabled={!e.frame || exporting}
+            onClick={openExport}
+            title={e.frame ? `Export ${e.frame.n}` : "Add a frame to export"}
+          >
+            <Icon name="export" size={16} />
+            <span>{exporting ? "Exporting…" : "Export"}</span>
           </button>
         </div>
       </header>
@@ -506,24 +576,26 @@ function WorkspacePage({
           <nav className="page-rail" aria-label="Project pages">
             <span className="page-rail-label">Pages</span>
             <div className="page-rail-list">
-              {p.project.pages.map((page) => (
+              {p.project.pages.map((page, index) => (
                 <button
                   key={page.id}
-                  title={page.name || "Untitled page"}
+                  className="page-circle"
+                  title={page.name || `Page ${index + 1}`}
+                  aria-label={`Page ${index + 1}${page.name ? `: ${page.name}` : ""}`}
                   aria-current={page.id === p.page.id ? "page" : undefined}
                   onClick={() => p.selectPage(page.id)}
                 >
-                  {page.name || "Untitled page"}
+                  {index + 1}
                 </button>
               ))}
             </div>
             <button
-              className="page-rail-add"
+              className="page-rail-add page-circle"
               onClick={() => p.createPage()}
               title="Add page"
               aria-label="Add page"
             >
-              <Icon name="add" size={15} /> <span>Page</span>
+              <Icon name="add" size={15} />
             </button>
           </nav>
         )}
@@ -646,57 +718,29 @@ function WorkspacePage({
                               .includes(search.toLowerCase()),
                           )
                           .map((preset, i) => (
-                            <article
-                              className="template-card"
+                            <TemplateCard
                               key={preset.name + i}
-                            >
-                              <div className="template-icon">
-                                <Icon
-                                  name={
-                                    preset.kind === "template"
-                                      ? "layers"
-                                      : "text"
-                                  }
-                                  size={24}
-                                />
-                              </div>
-                              <div>
-                                <strong>{preset.name}</strong>
-                                <small>
-                                  {preset.kind === "template"
-                                    ? `${preset.W} × ${preset.H}`
-                                    : `${preset.objects.length} elements`}
-                                  {preset.b ? " · Built-in" : " · Saved"}
-                                </small>
-                              </div>
-                              <div className="row">
-                                <button onClick={() => e.template(preset)}>
-                                  Add
-                                </button>
-                                {preset.kind === "template" && (
-                                  <button
-                                    disabled={!e.frame}
-                                    onClick={() => e.template(preset, true)}
-                                  >
-                                    Replace frame
-                                  </button>
-                                )}
-                                {!preset.b && (
-                                  <button
-                                    className="danger"
-                                    onClick={() =>
+                              preset={preset}
+                              canReplace={!!e.frame}
+                              onApply={(replace) => e.template(preset, replace)}
+                              onDelete={
+                                preset.b
+                                  ? undefined
+                                  : () =>
                                       savePresets(
                                         saved.filter((s) => s !== preset),
                                       )
-                                    }
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            </article>
+                              }
+                            />
                           ))}
                       </div>
+                      {!all.some((preset) =>
+                        preset.name
+                          .toLowerCase()
+                          .includes(search.toLowerCase()),
+                      ) && (
+                        <p className="hint">No templates match your search.</p>
+                      )}
                     </>
                   )}
                 </>
@@ -815,6 +859,230 @@ function WorkspacePage({
           {e.selection.length} selected
         </span>
       </footer>
+      {settingsOpen && (
+        <div
+          className="dialog-backdrop"
+          onClick={() => setSettingsOpen(false)}
+          onKeyDown={(ev) => {
+            if (ev.key === "Escape") setSettingsOpen(false);
+          }}
+        >
+          <section
+            className="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <header className="modal-head">
+              <h2 id="settings-title">Canvas settings</h2>
+              <button
+                className="icon-btn"
+                aria-label="Close settings"
+                onClick={() => setSettingsOpen(false)}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            </header>
+            <div className="modal-body">
+              <section className="setting-group">
+                <h3>Backup</h3>
+                <p className="hint">
+                  Save every canvas, page, and version as JSON.
+                </p>
+                <div className="row">
+                  <button
+                    onClick={() =>
+                      download(
+                        JSON.stringify(p.workspace, null, 2),
+                        "siswa-juara-canvases.json",
+                      )
+                    }
+                  >
+                    Export backup
+                  </button>
+                  <button onClick={() => jsonInput.current?.click()}>
+                    Import backup
+                  </button>
+                </div>
+              </section>
+              <section className="setting-group danger-zone">
+                <h3>Danger zone</h3>
+                <div className="row">
+                  <button
+                    className="danger"
+                    disabled={p.project.pages.length <= 1}
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      setConfirmDelete("page");
+                    }}
+                  >
+                    Delete page
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      setConfirmDelete("project");
+                    }}
+                  >
+                    Delete canvas
+                  </button>
+                </div>
+              </section>
+            </div>
+            <footer className="modal-foot">
+              <button
+                className="primary"
+                autoFocus
+                onClick={() => setSettingsOpen(false)}
+              >
+                Done
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+      {exportOpen && (
+        <div
+          className="dialog-backdrop"
+          onClick={() => !exporting && setExportOpen(false)}
+          onKeyDown={(ev) => {
+            if (ev.key === "Escape") setExportOpen(false);
+          }}
+        >
+          <section
+            className="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-title"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <header className="modal-head">
+              <h2 id="export-title">Export frame</h2>
+              <button
+                className="icon-btn"
+                aria-label="Close export"
+                disabled={exporting}
+                onClick={() => setExportOpen(false)}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            </header>
+            <div className="modal-body">
+              <label className="field">
+                <span>Frame</span>
+                <select
+                  value={exportFrameId}
+                  onChange={(ev) => {
+                    setExportFrameId(ev.target.value);
+                    const found = artboards.find(
+                      (f) => f.id === ev.target.value,
+                    );
+                    if (found) setExportName(found.n);
+                  }}
+                >
+                  {artboards.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.n} · {Math.round(f.w)} × {Math.round(f.h)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="field">
+                <span id="export-scale-label">Scale</span>
+                <div
+                  className="segmented"
+                  role="group"
+                  aria-labelledby="export-scale-label"
+                >
+                  {([1, 2, 3] as const).map((s) => (
+                    <button
+                      key={s}
+                      aria-pressed={exportScale === s}
+                      className={exportScale === s ? "active" : ""}
+                      onClick={() => setExportScale(s)}
+                    >
+                      {s}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <span id="export-format-label">Format</span>
+                <div
+                  className="segmented"
+                  role="group"
+                  aria-labelledby="export-format-label"
+                >
+                  {(["png", "jpeg"] as const).map((fmt) => (
+                    <button
+                      key={fmt}
+                      aria-pressed={exportFormat === fmt}
+                      className={exportFormat === fmt ? "active" : ""}
+                      onClick={() => {
+                        setExportFormat(fmt);
+                        if (fmt === "jpeg") setExportTransparent(false);
+                      }}
+                    >
+                      {fmt === "png" ? "PNG" : "JPG"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {exportFormat === "png" && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={exportTransparent}
+                    onChange={(ev) => setExportTransparent(ev.target.checked)}
+                  />
+                  Transparent background
+                </label>
+              )}
+              <label className="field">
+                <span>File name</span>
+                <input
+                  value={exportName}
+                  placeholder="frame"
+                  onChange={(ev) => setExportName(ev.target.value)}
+                />
+              </label>
+              <p className="hint">
+                {(() => {
+                  const f = artboards.find((a) => a.id === exportFrameId);
+                  if (!f) return "Add a frame to export.";
+                  return `Output: ${Math.round(f.w * exportScale)} × ${Math.round(f.h * exportScale)} px · ${exportFormat === "png" ? "PNG" : "JPEG"}`;
+                })()}
+              </p>
+            </div>
+            <footer className="modal-foot split">
+              <button
+                disabled={exporting || artboards.length === 0}
+                onClick={() => void exportAllFrames()}
+                title="Export every frame with these settings"
+              >
+                Export all
+              </button>
+              <div className="row">
+                <button
+                  disabled={exporting}
+                  onClick={() => setExportOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="primary"
+                  disabled={exporting || !exportFrameId}
+                  onClick={() => void exportPNG()}
+                >
+                  {exporting ? "Exporting…" : "Export"}
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      )}
       {confirmDelete && (
         <div
           className="dialog-backdrop"

@@ -53,7 +53,7 @@
   height: 40px;
   border: 0;
   border-radius: 12px;
-  background: #f7c600;
+  background: #fff;
   color: #14226e;
   font-size: 17px;
   font-weight: 900 !important;
@@ -61,7 +61,14 @@
   letter-spacing: -1px;
 }
 .marketing-brand:hover {
-  background: #edbe00 !important;
+  background: #fff !important;
+}
+.marketing-brand img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
 }
 .marketing-rail nav {
   display: flex;
@@ -2789,4 +2796,244 @@
   .marketing-workspace button {
     transition: none;
   }
+}
+
+/* Canvases gallery */
+.canvas-gallery-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 4px;
+}
+.canvas-search {
+  flex: 1 1 200px;
+  max-width: 320px;
+  margin: 0;
+}
+.canvas-gallery-spacer {
+  flex: 1;
+}
+.canvas-backup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.canvas-count {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 10px 0 14px;
+}
+.canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+.canvas-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.canvas-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 10px 28px #1b2a7a14;
+  transform: translateY(-2px);
+}
+.canvas-card.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.canvas-card.is-empty {
+  border-style: dashed;
+}
+.canvas-preview {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 1px) 0 0 / 16px 16px,
+    var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.canvas-preview-open {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+.canvas-preview-open:hover {
+  background: none;
+  border-color: transparent;
+}
+.canvas-preview-open canvas {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px #0003;
+  background: #fff;
+}
+.canvas-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.canvas-preview-bar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms;
+}
+.canvas-card:hover .canvas-preview-bar,
+.canvas-card:focus-within .canvas-preview-bar {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+@media (hover: none) {
+  .canvas-preview-bar {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+.canvas-open-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 7px 14px;
+  box-shadow: 0 4px 14px #0004;
+  cursor: pointer;
+}
+.canvas-preview-tools {
+  display: flex;
+  gap: 6px;
+}
+.canvas-preview-tools button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px #0002;
+  cursor: pointer;
+  color: var(--text);
+}
+.canvas-preview-tools button:hover {
+  border-color: var(--accent);
+  background: var(--hover);
+}
+.canvas-preview-tools button.danger-ghost {
+  color: var(--danger);
+}
+.canvas-preview-tools button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.canvas-card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.canvas-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 14px;
+}
+.canvas-card-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.canvas-card-body > small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.canvas-card-rename {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.canvas-card-rename input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.canvas-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.canvas-confirm .danger {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+.icon-btn.small {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+}
+.icon-btn.small.danger-ghost {
+  color: var(--danger);
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-card,
+  .canvas-preview-bar {
+    transition: none;
+  }
+  .canvas-card:hover {
+    transform: none;
+  }
+}
+.chat-skill-picker {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
 }

@@ -1,7 +1,7 @@
+import { localStore, useLocalStorageStatus } from "../lib/localStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   copy,
-  initialDocument,
   parseDocument,
   uid,
   type CanvasDocument,
@@ -58,9 +58,9 @@ export function migrateWorkspace(savedCanvas?: string | null): Workspace {
   try {
     canvas = savedCanvas
       ? parseDocument(JSON.parse(savedCanvas))
-      : initialDocument();
+      : newPage("Page 1").canvas;
   } catch {
-    canvas = initialDocument();
+    canvas = newPage("Page 1").canvas;
   }
   const project = newProject("Untitled canvas", canvas);
   return {
@@ -140,11 +140,11 @@ export function migrateConversations(workspace: Workspace): Workspace {
       [key: string]: unknown;
     }
   >();
-  for (let i = 0; i < localStorage.length; i++) {
-    const storageKey = localStorage.key(i)!;
+  for (let i = 0; i < localStore.length; i++) {
+    const storageKey = localStore.key(i)!;
     if (!storageKey.startsWith("genie.conversation.")) continue;
     try {
-      const chat = JSON.parse(localStorage.getItem(storageKey)!);
+      const chat = JSON.parse(localStore.getItem(storageKey)!);
       if (chat?.key && chat.messages?.length) chats.set(chat.key, chat);
     } catch {
       /* Leave damaged records available for recovery. */
@@ -155,7 +155,7 @@ export function migrateConversations(workspace: Workspace): Workspace {
       const scope = `${project.id}-${page.id}`;
       try {
         const chat = JSON.parse(
-          localStorage.getItem(`genie.chat.${scope}`) || "null",
+          localStore.getItem(`genie.chat.${scope}`) || "null",
         );
         if (chat?.key && chat.messages?.length && !chats.has(chat.key))
           chats.set(chat.key, {
@@ -205,7 +205,7 @@ export function migrateConversations(workspace: Workspace): Workspace {
     canvas.conversationId ||= uid();
     canvas.versions ||= [];
     if (
-      !localStorage.getItem(`genie.chat.${canvas.id}`) &&
+      !localStore.getItem(`genie.chat.${canvas.id}`) &&
       !writes.some(([key]) => key === `genie.chat.${canvas.id}`)
     )
       writes.push([
@@ -214,14 +214,14 @@ export function migrateConversations(workspace: Workspace): Workspace {
       ]);
   }
   const next = { ...workspace, projects };
-  localStorage.setItem(workspaceKey, JSON.stringify(next));
-  for (const [key, value] of writes) localStorage.setItem(key, value);
+  localStore.setItem(workspaceKey, JSON.stringify(next));
+  for (const [key, value] of writes) localStore.setItem(key, value);
   return next;
 }
 export function useProjects() {
   const [workspace, setWorkspace] = useState<Workspace>(() => {
     try {
-      const saved = localStorage.getItem(workspaceKey);
+      const saved = localStore.getItem(workspaceKey);
       if (saved) {
         const parsed = parseWorkspace(JSON.parse(saved));
         try {
@@ -233,26 +233,28 @@ export function useProjects() {
     } catch {
       /* Keep the previous storage entry available for recovery. */
     }
-    const initial = migrateWorkspace(localStorage.getItem("genie.canvas"));
+    const initial = migrateWorkspace(localStore.getItem("genie.canvas"));
     try {
       return migrateConversations(initial);
     } catch {
       return initial;
     }
   });
-  const [storageError, setStorageError] = useState("");
+  const [saveError, setStorageError] = useState("");
+  const diskStatus = useLocalStorageStatus();
+  const storageError = saveError || diskStatus.error;
   const [importRevision, setImportRevision] = useState(0);
   const latest = useRef(workspace);
   latest.current = workspace;
   useEffect(() => {
     const save = () => {
       try {
-        localStorage.setItem(workspaceKey, JSON.stringify(latest.current));
+        localStore.setItem(workspaceKey, JSON.stringify(latest.current));
         setStorageError("");
         return true;
       } catch {
         setStorageError(
-          "Storage is full. Export your canvases to keep a backup.",
+          "Could not save this canvas. Open Settings > Storage to retry or create a backup.",
         );
         return false;
       }
@@ -344,6 +346,31 @@ export function useProjects() {
         p.id === project.id ? { ...p, name } : p,
       ),
     }));
+  }
+  function renameProjectById(id: string, name: string) {
+    setWorkspace((w) => ({
+      ...w,
+      projects: w.projects.map((p) => (p.id === id ? { ...p, name } : p)),
+    }));
+  }
+  function deleteProjectById(id: string) {
+    setWorkspace((w) => {
+      if (w.projects.length <= 1) return w;
+      const projects = w.projects.filter((p) => p.id !== id);
+      if (projects.length === w.projects.length) return w;
+      const active =
+        w.activeProjectId === id
+          ? projects[0]
+          : (projects.find((p) => p.id === w.activeProjectId) ?? projects[0]);
+      return {
+        ...w,
+        projects,
+        activeProjectId: active.id,
+        activePageId:
+          active.pages.find((page) => page.id === active.activePageId)?.id ??
+          active.pages[0].id,
+      };
+    });
   }
   function deleteProject() {
     setWorkspace((w) => {
@@ -485,7 +512,9 @@ export function useProjects() {
     createProject,
     duplicateProject,
     renameProject,
+    renameProjectById,
     deleteProject,
+    deleteProjectById,
     createPage,
     renamePage,
     deletePage,

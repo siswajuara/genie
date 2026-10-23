@@ -1,3 +1,4 @@
+import { localStore } from "../lib/localStore";
 import { useEffect, useState } from "react";
 import type { Workspace } from "../editor/projects";
 import type { IconName } from "../components/ui/Icon";
@@ -75,15 +76,16 @@ export const chatEvent = "genie:chats-updated";
 export function readConversations(workspace: Workspace): Conversation[] {
   const records = new Map<string, Conversation>();
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const name = localStorage.key(i)!;
+    for (let i = 0; i < localStore.length; i++) {
+      const name = localStore.key(i)!;
       if (!name.startsWith("genie.conversation.")) continue;
       try {
-        const record = JSON.parse(localStorage.getItem(name)!);
+        const record = JSON.parse(localStore.getItem(name)!);
         if (
           record.key &&
           typeof record.scope === "string" &&
-          Array.isArray(record.messages)
+          Array.isArray(record.messages) &&
+          record.messages.length
         )
           records.set(record.key, record);
       } catch {
@@ -95,7 +97,7 @@ export function readConversations(workspace: Workspace): Conversation[] {
         const scope = `${project.id}-${page.id}`;
         try {
           const record = JSON.parse(
-            localStorage.getItem(`genie.chat.${scope}`) || "null",
+            localStore.getItem(`genie.chat.${scope}`) || "null",
           );
           if (
             record?.key &&
@@ -140,10 +142,29 @@ export function conversationPage(workspace: Workspace, scope: string) {
   }
   return undefined;
 }
+/** Remove previously stored empty conversations so they stop crowding history. */
+export function pruneEmptyConversations() {
+  try {
+    const doomed: string[] = [];
+    for (let i = 0; i < localStore.length; i++) {
+      const name = localStore.key(i)!;
+      if (!name.startsWith("genie.conversation.")) continue;
+      try {
+        const record = JSON.parse(localStore.getItem(name)!);
+        if (!record?.messages?.length) doomed.push(name);
+      } catch {
+        doomed.push(name);
+      }
+    }
+    for (const name of doomed) localStore.removeItem(name);
+  } catch {
+    /* Storage stays untouched when it cannot be read. */
+  }
+}
 export function useLocalState<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
     try {
-      return JSON.parse(localStorage.getItem(key) || "null") ?? initial;
+      return JSON.parse(localStore.getItem(key) || "null") ?? initial;
     } catch {
       return initial;
     }
@@ -151,7 +172,7 @@ export function useLocalState<T>(key: string, initial: T) {
   const [error, setError] = useState("");
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      localStore.setItem(key, JSON.stringify(value));
       setError("");
     } catch {
       setError(
@@ -181,5 +202,5 @@ export const initialSettings: BrandSettings = {
   website: "",
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   weekStart: "monday",
-  theme: localStorage.getItem("genie.theme") || "light",
+  theme: localStore.getItem("genie.theme") || "light",
 };

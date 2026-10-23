@@ -1,3 +1,4 @@
+import { flushLocalStore } from "../lib/localStore";
 import {
   createContext,
   useCallback,
@@ -195,6 +196,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         new CustomEvent("genie:prepare-update", { detail: persistence }),
       );
       if (persistence.errors.length) throw Error(persistence.errors.join(" "));
+      await flushLocalStore();
       if (!installed) {
         setPhase("installing");
         await resource.current.install();

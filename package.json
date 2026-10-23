@@ -42,7 +42,8 @@
     "react-day-picker": "^10.0.2",
     "react-dom": "^19.1.0",
     "react-fontpicker-ts": "^1.3.0",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "thesvg": "^3.4.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

@@ -1,3 +1,4 @@
+mod disk;
 use serde_json::{json, Value};
 mod social;
 use std::{collections::HashMap, fs, io::{BufRead, BufReader, Read, Write}, path::PathBuf, process::{Child, ChildStdin, Command, Stdio}, sync::{Arc, Mutex}, time::{SystemTime, UNIX_EPOCH}};
@@ -106,7 +107,8 @@ pub fn run() {
     tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init()).manage(Runs::default())
         .manage(social::SocialLock::default())
-        .invoke_handler(tauri::generate_handler![update_status,prepare_update,save_export,codex_run,codex_status,cancel_run,reveal_workspace,social::social_settings,social::social_request])
+        .manage(disk::LocalDisk::default())
+        .invoke_handler(tauri::generate_handler![disk::disk_load,disk::disk_write,disk::disk_stats,disk::disk_backup,disk::disk_optimize,disk::disk_reveal,update_status,prepare_update,save_export,codex_run,codex_status,cancel_run,reveal_workspace,social::social_settings,social::social_request])
         .on_window_event(|window,event|{if matches!(event,tauri::WindowEvent::Destroyed){for run in window.state::<Runs>().0.lock().unwrap().values(){let _=writeln!(run.stdin.lock().unwrap(),"{{\"type\":\"cancel\"}}");let _=run.child.lock().unwrap().kill();}}})
         .run(tauri::generate_context!()).expect("error while running tauri application");
 }

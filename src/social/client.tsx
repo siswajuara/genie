@@ -7,9 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { isTauri } from "@tauri-apps/api/core";
-import {websiteRequest} from './connection';
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { websiteRequest } from "./connection";
 export type Provider = "buffer" | "zernio";
 export type Account = {
   id: string;
@@ -51,16 +49,7 @@ export async function socialRequest<T>(
   return transport<T>("request", { action, payload });
 }
 async function transport<T>(endpoint: string, body: unknown): Promise<T> {
-  return websiteRequest<T>(endpoint,body);
-}
-export async function openSocialUrl(url: string) {
-  if (!url.startsWith("https://"))
-    throw Error("The provider returned an invalid connection URL.");
-  if (isTauri()) await openUrl(url);
-  else {
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    if (opened) opened.opener = null;
-  }
+  return websiteRequest<T>(endpoint, body);
 }
 type SocialContextValue = {
   config: Config;
@@ -72,16 +61,6 @@ type SocialContextValue = {
   error: string;
   revision: number;
   refresh: () => Promise<void>;
-  save: (
-    provider: Provider,
-    values: {
-      key?: string;
-      organizationId?: string;
-      profileId?: string;
-      removeKey?: boolean;
-    },
-  ) => Promise<void>;
-  test: (provider: Provider) => Promise<AccountsResult>;
   request: typeof socialRequest;
 };
 const Context = createContext<SocialContextValue | null>(null);
@@ -109,6 +88,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       setData(await socialRequest<AccountsResult>("accounts"));
       setRevision((n) => n + 1);
     } catch (err) {
+      setConfig(initial);
+      setData({ accounts: [], organizations: [], profiles: [], issues: [] });
+      setRevision((n) => n + 1);
       setError(String(err));
     } finally {
       setBusy(false);
@@ -117,41 +99,6 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  const save = useCallback(
-    async (
-      provider: Provider,
-      values: {
-        key?: string;
-        organizationId?: string;
-        profileId?: string;
-        removeKey?: boolean;
-      },
-    ) => {
-      setConfig(await transport<Config>("settings", { provider, ...values }));
-      setData((old) => ({
-        ...old,
-        accounts: old.accounts.filter((a) => a.provider !== provider),
-        issues: old.issues.filter((i) => i.provider !== provider),
-      }));
-      setRevision((n) => n + 1);
-    },
-    [],
-  );
-  const test = useCallback(async (provider: Provider) => {
-    const result = await socialRequest<AccountsResult>("test", { provider });
-    setData((old) => ({
-      accounts: [
-        ...old.accounts.filter((a) => a.provider !== provider),
-        ...result.accounts,
-      ],
-      organizations:
-        provider === "buffer" ? result.organizations : old.organizations,
-      profiles: provider === "zernio" ? result.profiles : old.profiles,
-      issues: old.issues.filter((i) => i.provider !== provider),
-    }));
-    setRevision((n) => n + 1);
-    return result;
-  }, []);
   const value = useMemo(
     () => ({
       config,
@@ -160,11 +107,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       error,
       revision,
       refresh,
-      save,
-      test,
       request: socialRequest,
     }),
-    [config, data, busy, error, revision, refresh, save, test],
+    [config, data, busy, error, revision, refresh],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

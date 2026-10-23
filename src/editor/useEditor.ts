@@ -1,3 +1,4 @@
+import { localStore } from "../lib/localStore";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   applyPreset,
@@ -15,6 +16,7 @@ import { buildScene, dropLayer, orderLayers } from "./scene";
 import { slugify } from "./identifiers";
 import { loadAsset, matchLibraryAsset } from "./assets";
 import { resolvePresetAssets, unresolvedAssetSlots } from "./resolveAssets";
+import { brandImageSource } from "../lib/brand";
 
 export function useEditor(
   initial?: CanvasDocument,
@@ -23,7 +25,7 @@ export function useEditor(
   const [doc, setDoc] = useState<CanvasDocument>(() => {
     if (initial) return copy(initial);
     try {
-      const saved = localStorage.getItem("genie.canvas");
+      const saved = localStore.getItem("genie.canvas");
       if (saved) return parseDocument(JSON.parse(saved));
     } catch {
       /* An invalid saved document falls back to the reference template. */
@@ -106,11 +108,11 @@ export function useEditor(
     }
     const id = setTimeout(() => {
       try {
-        localStorage.setItem("genie.canvas", JSON.stringify(committed));
+        localStore.setItem("genie.canvas", JSON.stringify(committed));
         setStorageError("");
       } catch {
         setStorageError(
-          "Local storage is full. Download your JSON to save this design.",
+          "This design could not be saved. Check Settings > Storage or export a JSON backup.",
         );
       }
     }, 350);
@@ -359,19 +361,20 @@ export function useEditor(
     }
     patch({ identifier }, ids);
     const asset = matchLibraryAsset(identifier);
+    const brand = brandImageSource(identifier);
     const initialScene = buildScene(current.current.elements);
     const targets = current.current.elements.filter(
       (o) => ids.includes(o.id) && o.t === "img" && !initialScene.isLocked(o),
     );
     if (!targets.length) return;
-    if (!asset) {
+    if (!asset && !brand) {
       notify(
         "No matching library asset. The current image is kept; you can choose one from Assets.",
       );
       return;
     }
     try {
-      const src = await loadAsset(asset);
+      const src = brand || (await loadAsset(asset!));
       if (!mounted.current) return;
       const targetIds = new Set(targets.map((o) => o.id)),
         live = current.current,

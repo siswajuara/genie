@@ -1,7 +1,7 @@
 [
   {
     "b": 1,
-    "name": "1 · Lancar main HP (4:5)",
+    "name": "Gawai dan Pemahaman",
     "identifier": "lancar-main-hp-4-5",
     "kind": "template",
     "W": 1122,
@@ -426,13 +426,14 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 56,
         "y": 1316,
         "w": 40,
         "h": 40,
-        "label": "Globe"
+        "label": "Siswa Juara",
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -571,7 +572,7 @@
   },
   {
     "b": 1,
-    "name": "2 · Belum tepat? (4:5)",
+    "name": "Ajak Baca Lagi",
     "identifier": "belum-tepat-4-5",
     "kind": "template",
     "W": 1122,
@@ -908,14 +909,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1328,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -1049,7 +1051,7 @@
   },
   {
     "b": 1,
-    "name": "3 · Jawaban belum tepat (story)",
+    "name": "Jawaban Belum Tepat",
     "identifier": "jawaban-belum-tepat-story",
     "kind": "template",
     "W": 940,
@@ -1061,7 +1063,7 @@
         "identifier": "siswa-juara-logo-blue-front",
         "x": 65,
         "y": 50,
-        "w": 400,
+        "w": 100,
         "h": 100,
         "label": "Logo",
         "img": null
@@ -1294,14 +1296,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1564,
         "w": 46,
         "h": 46,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -1385,7 +1388,7 @@
   },
   {
     "b": 1,
-    "name": "4 · Belajar TKA (story)",
+    "name": "Belajar TKA",
     "identifier": "belajar-tka-story",
     "kind": "template",
     "W": 940,
@@ -1393,14 +1396,15 @@
     "objects": [
       {
         "t": "img",
-        "n": "Star logo",
-        "identifier": "star-favorite-rating-yellow-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 80,
         "y": 70,
         "w": 110,
         "h": 110,
-        "label": "Star logo",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -1669,14 +1673,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1504,
         "w": 46,
         "h": 46,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -1760,7 +1765,7 @@
   },
   {
     "b": 1,
-    "name": "5 · Coba baca cerita ini (4:5)",
+    "name": "Baca Cerita Bersama",
     "identifier": "coba-baca-cerita-ini-4-5",
     "kind": "template",
     "W": 1122,
@@ -2067,14 +2072,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1318,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -2208,7 +2214,7 @@
   },
   {
     "b": 1,
-    "name": "6 · Sudah lancar membaca (4:5)",
+    "name": "Membaca dan Memahami",
     "identifier": "sudah-lancar-membaca-4-5",
     "kind": "template",
     "W": 1122,
@@ -2427,14 +2433,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1286,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -2568,7 +2575,7 @@
   },
   {
     "b": 1,
-    "name": "7 · Kenalkan 3 hal (4:5)",
+    "name": "Kenali Tiga Hal",
     "identifier": "kenalkan-3-hal-4-5",
     "kind": "template",
     "W": 1122,
@@ -2948,14 +2955,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 55,
         "y": 1322,
         "w": 48,
         "h": 48,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -2986,21 +2994,59 @@
         "lw": 2
       },
       {
-        "t": "text",
-        "n": "TikTok • IG • FB",
-        "identifier": "tiktok-ig-fb",
-        "x": 400,
-        "y": 1325,
-        "w": 400,
-        "h": 44,
-        "text": "TikTok • IG • FB • YouTube • Threads",
-        "size": 24,
-        "weight": 800,
-        "color": "#14226e",
-        "align": "center",
-        "font": "Nunito",
-        "tstroke": "#ffffff",
-        "tsw": 0
+        "t": "img",
+        "n": "TikTok",
+        "identifier": "social-tiktok-blue-front",
+        "x": 495,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "TikTok",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "Instagram",
+        "identifier": "social-instagram-blue-front",
+        "x": 539,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "Instagram",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "Facebook",
+        "identifier": "social-facebook-blue-front",
+        "x": 583,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "Facebook",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "YouTube",
+        "identifier": "social-youtube-blue-front",
+        "x": 627,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "YouTube",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "Threads",
+        "identifier": "social-threads-blue-front",
+        "x": 671,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "Threads",
+        "fit": "contain"
       },
       {
         "t": "line",
@@ -3045,7 +3091,7 @@
   },
   {
     "b": 1,
-    "name": "8 · Bu, klik yang mana? (4:5)",
+    "name": "Memilih Jawaban",
     "identifier": "bu-klik-yang-mana-4-5",
     "kind": "template",
     "W": 1122,
@@ -3280,14 +3326,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1290,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -3421,7 +3468,7 @@
   },
   {
     "b": 1,
-    "name": "9 · Mulai dari satu bacaan (4:5)",
+    "name": "Mulai dari Satu Bacaan",
     "identifier": "mulai-dari-satu-bacaan-4-5",
     "kind": "template",
     "W": 1122,
@@ -3767,14 +3814,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1311,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -3908,7 +3956,7 @@
   },
   {
     "b": 1,
-    "name": "10 · Siapkan perangkat (4:5)",
+    "name": "Siapkan Perangkat",
     "identifier": "siapkan-perangkat-4-5",
     "kind": "template",
     "W": 1122,
@@ -4204,14 +4252,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1303,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -4345,7 +4394,7 @@
   },
   {
     "b": 1,
-    "name": "11 · Saat latihan TKA (story)",
+    "name": "Tiga Pertanyaan saat Latihan",
     "identifier": "saat-latihan-tka-story",
     "kind": "template",
     "W": 940,
@@ -4357,7 +4406,7 @@
         "identifier": "siswa-juara-logo-blue-front",
         "x": 85,
         "y": 60,
-        "w": 350,
+        "w": 100,
         "h": 100,
         "label": "Logo",
         "img": null
@@ -4631,14 +4680,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1524,
         "w": 46,
         "h": 46,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -4722,7 +4772,7 @@
   },
   {
     "b": 1,
-    "name": "12 · Tanyakan 3 hal ini (4:5)",
+    "name": "Tiga Pertanyaan untuk Anak",
     "identifier": "tanyakan-3-hal-ini-4-5",
     "kind": "template",
     "W": 1122,
@@ -5093,14 +5143,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 58,
         "y": 1313,
         "w": 40,
         "h": 40,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -5234,7 +5285,7 @@
   },
   {
     "b": 1,
-    "name": "13 · Simulasi ke sekolah (4:5)",
+    "name": "Simulasi di Sekolah",
     "identifier": "simulasi-ke-sekolah-4-5",
     "kind": "template",
     "W": 1122,
@@ -5476,14 +5527,15 @@
       },
       {
         "t": "img",
-        "n": "Globe",
-        "identifier": "world-globe-blue-front",
+        "n": "Siswa Juara logo",
+        "identifier": "siswa-juara-logo-blue-front",
         "x": 55,
         "y": 1322,
         "w": 48,
         "h": 48,
-        "label": "Globe",
-        "img": null
+        "label": "Siswa Juara",
+        "img": null,
+        "fit": "contain"
       },
       {
         "t": "text",
@@ -5514,21 +5566,59 @@
         "lw": 2
       },
       {
-        "t": "text",
-        "n": "TikTok • IG • FB",
-        "identifier": "tiktok-ig-fb",
-        "x": 400,
-        "y": 1325,
-        "w": 400,
-        "h": 44,
-        "text": "TikTok • IG • FB • YouTube • Threads",
-        "size": 24,
-        "weight": 800,
-        "color": "#14226e",
-        "align": "center",
-        "font": "Nunito",
-        "tstroke": "#ffffff",
-        "tsw": 0
+        "t": "img",
+        "n": "TikTok",
+        "identifier": "social-tiktok-blue-front",
+        "x": 495,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "TikTok",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "Instagram",
+        "identifier": "social-instagram-blue-front",
+        "x": 539,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "Instagram",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "Facebook",
+        "identifier": "social-facebook-blue-front",
+        "x": 583,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "Facebook",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "YouTube",
+        "identifier": "social-youtube-blue-front",
+        "x": 627,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "YouTube",
+        "fit": "contain"
+      },
+      {
+        "t": "img",
+        "n": "Threads",
+        "identifier": "social-threads-blue-front",
+        "x": 671,
+        "y": 1331,
+        "w": 32,
+        "h": 32,
+        "label": "Threads",
+        "fit": "contain"
       },
       {
         "t": "line",

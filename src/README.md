@@ -2,11 +2,13 @@
 
 React editor ported from `reference/siswa-juara-editor.html`. The built-in templates live in `editor/presets.json`; the reference drawing routines live in `editor/reference-renderer.js`.
 
+Preset social icons use per-icon imports from `thesvg`. `lib/brand.ts` embeds their blue monochrome SVGs and the SJ logo from `src-tauri/icons/icon.png` as portable image sources. The same sources are used in template thumbnails, editable canvas slots, and exports. Each template footer contains the project logo; custom uploaded slot images are preserved.
+
 ## Marketing modules
 
 The app opens in **Idea** with a fresh chat. Its icon sidebar contains **Idea, Publish, Schedule, Insight, Community, and Setting**. Idea combines new conversations and chat history: choose Conversations to view the list, or New chat to start another. Hover or focus a sidebar icon to read its label and purpose. **Canvas** opens from Idea or a conversation; it has no marketing sidebar, and its Back to Idea button returns to the conversation list. The page editor stays mounted across module changes, preserving the current document and undo history.
 
-Ownership is **conversation → canvas → pages → frames**. New chat creates a separate canvas; opening Canvas reopens that conversation's canvas. All conversations appear together in Idea, with no project selector. Switching pages keeps the same chat thread. Legacy chats that shared a page are migrated to independent canvases with copies of the existing pages; legacy storage remains readable for backup compatibility.
+Ownership is **conversation → canvas → pages → frames**. New chat creates a separate canvas. Standalone Open Canvas actions create a fresh blank canvas; opening Canvas from a conversation reopens that conversation's saved canvas. All conversations appear together in Idea, with no project selector. Switching pages keeps the same chat thread. Legacy chats that shared a page are migrated to independent canvases with copies of the existing pages; legacy storage remains readable for backup compatibility.
 
 The Canvas header's **Versions** menu saves and restores snapshots of every page and frame. Applied chat edits create versions automatically; manual checkpoints use **Save current version**. The most recent 20 versions are retained in the canvas backup. Restoring saves the current state first. Chat artifact revisions also remember their original page, so restoring an artifact cannot overwrite a different page by accident. Version history is separate from the editor's Undo stack.
 

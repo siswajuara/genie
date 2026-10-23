@@ -38,6 +38,7 @@ await fs.mkdir(destination, { recursive: true });
 await fs.writeFile(path.join(destination, ".gitkeep"), "");
 for (const file of [
   "codex-bridge.mjs",
+  "skills.mjs",
   "codex-executable.mjs",
   "platform.mjs",
   "canvas.schema.json",
@@ -45,6 +46,9 @@ for (const file of [
   "social-api.mjs",
 ])
   await fs.copyFile(path.join(source, file), path.join(destination, file));
+await fs.cp(path.join(source, "skills"), path.join(destination, "skills"), {
+  recursive: true,
+});
 await fs.writeFile(
   path.join(destination, "package.json"),
   '{"private":true,"type":"module"}\n',

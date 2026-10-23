@@ -1,3 +1,4 @@
+import { localStore } from "../lib/localStore";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
 import ReactMarkdown from "react-markdown";
@@ -6,6 +7,8 @@ import type { Editor } from "../editor/useEditor";
 import { Icon } from "./ui/Icon";
 import { FramePreview } from "../marketing/FramePreview";
 import { chatEvent } from "../marketing/store";
+import { assistantSkills, assistantBrand } from "../lib/assistantSkills";
+import { SelectField } from "./ui/Controls";
 
 export type ChatMode = "discuss" | "draw";
 type Message = {
@@ -71,13 +74,13 @@ const starters: { mode: ChatMode; label: string; prompt: string }[] = [
 const revisionKey = (chatKey: string) => `genie.revisions.${chatKey}`;
 function readRevisions(chatKey: string): Revision[] {
   try {
-    const list = JSON.parse(localStorage.getItem(revisionKey(chatKey)) || "[]");
+    const list = JSON.parse(localStore.getItem(revisionKey(chatKey)) || "[]");
     return Array.isArray(list) ? list : [];
   } catch {
     return [];
   }
 }
-/** Appends a revision and returns its number. Throws when storage is full. */
+/** Queues a revision for local persistence and returns its number. */
 function addRevision(chatKey: string, doc: unknown, pageId?: string): number {
   const list = readRevisions(chatKey);
   const n = (list.at(-1)?.n ?? 0) + 1;
@@ -85,7 +88,7 @@ function addRevision(chatKey: string, doc: unknown, pageId?: string): number {
     ...list,
     { n, at: new Date().toISOString(), doc, pageId },
   ].slice(-MAX_REVISIONS);
-  localStorage.setItem(revisionKey(chatKey), JSON.stringify(next));
+  localStore.setItem(revisionKey(chatKey), JSON.stringify(next));
   return n;
 }
 
@@ -233,11 +236,11 @@ export function CodexPanel({
   const storageKey = `genie.chat.${scope}`;
   const [initial] = useState<SavedChat>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      const saved = JSON.parse(localStore.getItem(storageKey) || "null");
       if (saved?.key && Array.isArray(saved.messages)) {
         if (!startFresh) return saved;
         if (saved.messages.length)
-          localStorage.setItem(
+          localStore.setItem(
             `genie.conversation.${saved.key}`,
             JSON.stringify({
               ...saved,
@@ -249,11 +252,26 @@ export function CodexPanel({
     } catch {
       /* Start a new page conversation when its saved chat is invalid. */
     }
+    try {
+      if (conversationKey) {
+        const conv = JSON.parse(
+          localStore.getItem(`genie.conversation.${conversationKey}`) || "null",
+        );
+        if (conv?.key && Array.isArray(conv.messages) && conv.messages.length)
+          return {
+            key: conv.key,
+            thread: conv.thread,
+            messages: conv.messages,
+          };
+      }
+    } catch {
+      /* Fall through to a fresh conversation. */
+    }
     return { key: conversationKey || uid(), messages: [] };
   });
   const [mode, setMode] = useState<ChatMode>(() => {
     try {
-      const saved = localStorage.getItem(MODE_KEY);
+      const saved = localStore.getItem(MODE_KEY);
       if (saved === "draw" || saved === "discuss") return saved;
     } catch {
       /* Fall back to the variant default. */
@@ -262,7 +280,7 @@ export function CodexPanel({
   });
   const [prompt, setPrompt] = useState(() => {
     try {
-      return localStorage.getItem(`genie.chat.draft.${initial.key}`) || "";
+      return localStore.getItem(`genie.chat.draft.${initial.key}`) || "";
     } catch {
       return "";
     }
@@ -271,12 +289,13 @@ export function CodexPanel({
     [error, setError] = useState(""),
     [model, setModel] = useState(""),
     [showSettings, setShowSettings] = useState(false);
+  const [skill, setSkill] = useState("auto");
   const key = initial.key;
   const [thread, setThread] = useState(initial.thread),
     [messages, setMessages] = useState<Message[]>(initial.messages);
   const [pending, setPending] = useState<CanvasDocument>();
   const [codexPath, setCodexPath] = useState(
-    () => localStorage.getItem("genie.codexPath") || "",
+    () => localStore.getItem("genie.codexPath") || "",
   );
   const [status, setStatus] = useState<Status>(),
     [checking, setChecking] = useState(false);
@@ -289,7 +308,7 @@ export function CodexPanel({
 
   useEffect(() => {
     try {
-      localStorage.setItem(MODE_KEY, mode);
+      localStore.setItem(MODE_KEY, mode);
     } catch {
       /* The mode is a convenience; ignore storage failures. */
     }
@@ -297,8 +316,8 @@ export function CodexPanel({
   useEffect(() => onKeyChange?.(key), [key]);
   useEffect(() => {
     try {
-      if (prompt) localStorage.setItem(`genie.chat.draft.${key}`, prompt);
-      else localStorage.removeItem(`genie.chat.draft.${key}`);
+      if (prompt) localStore.setItem(`genie.chat.draft.${key}`, prompt);
+      else localStore.removeItem(`genie.chat.draft.${key}`);
     } catch {
       setError("Your unsent message could not be saved on this device.");
     }
@@ -309,13 +328,11 @@ export function CodexPanel({
     if (promptSeed.mode) setMode(promptSeed.mode);
   }, [promptSeed]);
   useEffect(() => {
+    if (!messages.length && !thread) return;
     try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({ key, thread, messages }),
-      );
+      localStore.setItem(storageKey, JSON.stringify({ key, thread, messages }));
       {
-        localStorage.setItem(
+        localStore.setItem(
           `genie.conversation.${key}`,
           JSON.stringify({
             key,
@@ -328,9 +345,11 @@ export function CodexPanel({
         window.dispatchEvent(new Event(chatEvent));
       }
     } catch {
-      setError("Chat storage is full. Save a JSON backup of your canvas.");
+      setError(
+        "This chat could not be saved. Check Settings > Storage and retry.",
+      );
     }
-  }, [messages, key, thread, storageKey]);
+  }, [messages, key, thread, storageKey, scope]);
   useEffect(() => {
     end.current?.scrollIntoView({ block: "nearest" });
   }, [messages, busy]);
@@ -436,7 +455,7 @@ export function CodexPanel({
             lastRevision = addRevision(runKey, event.canvas, pageId);
           } catch {
             setError(
-              "Could not store this revision. Device storage may be full.",
+              "Could not store this revision. Check Settings > Storage and retry.",
             );
           }
           if (latest.current.doc.metadata.updatedAt === event.baseUpdatedAt) {
@@ -473,6 +492,8 @@ export function CodexPanel({
           codexThreadId: thread,
           canvas: e.doc,
           selection: e.selection,
+          skill,
+          brand: assistantBrand(),
         },
         onEvent: channel,
       });
@@ -518,6 +539,24 @@ export function CodexPanel({
         <h2>{variant === "idea" ? "Conversation" : "Chat"}</h2>
         <div className="chat-head-actions"></div>
       </header>
+      <div className="chat-skill-picker">
+        <SelectField
+          label="Assistant skill"
+          value={skill}
+          disabled={busy}
+          options={assistantSkills.map((item) => ({
+            value: item.id,
+            label: item.label,
+          }))}
+          onChange={(value) => {
+            setSkill(value);
+            const next = assistantSkills.find(
+              (item) => item.id === value,
+            )?.mode;
+            if (next === "discuss" || next === "draw") setMode(next);
+          }}
+        />
+      </div>
 
       {showSettings && (
         <div className="chat-settings" id="chat-settings">
@@ -539,7 +578,7 @@ export function CodexPanel({
               disabled={busy}
               onChange={(ev) => {
                 setCodexPath(ev.target.value);
-                localStorage.setItem("genie.codexPath", ev.target.value);
+                localStore.setItem("genie.codexPath", ev.target.value);
                 setStatus(undefined);
               }}
             />

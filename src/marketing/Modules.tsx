@@ -1,8 +1,9 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { Connections } from "../social/Connections";
 import { UpdateSettings } from "../components/AppUpdates";
+import { StorageSettings } from "../components/StorageSettings";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type { Projects, Workspace } from "../editor/projects";
+import type { Workspace } from "../editor/projects";
 import { Icon } from "../components/ui/Icon";
 import {
   DatePicker,
@@ -11,7 +12,6 @@ import {
   dateISO,
 } from "../components/ui/Controls";
 import type { DateRange } from "react-day-picker";
-import { saveExport, exportMessage } from "../lib/export";
 import {
   Dialog,
   EmptyState,
@@ -498,13 +498,9 @@ export function Community({ onSettings }: { onSettings: () => void }) {
 export function Setting({
   settings,
   setSettings,
-  projects: p,
-  notify,
 }: {
   settings: BrandSettings;
   setSettings: Dispatch<SetStateAction<BrandSettings>>;
-  projects: Projects;
-  notify: (message: string) => void;
 }) {
   const [section, setSection] = useState("Social accounts"),
     [checking, setChecking] = useState(false),
@@ -516,22 +512,6 @@ export function Setting({
     setSettings((old) => ({ ...old, [key]: value }));
     if (key === "theme") localStorage.setItem("genie.theme", value);
   };
-  async function exportBackup() {
-    try {
-      notify(
-        exportMessage(
-          await saveExport(
-            new Blob([JSON.stringify(p.workspace, null, 2)], {
-              type: "application/json",
-            }),
-            "siswa-juara-canvases.json",
-          ),
-        ),
-      );
-    } catch (err) {
-      notify(`Backup failed: ${String(err)}`);
-    }
-  }
   return (
     <>
       <PageIntro
@@ -544,7 +524,7 @@ export function Setting({
             { name: "Social accounts", icon: "link" as const },
             { name: "Brand", icon: "heading" as const },
             { name: "Preferences", icon: "settings" as const },
-            { name: "Canvas backup", icon: "layers" as const },
+            { name: "Storage", icon: "layers" as const },
             { name: "Assistant", icon: "chat" as const },
           ].map((item) => (
             <button
@@ -560,6 +540,7 @@ export function Setting({
         </nav>
         <section className="settings-content">
           {section === "Social accounts" && <Connections />}
+          {section === "Storage" && <StorageSettings />}
           {section === "Brand" && (
             <>
               <div className="panel-heading">
@@ -638,67 +619,11 @@ export function Setting({
                 <span className="subtle-badge">Local</span>
               </div>
               <p className="settings-explanation">
-                Download local designs under Canvas backup. Use the website
-                connection for saved social drafts, schedules, insights, and
-                comments.
+                Export designs from Canvases and manage disk space under
+                Storage. Use the website connection for saved social drafts,
+                schedules, insights, and comments.
               </p>
               <UpdateSettings />
-            </>
-          )}
-          {section === "Canvas backup" && (
-            <>
-              <div className="panel-heading">
-                <div>
-                  <h2>Canvas backup</h2>
-                  <p>
-                    Each conversation has one canvas with its own pages and
-                    versions.
-                  </p>
-                </div>
-              </div>
-              <label className="marketing-field">
-                Current canvas name
-                <input
-                  value={p.project.name}
-                  onChange={(ev) => p.renameProject(ev.target.value)}
-                />
-              </label>
-              <div className="settings-projects">
-                {p.workspace.projects.map((project) => (
-                  <button
-                    key={project.id}
-                    onClick={() => p.selectProject(project.id)}
-                    aria-current={
-                      project.id === p.project.id ? "true" : undefined
-                    }
-                  >
-                    <Icon name="layers" size={20} />
-                    <span>
-                      <strong>{project.name || "Untitled canvas"}</strong>
-                      <small>
-                        {project.pages.length}{" "}
-                        {project.pages.length === 1 ? "page" : "pages"}
-                      </small>
-                    </span>
-                    {project.id === p.project.id && (
-                      <Icon name="check" size={17} />
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="backup-callout">
-                <Icon name="export" size={24} />
-                <div>
-                  <h3>Keep a copy of your designs</h3>
-                  <p>
-                    Download all canvases, pages, and saved versions as a JSON
-                    backup.
-                  </p>
-                </div>
-                <button onClick={() => void exportBackup()}>
-                  Download backup
-                </button>
-              </div>
             </>
           )}
           {section === "Assistant" && (
@@ -727,6 +652,12 @@ export function Setting({
                   </p>
                 </div>
               </div>
+              <p className="settings-explanation">
+                Choose a skill in Idea or Canvas chat to brainstorm, develop an
+                idea, create a carousel, plan a campaign, or review content.
+                Automatic selection uses the skill that fits your request.
+                Campaign plans stay as drafts until you submit them in Publish.
+              </p>
               <details className="marketing-advanced">
                 <summary>Advanced connection settings</summary>
                 <label className="marketing-field">

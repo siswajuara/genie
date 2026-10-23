@@ -63,7 +63,7 @@ export function ApiConnection() {
                 await apiConnection({ url, ...(token ? { token } : {}) }),
               );
               setToken("");
-              await websiteRequest('settings',{});
+              await websiteRequest("settings", {});
               await social.refresh();
               setStatus("Connection saved. Provider status is shown below.");
             } catch (err) {
@@ -93,8 +93,8 @@ export function ApiConnection() {
       </div>
       <p className="hint">
         The desktop token is saved in your operating system credential vault.
-        Browser previews keep it in memory until reload. Provider keys are saved
-        encrypted on your website.
+        Browser previews keep it in memory until reload. Manage social accounts
+        and provider credentials on your website.
       </p>
       {status && <p role="status">{status}</p>}
       {error && (

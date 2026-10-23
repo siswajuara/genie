@@ -40,8 +40,13 @@ try {
       timeout: 30000,
     }).trim();
   assert.equal(run(node, ["--version"]), "v" + manifest.nodeVersion);
-  for (const name of ["social-api.mjs", "social-bridge.mjs"])
+  for (const name of ["social-api.mjs", "social-bridge.mjs", "skills.mjs"])
     run(node, ["--check", path.join(directory, name)]);
+  const skills = JSON.parse(
+    await fs.readFile(path.join(directory, "skills", "catalog.json"), "utf8"),
+  );
+  for (const skill of skills.filter((skill) => skill.id !== "auto"))
+    await fs.access(path.join(directory, "skills", skill.id, "SKILL.md"));
   const status = JSON.parse(run(node, [bridge, "--status"]));
   assert.equal(status.ok, true, status.message);
   assert.ok(

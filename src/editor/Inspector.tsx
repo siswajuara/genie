@@ -8,8 +8,57 @@ import {
   ColorField,
 } from "../components/ui/Controls";
 import { FontField } from "../components/ui/FontField";
+import { Icon, type IconName } from "../components/ui/Icon";
 import { slugify } from "./identifiers";
 import { matchLibraryAsset } from "./assets";
+
+export function openAssetBrowser() {
+  window.dispatchEvent(new CustomEvent("genie:open-assets"));
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="insp-section">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function ToolButton({
+  title,
+  icon,
+  onClick,
+  active,
+  danger,
+  disabled,
+}: {
+  title: string;
+  icon: IconName;
+  onClick: () => void;
+  active?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`tool-btn${active ? " is-active" : ""}${danger ? " is-danger" : ""}`}
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Icon name={icon} size={15} />
+    </button>
+  );
+}
 
 function IdentifierField({
   element,
@@ -30,9 +79,11 @@ function IdentifierField({
   return (
     <div className="identifier-field">
       <div className="property">
-        <span>Identifier</span>
+        <span>ID</span>
         <input
           aria-label="Identifier"
+          title="Searchable asset id, e.g. laptop-blue-front"
+          placeholder="e.g. laptop-blue-front"
           value={draft}
           spellCheck={false}
           autoCapitalize="none"
@@ -46,26 +97,23 @@ function IdentifierField({
             }
           }}
         />
+        {element.t === "img" && (
+          <span
+            className={`match-dot${match ? " is-match" : ""}`}
+            title={match ? `Matches: ${match.name}` : "No library match"}
+          />
+        )}
       </div>
-      {element.t === "img" && (
-        <>
-          <p className="hint">
-            Searchable name, color, then facing. Example:
-            laptop-computer-blue-front.
-          </p>
-          <p className="hint" role="status">
-            {match
-              ? `Matching asset: ${match.name}`
-              : "No matching library asset. You can still choose an image from Assets or upload one."}
-          </p>
-          {match && (
-            <button
-              onClick={() => void editor.setIdentifier(value, [element.id])}
-            >
-              Use matching asset
-            </button>
-          )}
-        </>
+      {element.t === "img" && match && (
+        <div className="asset-match">
+          <img src={match.thumbnail} alt="" width={32} height={32} />
+          <span>{match.name}</span>
+          <ToolButton
+            title={`Apply ${match.name}`}
+            icon="check"
+            onClick={() => void editor.setIdentifier(value, [element.id])}
+          />
+        </div>
       )}
     </div>
   );
@@ -74,33 +122,33 @@ const labels: Record<string, string> = {
   n: "Name",
   x: "X",
   y: "Y",
-  w: "Width",
-  h: "Height",
-  rot: "Rotation",
+  w: "W",
+  h: "H",
+  rot: "Rotate",
   op: "Opacity",
-  lw: "Stroke width",
+  lw: "Stroke",
   r: "Radius",
-  fill2: "Gradient end",
-  ls: "Letter spacing",
-  lh: "Line height",
-  tsw: "Outline width",
-  tstroke: "Outline color",
-  sh: "Shadow blur",
-  shc: "Shadow color",
-  shx: "Shadow X",
-  shy: "Shadow Y",
-  curve: "Text arc",
-  bend: "Curve bend",
+  fill2: "Gradient",
+  ls: "Spacing",
+  lh: "Line ht",
+  tsw: "Outline",
+  tstroke: "Outline",
+  sh: "Blur",
+  shc: "Shadow",
+  shx: "Sh X",
+  shy: "Sh Y",
+  curve: "Arc",
+  bend: "Bend",
   dash: "Dotted",
-  size: "Font size",
-  weight: "Font weight",
-  color: "Text color",
+  size: "Size",
+  weight: "Weight",
+  color: "Color",
   fill: "Fill",
   stroke: "Stroke",
-  label: "Image label",
-  fit: "Image fit",
+  label: "Label",
+  fit: "Fit",
   font: "Font",
-  align: "Text alignment",
+  align: "Align",
   text: "Text",
 };
 const colors = ["fill", "fill2", "stroke", "color", "tstroke", "shc"];
@@ -113,7 +161,7 @@ const main: Record<Element["t"], string[]> = {
   rect: ["n", "fill", "stroke", "lw", "r"],
   ellipse: ["n", "fill", "stroke", "lw"],
   line: ["n", "stroke", "lw"],
-  text: ["text", "font", "size", "color", "align"],
+  text: ["text", "font", "size", "color"],
   img: ["n", "label", "fit", "r"],
 };
 const more: Record<Element["t"], string[]> = {
@@ -124,6 +172,14 @@ const more: Record<Element["t"], string[]> = {
   text: ["weight", "curve", "ls", "lh", "tstroke", "tsw"],
   img: [],
 };
+const alignTools: { key: string; icon: IconName }[] = [
+  { key: "Left", icon: "alignLeft" },
+  { key: "Center", icon: "alignCenterH" },
+  { key: "Right", icon: "alignRight" },
+  { key: "Top", icon: "alignTop" },
+  { key: "Middle", icon: "alignMiddle" },
+  { key: "Bottom", icon: "alignBottom" },
+];
 export function Inspector({ editor: e }: { editor: Editor }) {
   const [tab, setTab] = useState("Properties"),
     [wordColor, setWordColor] = useState("#f7c600");
@@ -151,6 +207,33 @@ export function Inspector({ editor: e }: { editor: Editor }) {
       e.patch({ [key]: v });
     };
     const label = labels[key] || key;
+    if (key === "align") {
+      return (
+        <div className="property" key={key}>
+          <span>{label}</span>
+          <div className="segmented small" role="group" aria-label={label}>
+            {options.align.map((a, i) => (
+              <button
+                key={a}
+                type="button"
+                title={a}
+                aria-label={`Align ${a}`}
+                aria-pressed={String(value) === a}
+                className={String(value) === a ? "active" : ""}
+                onClick={() => patch(a)}
+              >
+                <Icon
+                  name={
+                    (["alignLeft", "alignCenterH", "alignRight"] as IconName[])[i]
+                  }
+                  size={14}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="property" key={key}>
         <span>{label}</span>
@@ -158,7 +241,7 @@ export function Inspector({ editor: e }: { editor: Editor }) {
           <textarea
             aria-label={label}
             ref={text}
-            rows={4}
+            rows={3}
             value={String(value)}
             onChange={(ev) => patch(ev.target.value)}
           />
@@ -238,47 +321,54 @@ export function Inspector({ editor: e }: { editor: Editor }) {
                     : o.t}
                 </span>
               </div>
-              <div className="geometry">
-                {(o.t === "frame"
-                  ? ["x", "y", "w", "h", "op"]
-                  : ["x", "y", "w", "h", "rot", "op"]
-                ).map(field)}
-              </div>
-              <h3>Appearance</h3>
-              <IdentifierField key={o.id} element={o} editor={e} />
-              {main[o.t].map(field)}
-              {o.t === "text" && (
-                <>
-                  <div className="row">
-                    <ColorField
-                      label="Selected word color"
-                      value={wordColor}
-                      onChange={setWordColor}
-                    />
-                    <button
-                      onClick={() => {
-                        const ta = text.current;
-                        if (!ta || ta.selectionStart === ta.selectionEnd) {
-                          e.notify("Select words in the Text field first.");
-                          return;
-                        }
-                        e.patch({
-                          text:
-                            ta.value.slice(0, ta.selectionStart) +
-                            `[c=${wordColor}]` +
-                            ta.value.slice(ta.selectionStart, ta.selectionEnd) +
-                            "[/c]" +
-                            ta.value.slice(ta.selectionEnd),
-                        });
-                      }}
-                    >
-                      Color selection
-                    </button>
+              <Section title="Transform">
+                <div className="geometry">
+                  {(o.t === "frame"
+                    ? ["x", "y", "w", "h", "op"]
+                    : ["x", "y", "w", "h", "rot", "op"]
+                  ).map(field)}
+                </div>
+              </Section>
+              <Section title={o.t === "img" ? "Asset" : "Appearance"}>
+                <IdentifierField key={o.id} element={o} editor={e} />
+                {main[o.t].map(field)}
+                {o.t === "text" && (
+                  <div className="property">
+                    <span>Word</span>
+                    <div className="word-color-row">
+                      <ColorField
+                        label="Selected word color"
+                        value={wordColor}
+                        onChange={setWordColor}
+                      />
+                      <ToolButton
+                        title="Apply color to selected words in Text"
+                        icon="check"
+                        onClick={() => {
+                          const ta = text.current;
+                          if (!ta || ta.selectionStart === ta.selectionEnd) {
+                            e.notify("Select words in Text first.");
+                            return;
+                          }
+                          e.patch({
+                            text:
+                              ta.value.slice(0, ta.selectionStart) +
+                              `[c=${wordColor}]` +
+                              ta.value.slice(
+                                ta.selectionStart,
+                                ta.selectionEnd,
+                              ) +
+                              "[/c]" +
+                              ta.value.slice(ta.selectionEnd),
+                          });
+                        }}
+                      />
+                    </div>
                   </div>
-                </>
-              )}
+                )}
+              </Section>
               {o.t === "img" && (
-                <>
+                <Section title="Image">
                   <input
                     hidden
                     type="file"
@@ -299,80 +389,127 @@ export function Inspector({ editor: e }: { editor: Editor }) {
                       ev.target.value = "";
                     }}
                   />
-                  <div className="row">
+                  {o.src && (
+                    <div className="asset-preview">
+                      <img src={o.src} alt="" />
+                    </div>
+                  )}
+                  <div className="tool-row">
                     <button
-                      className="primary"
+                      type="button"
+                      className="primary tool-text-btn"
+                      title={o.src ? "Replace image (upload)" : "Upload image"}
                       onClick={() => file.current?.click()}
                     >
-                      {o.src ? "Replace image" : "Upload image"}
+                      <Icon name="upload" size={14} />
+                      <span>{o.src ? "Replace" : "Upload"}</span>
                     </button>
+                    <ToolButton
+                      title="Browse library assets"
+                      icon="search"
+                      onClick={openAssetBrowser}
+                    />
                     {o.src && (
-                      <button onClick={() => e.patch({ src: undefined })}>
-                        Clear
-                      </button>
+                      <ToolButton
+                        title="Clear image"
+                        icon="close"
+                        onClick={() => e.patch({ src: undefined })}
+                      />
                     )}
                   </div>
-                </>
+                </Section>
               )}
               {o.t !== "frame" && (
-                <details>
-                  <summary>More properties</summary>
+                <details className="insp-more">
+                  <summary>Effects</summary>
                   {[...more[o.t], "sh", "shc", "shx", "shy"].map(field)}
                 </details>
               )}
-              <h3>Arrange</h3>
-              {o.t !== "frame" && (
-                <div className="property">
-                  <span>Parent frame</span>
-                  <SelectField
-                    label="Parent frame"
-                    value={o.fid || ""}
-                    onChange={e.moveToFrame}
-                    options={[
-                      { value: "", label: "Canvas" },
-                      ...e.scene.frames.map((f) => ({
-                        value: f.id,
-                        label: f.n,
-                      })),
-                    ]}
+              <Section title="Arrange">
+                {o.t !== "frame" && (
+                  <div className="property">
+                    <span>Frame</span>
+                    <SelectField
+                      label="Parent frame"
+                      value={o.fid || ""}
+                      onChange={e.moveToFrame}
+                      options={[
+                        { value: "", label: "Canvas" },
+                        ...e.scene.frames.map((f) => ({
+                          value: f.id,
+                          label: f.n,
+                        })),
+                      ]}
+                    />
+                  </div>
+                )}
+                <div className="tool-row" role="group" aria-label="Align">
+                  {alignTools.map((a) => (
+                    <ToolButton
+                      key={a.key}
+                      title={`Align ${a.key}`}
+                      icon={a.icon}
+                      onClick={() => e.align(a.key)}
+                    />
+                  ))}
+                </div>
+                <div className="tool-row" role="group" aria-label="Order">
+                  <ToolButton
+                    title="Forward"
+                    icon="forward"
+                    onClick={() => e.order(1)}
+                  />
+                  <ToolButton
+                    title="Back"
+                    icon="backward"
+                    onClick={() => e.order(-1)}
+                  />
+                  <ToolButton
+                    title="Bring to front"
+                    icon="front"
+                    onClick={() => e.order(1, true)}
+                  />
+                  <ToolButton
+                    title="Send to back"
+                    icon="toBack"
+                    onClick={() => e.order(-1, true)}
+                  />
+                  <span className="tool-sep" />
+                  <ToolButton
+                    title="Duplicate"
+                    icon="copy"
+                    onClick={e.duplicate}
+                  />
+                  <ToolButton
+                    title="Group / ungroup"
+                    icon="group"
+                    onClick={() => e.group()}
+                  />
+                  <ToolButton
+                    title={o.lock ? "Unlock" : "Lock"}
+                    icon={o.lock ? "unlock" : "lock"}
+                    active={!!o.lock}
+                    onClick={() => e.patch({ lock: !o.lock })}
+                  />
+                  <ToolButton
+                    title={o.hide ? "Show" : "Hide"}
+                    icon={o.hide ? "hidden" : "view"}
+                    active={!!o.hide}
+                    onClick={() => e.patch({ hide: !o.hide })}
+                  />
+                  <ToolButton
+                    title="Delete"
+                    icon="delete"
+                    danger
+                    onClick={e.remove}
                   />
                 </div>
-              )}
-              <div className="align-grid">
-                {["Left", "Center", "Right", "Top", "Middle", "Bottom"].map(
-                  (k) => (
-                    <button key={k} onClick={() => e.align(k)}>
-                      {k}
-                    </button>
-                  ),
-                )}
-              </div>
-              <div className="row section-actions">
-                <button onClick={() => e.order(1)}>Forward</button>
-                <button onClick={() => e.order(-1)}>Back</button>
-                <button onClick={() => e.order(1, true)}>Bring to front</button>
-                <button onClick={() => e.order(-1, true)}>Send to back</button>
-                <button onClick={e.duplicate}>Duplicate</button>
-                <button onClick={() => e.group()}>Group / ungroup</button>
-                <button onClick={() => e.patch({ lock: !o.lock })}>
-                  {o.lock ? "Unlock" : "Lock"}
-                </button>
-                <button onClick={() => e.patch({ hide: !o.hide })}>
-                  {o.hide ? "Show" : "Hide"}
-                </button>
-                <button className="danger" onClick={e.remove}>
-                  Delete
-                </button>
-              </div>
-              <p className="hint element-id">{o.id}</p>
+              </Section>
             </>
           ) : (
             <div className="empty">
               <h2>Select an element</h2>
-              <p>
-                Click the canvas or choose a layer to edit text, images, and
-                appearance.
-              </p>
+              <p>Click the canvas or a layer to edit.</p>
             </div>
           )
         ) : (
