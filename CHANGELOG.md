@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.1 — 2026-10-23
+
+- fix(release): tolerate CRLF manifests, build Windows-only, configure updater key
+
 ## v1.0.0 — 2026-10-23
 
 - feat(chat): add assistant settings UI and Codex capabilities integration
