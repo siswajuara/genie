@@ -75,10 +75,13 @@ export async function versionState(directory = root) {
   const pkg = JSON.parse(values[0]),
     lock = JSON.parse(values[1]),
     config = JSON.parse(values[4]);
-  const cargo = values[2].match(/\[package\][\s\S]*?\nversion = "([^"]+)"/);
-  const cargoLock = values[3].match(
-    /\[\[package\]\]\nname = "genie"\nversion = "([^"]+)"/,
-  );
+  // CI checkouts on Windows use CRLF; normalize before matching TOML.
+  const cargo = values[2]
+    .replace(/\r\n/g, "\n")
+    .match(/\[package\][\s\S]*?\nversion = "([^"]+)"/);
+  const cargoLock = values[3]
+    .replace(/\r\n/g, "\n")
+    .match(/\[\[package\]\]\nname = "genie"\nversion = "([^"]+)"/);
   const versions = [
     pkg.version,
     lock.version,
@@ -112,11 +115,11 @@ export async function bumpVersion(
     JSON.stringify(pkg, null, 2) + "\n",
     JSON.stringify(lock, null, 2) + "\n",
     values[2].replace(
-      /(\[package\][\s\S]*?\nversion = ")[^"]+("\n)/,
+      /(\[package\][\s\S]*?\r?\nversion = ")[^"]+("(\r?\n))/,
       (_match, prefix, suffix) => prefix + next + suffix,
     ),
     values[3].replace(
-      /(\[\[package\]\]\nname = "genie"\nversion = ")[^"]+("\n)/,
+      /(\[\[package\]\]\r?\nname = "genie"\r?\nversion = ")[^"]+("(\r?\n))/,
       (_match, prefix, suffix) => prefix + next + suffix,
     ),
     JSON.stringify(config, null, 2) + "\n",

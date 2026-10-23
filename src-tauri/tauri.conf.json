@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZEODAyREU5RkZEOTQzQkYKUldTL1E5bi82UzJBL1g3SE5DMTFHOFVQM2ppdjRZaG92cjdCOWIyL29WV1NqZ1kyR2RqRU4xV0kK",
       "endpoints": [
         "https://github.com/siswajuara/genie/releases/latest/download/latest.json"
       ],

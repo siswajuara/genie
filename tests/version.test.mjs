@@ -22,6 +22,30 @@ test("SemVer releases increment predictably and prereleases sort below stable", 
     assert.throws(() => parseVersion(value));
   assert.throws(() => nextVersion("1.2.3", "1.2.2"));
 });
+test("version manifests tolerate Windows CRLF checkouts", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "genie-crlf-"));
+  try {
+    await fs.mkdir(path.join(directory, "src-tauri"));
+    const files = [
+      JSON.stringify({ version: "1.2.3" }),
+      JSON.stringify({
+        version: "1.2.3",
+        packages: { "": { version: "1.2.3" } },
+      }),
+      '[package]\r\nname = "genie"\r\nversion = "1.2.3"\r\n',
+      '[[package]]\r\nname = "genie"\r\nversion = "1.2.3"\r\n',
+      JSON.stringify({ version: "1.2.3" }),
+    ];
+    for (let i = 0; i < files.length; i++)
+      await fs.writeFile(path.join(directory, versionFiles[i]), files[i]);
+    assert.equal((await versionState(directory)).version, "1.2.3");
+    const result = await bumpVersion("patch", { directory });
+    assert.equal(result.tag, "v1.2.4");
+    assert.equal((await versionState(directory)).version, "1.2.4");
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
 test("version preview is read-only and bump synchronizes all five manifests", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "genie-version-"));
   try {
