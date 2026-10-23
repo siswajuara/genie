@@ -258,7 +258,13 @@ small {
   color: #14226e;
   font-size: 15px;
 }
-.project-logo { display: block; flex-shrink: 0; object-fit: contain; border-radius: 5px; background: #fff; }
+.project-logo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 5px;
+  background: #fff;
+}
 .document-name {
   width: 260px;
   text-align: center;
@@ -922,13 +928,138 @@ summary {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.json-editor {
+.library-content.debug-content {
+  padding: 12px;
+  display: flex;
+  overflow: hidden;
+}
+.debug-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
   width: 100%;
-  min-height: 340px;
+  overflow: auto;
+}
+.debug-heading,
+.debug-source,
+.debug-tools,
+.debug-code-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.debug-heading h2 {
+  margin: 0;
+  font-size: 13px;
+}
+.debug-heading > span {
+  margin-left: auto;
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+.debug-source > .select-trigger {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+}
+.debug-source > button,
+.debug-tools button {
+  font-size: 11px;
+  padding: 5px 8px;
+  min-height: 30px;
+}
+.debug-panel .debug-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  flex-shrink: 0;
+  padding: 5px;
+}
+.debug-code {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 160px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+}
+.debug-tools {
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.debug-tools button {
+  border-color: transparent;
+  background: transparent;
+}
+.debug-tools button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.debug-tool-spacer {
+  flex: 1;
+}
+.debug-panel .json-editor {
+  flex: 1;
+  width: 100%;
+  min-height: 80px;
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  resize: none;
+  tab-size: 2;
   font:
-    11px/1.6 ui-monospace,
+    11px/1.65 ui-monospace,
+    SFMono-Regular,
+    Consolas,
     monospace;
-  margin: 8px 0;
+}
+.debug-panel .json-editor:focus-visible {
+  outline-offset: -2px;
+}
+.debug-code-meta {
+  justify-content: space-between;
+  padding: 5px 9px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+}
+.debug-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  max-height: 68px;
+  overflow: auto;
+}
+.debug-status.has-error {
+  color: var(--danger);
+}
+.debug-apply {
+  width: 100%;
+  flex-shrink: 0;
+}
+.debug-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.debug-heading,
+.debug-source,
+.debug-status,
+.debug-note {
+  flex-shrink: 0;
 }
 .menu-dismiss {
   position: fixed;

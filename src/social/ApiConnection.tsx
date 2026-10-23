@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   apiConnection,
+  DEFAULT_API_URL,
   websiteRequest,
   type ApiConnection as Connection,
 } from "./connection";
@@ -8,7 +9,7 @@ import { useSocial } from "./client";
 export function ApiConnection() {
   const social = useSocial(),
     [connection, setConnection] = useState<Connection>(),
-    [url, setUrl] = useState(""),
+    [url, setUrl] = useState(DEFAULT_API_URL),
     [token, setToken] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -17,7 +18,7 @@ export function ApiConnection() {
     void apiConnection()
       .then((value) => {
         setConnection(value);
-        setUrl(value.url);
+        setUrl(value.url || DEFAULT_API_URL);
       })
       .catch((err) => setError(String(err)));
   }, []);
@@ -33,7 +34,7 @@ export function ApiConnection() {
         <input
           value={url}
           onChange={(ev) => setUrl(ev.target.value)}
-          placeholder="https://your-site.com/api/genie-social"
+          placeholder={DEFAULT_API_URL}
         />
       </label>
       <label className="marketing-field">
@@ -79,7 +80,9 @@ export function ApiConnection() {
           disabled={busy || !connection?.configured}
           onClick={async () => {
             try {
-              setConnection(await apiConnection({ remove: true }));
+              const disconnected = await apiConnection({ remove: true });
+              setConnection(disconnected);
+              setUrl(disconnected.url || DEFAULT_API_URL);
               setToken("");
               setStatus("Website disconnected.");
               await social.refresh();

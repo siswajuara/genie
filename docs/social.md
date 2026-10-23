@@ -10,6 +10,8 @@ Genie's social client calls your website API. Configure its URL and user-scoped 
 
 Buffer/Zernio key entry, provider testing, profiles, and channel authorization belong to the website. The desktop shows only its API connection and channels returned by that API.
 
+The default base URL is `https://siswajuara.com/api/genie-social`, using the `/settings` and `/request` endpoints defined by the integration. Existing saved custom URLs are preserved. Browser previews can override the default with `VITE_SOCIAL_API_URL`. A user-issued token is still required; a prefilled URL does not mean the connection is authenticated.
+
 Publish, schedules, saved social drafts, insights, and community data belong to the website database. Codex, chat history, Canvas documents, pages, frames, and Canvas versions remain local. Selected frame exports are uploaded as social media assets using signed Supabase Storage URLs; Canvas source JSON is not uploaded.
 
 The Next.js routes, provider adapter, cron worker, SQL migration, environment template, token script, and provider tests now live under `website/genie-references/social-api`. Desktop transport files remain in this application, with snapshots in the reference folder. Adapt the migration's Supabase Auth ownership to the website's custom authentication/Drizzle model before deployment. No database migration or live publishing was performed.

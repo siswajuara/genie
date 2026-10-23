@@ -31,7 +31,7 @@ import {
 import type { Editor } from "./editor/useEditor";
 import { AssetBrowser } from "./editor/AssetBrowser";
 import { TemplateCard } from "./editor/TemplateCard";
-import { projectLogo } from "./lib/brand";
+import { DebugPanel } from "./components/DebugPanel";
 import { loadAsset, type LibraryAsset } from "./editor/assets";
 
 const elementIcons: Record<string, IconName> = {
@@ -524,13 +524,6 @@ function WorkspacePage({
             <Icon name="left" size={16} />
           </button>
           <span className="header-divider" aria-hidden="true" />
-          <img
-            className="project-logo"
-            src={projectLogo}
-            alt="Siswa Juara"
-            width={32}
-            height={32}
-          />
           <input
             className="project-name"
             aria-label="Canvas name"
@@ -618,7 +611,7 @@ function WorkspacePage({
               ))}
             </div>
             <div
-              className={`library-content ${tab === "Chat" ? "chat-content" : ""}`}
+              className={`library-content ${tab === "Chat" ? "chat-content" : tab === "Debug" ? "debug-content" : ""}`}
             >
               {tab === "Editor" && (
                 <>
@@ -756,87 +749,15 @@ function WorkspacePage({
                 />
               </div>
               {tab === "Debug" && (
-                <>
-                  <h2>Canvas JSON</h2>
-                  <p className="hint">
-                    Current page: {p.page.name}. Edit metadata and elements,
-                    import presets, or export a backup of all canvases and
-                    pages.
-                  </p>
-                  <div className="row section-actions">
-                    <button
-                      onClick={() => setJson(JSON.stringify(e.doc, null, 2))}
-                    >
-                      Read canvas
-                    </button>
-                    <button
-                      onClick={() => {
-                        try {
-                          setJson(
-                            JSON.stringify(
-                              e.preset("template", e.frame?.n || "Frame"),
-                              null,
-                              2,
-                            ),
-                          );
-                        } catch (err) {
-                          e.notify(String(err));
-                        }
-                      }}
-                    >
-                      Read frame
-                    </button>
-                    <button
-                      onClick={() => {
-                        try {
-                          setJson(
-                            JSON.stringify(
-                              e.preset("object", "Selection"),
-                              null,
-                              2,
-                            ),
-                          );
-                        } catch (err) {
-                          e.notify(String(err));
-                        }
-                      }}
-                    >
-                      Read selection
-                    </button>
-                    <button
-                      onClick={() =>
-                        setJson(JSON.stringify(p.workspace, null, 2))
-                      }
-                    >
-                      Read canvases
-                    </button>
-                    <button onClick={() => jsonInput.current?.click()}>
-                      Open .json
-                    </button>
-                  </div>
-                  <textarea
-                    className="json-editor"
-                    spellCheck={false}
-                    aria-label="Canvas or preset JSON"
-                    value={json}
-                    onChange={(ev) => setJson(ev.target.value)}
-                    placeholder="Read the canvas or paste JSON here"
-                  />
-                  <div className="row">
-                    <button
-                      className="primary"
-                      onClick={() => importJSON(json)}
-                    >
-                      Apply JSON
-                    </button>
-                    <button
-                      disabled={!json}
-                      onClick={() => download(json, "canvas.json")}
-                    >
-                      Download
-                    </button>
-                  </div>
-                </>
+                <DebugPanel
+                  editor={e}
+                  workspace={p.workspace}
+                  pageName={p.page.name}
+                  value={json}
+                  onChange={setJson}
+                  onApply={importJSON}
+                  onDownload={download}
+                />
               )}
             </div>
           </aside>

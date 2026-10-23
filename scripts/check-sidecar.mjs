@@ -40,7 +40,13 @@ try {
       timeout: 30000,
     }).trim();
   assert.equal(run(node, ["--version"]), "v" + manifest.nodeVersion);
-  for (const name of ["social-api.mjs", "social-bridge.mjs", "skills.mjs"])
+  for (const name of [
+    "social-api.mjs",
+    "social-bridge.mjs",
+    "skills.mjs",
+    "codex-capabilities.mjs",
+    "codex-options.mjs",
+  ])
     run(node, ["--check", path.join(directory, name)]);
   const skills = JSON.parse(
     await fs.readFile(path.join(directory, "skills", "catalog.json"), "utf8"),

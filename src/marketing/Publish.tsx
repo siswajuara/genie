@@ -805,11 +805,11 @@ export function Publish({
               <Icon name="layers" size={30} />
               <h3>No frames in this canvas yet</h3>
               <p>Open Canvas to create a design, then add it to your post.</p>
-              <button onClick={onCanvas}>Open Canvas</button>
+              <button className="primary" onClick={onCanvas}>Open Canvas</button>
             </div>
           )}
           <div className="dialog-footer">
-            <button onClick={onCanvas}>Open Canvas</button>
+            <button className="primary" onClick={onCanvas}>Open Canvas</button>
             <button className="primary" onClick={() => setMediaDialog(false)}>
               Done · {draft.media.filter((m) => m.kind === "frame").length}{" "}
               selected

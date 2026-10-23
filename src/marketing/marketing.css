@@ -3003,18 +3003,6 @@
   font-size: 12px;
   padding: 6px 8px;
 }
-.canvas-confirm {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  font-size: 12px;
-  font-weight: 700;
-}
-.canvas-confirm .danger {
-  font-size: 12px;
-  padding: 5px 10px;
-}
 .icon-btn.small {
   width: 30px;
   height: 30px;
@@ -3032,8 +3020,4 @@
   .canvas-card:hover {
     transform: none;
   }
-}
-.chat-skill-picker {
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
 }

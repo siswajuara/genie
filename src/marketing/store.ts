@@ -127,6 +127,64 @@ export function conversationTitle(chat: Conversation) {
     "New conversation"
   );
 }
+const chatTitleKey = "genie.chat.titles";
+export function readChatTitles(): Record<string, string> {
+  try {
+    const raw = JSON.parse(localStore.getItem(chatTitleKey) || "{}");
+    if (raw && typeof raw === "object") {
+      const out: Record<string, string> = {};
+      for (const [key, value] of Object.entries(raw))
+        if (typeof value === "string" && value.trim())
+          out[key] = value.trim().slice(0, 90);
+      return out;
+    }
+  } catch {
+    /* A missing title map means no custom names yet. */
+  }
+  return {};
+}
+export function chatDisplayTitle(
+  chat: Conversation,
+  titles?: Record<string, string>,
+): string {
+  return titles?.[chat.key] || conversationTitle(chat);
+}
+export function renameConversation(key: string, title: string) {
+  try {
+    const titles = readChatTitles();
+    if (title.trim()) titles[key] = title.trim().slice(0, 90);
+    else delete titles[key];
+    localStore.setItem(chatTitleKey, JSON.stringify(titles));
+    window.dispatchEvent(new Event(chatEvent));
+  } catch {
+    /* Renames are a convenience; storage failures surface elsewhere. */
+  }
+}
+export function deleteConversation(key: string) {
+  try {
+    localStore.removeItem(`genie.conversation.${key}`);
+    localStore.removeItem(`genie.chat.draft.${key}`);
+    localStore.removeItem(`genie.revisions.${key}`);
+    const titles = readChatTitles();
+    if (titles[key]) {
+      delete titles[key];
+      localStore.setItem(chatTitleKey, JSON.stringify(titles));
+    }
+    for (let i = localStore.length - 1; i >= 0; i--) {
+      const name = localStore.key(i)!;
+      if (!name.startsWith("genie.chat.")) continue;
+      try {
+        const record = JSON.parse(localStore.getItem(name)!);
+        if (record?.key === key) localStore.removeItem(name);
+      } catch {
+        /* Leave unreadable pointers for manual recovery. */
+      }
+    }
+    window.dispatchEvent(new Event(chatEvent));
+  } catch {
+    /* Storage failures surface through the chat panel. */
+  }
+}
 export function conversationPage(workspace: Workspace, scope: string) {
   for (const project of workspace.projects) {
     if (project.id === scope)

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { Projects } from "../editor/projects";
 import { frames } from "../editor/model";
 import { FramePreview } from "./FramePreview";
-import { EmptyState, PageIntro, Segments } from "./Shared";
+import { Dialog, EmptyState, PageIntro, Segments } from "./Shared";
 import { SelectField } from "../components/ui/Controls";
 import { Icon } from "../components/ui/Icon";
 import { saveExport, exportMessage } from "../lib/export";
@@ -37,11 +37,13 @@ export function Canvases({
   projects: p,
   onOpen,
   onNew,
+  onOpenChat,
   notify,
 }: {
   projects: Projects;
   onOpen: (id: string) => void;
   onNew: () => void;
+  onOpenChat: (id: string) => void;
   notify: (message: string) => void;
 }) {
   const [search, setSearch] = useState(""),
@@ -49,7 +51,7 @@ export function Canvases({
     [filter, setFilter] = useState<FilterKey>("All"),
     [editingId, setEditingId] = useState(""),
     [draft, setDraft] = useState(""),
-    [confirmingId, setConfirmingId] = useState("");
+    [deleteId, setDeleteId] = useState("");
   const items = useMemo(() => {
     const term = search.trim().toLowerCase();
     const list = p.workspace.projects
@@ -171,7 +173,6 @@ export function Canvases({
               const previewFrame = frames(page.canvas)[0];
               const isActive = project.id === p.project.id;
               const isEditing = editingId === project.id;
-              const isConfirming = confirmingId === project.id;
               const title = project.name || "Untitled canvas";
               const editedLabel = shortDate(edited);
               return (
@@ -212,10 +213,17 @@ export function Canvases({
                       <span className="canvas-preview-tools">
                         <button
                           type="button"
+                          title="Open conversation"
+                          aria-label={`Open conversation for ${title}`}
+                          onClick={() => onOpenChat(project.id)}
+                        >
+                          <Icon name="chat" size={14} />
+                        </button>
+                        <button
+                          type="button"
                           title="Rename canvas"
                           aria-label={`Rename ${title}`}
                           onClick={() => {
-                            setConfirmingId("");
                             setDraft(project.name);
                             setEditingId(project.id);
                           }}
@@ -230,7 +238,7 @@ export function Canvases({
                           disabled={p.workspace.projects.length <= 1}
                           onClick={() => {
                             setEditingId("");
-                            setConfirmingId(project.id);
+                            setDeleteId(project.id);
                           }}
                         >
                           <Icon name="delete" size={14} />
@@ -285,29 +293,6 @@ export function Canvases({
                       {frameCount} {frameCount === 1 ? "frame" : "frames"}
                       {editedLabel && ` · Edited ${editedLabel}`}
                     </small>
-                    {isConfirming && (
-                      <span className="canvas-confirm">
-                        <span>Delete this canvas?</span>
-                        <button
-                          type="button"
-                          className="danger"
-                          disabled={p.workspace.projects.length <= 1}
-                          onClick={() => {
-                            p.deleteProjectById(project.id);
-                            setConfirmingId("");
-                            notify("Canvas deleted.");
-                          }}
-                        >
-                          Delete
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingId("")}
-                        >
-                          Keep
-                        </button>
-                      </span>
-                    )}
                   </div>
                 </article>
               );
@@ -343,6 +328,44 @@ export function Canvases({
           }
         />
       )}
+      {(() => {
+        const target = p.workspace.projects.find((proj) => proj.id === deleteId);
+        if (!target) return null;
+        const name = target.name || "Untitled canvas";
+        const totalFrames = target.pages.reduce(
+          (n, pg) => n + frames(pg.canvas).length,
+          0,
+        );
+        return (
+          <Dialog
+            title={`Delete “${name}”?`}
+            description={`This removes the canvas with ${target.pages.length} ${target.pages.length === 1 ? "page" : "pages"} and ${totalFrames} ${totalFrames === 1 ? "frame" : "frames"}. Download a backup first if you want to keep it.`}
+            onClose={() => setDeleteId("")}
+          >
+            <div className="dialog-footer">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setDeleteId("")}
+              >
+                Keep canvas
+              </button>
+              <button
+                type="button"
+                className="danger"
+                disabled={p.workspace.projects.length <= 1}
+                onClick={() => {
+                  p.deleteProjectById(target.id);
+                  setDeleteId("");
+                  notify("Canvas deleted.");
+                }}
+              >
+                Delete canvas
+              </button>
+            </div>
+          </Dialog>
+        );
+      })()}
     </>
   );
 }

@@ -2,10 +2,25 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline";
 import { installSkills } from "./skills.mjs";
+import { codexCapabilities } from "./codex-capabilities.mjs";
+import { threadOptions } from "./codex-options.mjs";
 import {
   resolveCodexExecutable,
   codexEnvironment,
 } from "./codex-executable.mjs";
+if (process.argv[2] === "--capabilities") {
+  try {
+    console.log(
+      JSON.stringify({
+        ok: true,
+        ...(await codexCapabilities(process.argv[3])),
+      }),
+    );
+  } catch (error) {
+    console.log(JSON.stringify({ ok: false, message: error.message }));
+  }
+  process.exit(0);
+}
 if (process.argv[2] === "--status") {
   try {
     console.log(
@@ -62,13 +77,7 @@ rl.on("line", async (line) => {
       codexPathOverride: executable,
       env: codexEnvironment(executable),
     });
-    const options = {
-      workingDirectory: workspace,
-      skipGitRepoCheck: true,
-      sandboxMode: "workspace-write",
-      approvalPolicy: "never",
-      ...(request.model ? { model: request.model } : {}),
-    };
+    const options = threadOptions(request, workspace);
     const thread = request.codexThreadId
       ? codex.resumeThread(request.codexThreadId, options)
       : codex.startThread(options);

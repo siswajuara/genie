@@ -6,13 +6,17 @@ import { Icon, type IconName } from "../components/ui/Icon";
 import { CodexPanel, type ChatMode } from "../components/CodexPanel";
 import { Dialog } from "./Shared";
 import {
+  chatDisplayTitle,
   chatEvent,
   conversationPage,
   conversationTitle,
+  deleteConversation,
   emptyPost,
   initialSettings,
   pruneEmptyConversations,
+  readChatTitles,
   readConversations,
+  renameConversation,
   useLocalState,
   type Conversation,
   type Post,
@@ -104,12 +108,17 @@ export function MarketingWorkspace({
     [search, setSearch] = useState(""),
     [activeKey, setActiveKey] = useState("");
   const [chats, setChats] = useState(() => readConversations(p.workspace));
+  const [titles, setTitles] = useState(() => readChatTitles());
+  const [renamingKey, setRenamingKey] = useState(""),
+    [renameDraft, setRenameDraft] = useState(""),
+    [confirmingKey, setConfirmingKey] = useState("");
   const [conversationRevision, setConversationRevision] = useState(0);
 
   useEffect(() => {
     const refresh = () => {
       pruneEmptyConversations();
       setChats(readConversations(p.workspace));
+      setTitles(readChatTitles());
     };
     refresh();
     window.addEventListener(chatEvent, refresh);
@@ -149,6 +158,24 @@ export function MarketingWorkspace({
   function openCanvas(id: string) {
     if (id) p.selectProject(id);
     navigate("Canvas");
+  }
+
+  function openChat(id: string) {
+    if (id) p.selectProject(id);
+    setPromptSeed(undefined);
+    setConversationRevision((n) => n + 1);
+    navigate("Idea", "conversation");
+  }
+
+  function commitChatRename(key: string) {
+    renameConversation(key, renameDraft);
+    setRenamingKey("");
+  }
+
+  function removeChat(chat: Conversation) {
+    deleteConversation(chat.key);
+    if (chat.key === activeKey) setConversationRevision((n) => n + 1);
+    setConfirmingKey("");
   }
 
   function ask(text: string) {
@@ -238,11 +265,11 @@ export function MarketingWorkspace({
       .filter(
         (chat) =>
           !term ||
-          conversationTitle(chat).toLowerCase().includes(term) ||
+          chatDisplayTitle(chat, titles).toLowerCase().includes(term) ||
           chat.messages.some((m) => m.text.toLowerCase().includes(term)),
       )
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [chats, search, p.workspace, p.project.id]);
+  }, [chats, search, p.workspace, p.project.id, titles]);
 
   if (module === "Canvas") return renderCanvas(() => navigate("Idea"));
   const active = navigation.find((item) => item.name === module)!;
@@ -309,7 +336,7 @@ export function MarketingWorkspace({
             <button onClick={startIdea}>
               <Icon name="add" size={17} /> New Idea
             </button>
-            <button onClick={startCanvas}>
+            <button className="primary" onClick={startCanvas}>
               <Icon name="layers" size={17} /> Open Canvas
             </button>
           </div>
@@ -336,19 +363,87 @@ export function MarketingWorkspace({
                     onChange={(ev) => setSearch(ev.target.value)}
                   />
                 </label>
+                <p className="chat-list-head" role="status">
+                  <span>Chats</span>
+                  <span>{projectChats.length}</span>
+                </p>
                 {projectChats.length ? (
                   <ul className="chat-list">
                     {projectChats.map((chat) => {
                       const page = conversationPage(p.workspace, chat.scope);
+                      const title = chatDisplayTitle(chat, titles);
+                      const isActive = chat.key === activeKey;
+                      if (confirmingKey === chat.key)
+                        return (
+                          <li key={chat.key} className="chat-item is-confirming">
+                            <span className="chat-confirm-text">
+                              Delete this chat?
+                            </span>
+                            <span className="chat-confirm-actions">
+                              <button
+                                type="button"
+                                className="danger"
+                                onClick={() => removeChat(chat)}
+                              >
+                                Delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingKey("")}
+                              >
+                                Keep
+                              </button>
+                            </span>
+                          </li>
+                        );
+                      if (renamingKey === chat.key)
+                        return (
+                          <li key={chat.key} className="chat-item is-renaming">
+                            <input
+                              autoFocus
+                              aria-label="Chat name"
+                              value={renameDraft}
+                              placeholder={conversationTitle(chat)}
+                              onChange={(ev) => setRenameDraft(ev.target.value)}
+                              onKeyDown={(ev) => {
+                                if (ev.key === "Enter")
+                                  commitChatRename(chat.key);
+                                if (ev.key === "Escape") setRenamingKey("");
+                              }}
+                            />
+                            <span className="chat-rename-actions">
+                              <button
+                                type="button"
+                                title="Save name"
+                                aria-label="Save name"
+                                onClick={() => commitChatRename(chat.key)}
+                              >
+                                <Icon name="check" size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                title="Cancel"
+                                aria-label="Cancel"
+                                onClick={() => setRenamingKey("")}
+                              >
+                                <Icon name="close" size={14} />
+                              </button>
+                            </span>
+                          </li>
+                        );
                       return (
-                        <li key={chat.key}>
+                        <li
+                          key={chat.key}
+                          className={`chat-item${isActive ? " is-active" : ""}`}
+                        >
                           <button
-                            aria-current={
-                              chat.key === activeKey ? "true" : undefined
-                            }
+                            type="button"
+                            className="chat-open"
+                            aria-current={isActive ? "true" : undefined}
                             onClick={() => openConversation(chat)}
+                            title={title}
                           >
-                            <strong>{conversationTitle(chat)}</strong>
+                            <strong>{title}</strong>
                             <small>
                               {page
                                 ? `${page.project.pages.length} pages`
@@ -360,6 +455,32 @@ export function MarketingWorkspace({
                               )}
                             </small>
                           </button>
+                          <span className="chat-item-tools">
+                            <button
+                              type="button"
+                              title="Rename chat"
+                              aria-label={`Rename ${title}`}
+                              onClick={() => {
+                                setConfirmingKey("");
+                                setRenameDraft(titles[chat.key] ?? "");
+                                setRenamingKey(chat.key);
+                              }}
+                            >
+                              <Icon name="rename" size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              className="danger-ghost"
+                              title="Delete chat"
+                              aria-label={`Delete ${title}`}
+                              onClick={() => {
+                                setRenamingKey("");
+                                setConfirmingKey(chat.key);
+                              }}
+                            >
+                              <Icon name="delete" size={14} />
+                            </button>
+                          </span>
                         </li>
                       );
                     })}
@@ -384,7 +505,7 @@ export function MarketingWorkspace({
                   variant="idea"
                   promptSeed={promptSeed}
                   onKeyChange={setActiveKey}
-                  onOpenCanvas={() => navigate("Canvas")}
+                  headingNote={p.project.name}
                 />
               </div>
             </div>
@@ -394,6 +515,7 @@ export function MarketingWorkspace({
               projects={p}
               onOpen={openCanvas}
               onNew={startCanvas}
+              onOpenChat={openChat}
               notify={setToast}
             />
           )}

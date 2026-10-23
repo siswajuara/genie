@@ -14,12 +14,16 @@ export function PickerPopover({
   label,
   open,
   onOpenChange,
+  side = "bottom",
+  align = "center",
 }: {
   trigger: ReactNode;
   children: ReactNode;
   label: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
 }) {
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
@@ -28,6 +32,8 @@ export function PickerPopover({
         <Popover.Content
           className="picker-popover"
           aria-label={label}
+          side={side}
+          align={align}
           sideOffset={6}
           collisionPadding={12}
           onKeyDown={(ev) => ev.stopPropagation()}

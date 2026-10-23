@@ -1,17 +1,18 @@
 use serde_json::{json, Value};
 use std::{io::Write, process::{Command,Stdio}, sync::{Arc,Mutex}};
 use tauri::{Manager,State};
+const DEFAULT_API_URL: &str = "https://siswajuara.com/api/genie-social";
 #[derive(Default)]
 pub struct SocialLock(pub Arc<Mutex<()>>);
 fn entry()->Result<keyring::Entry,String>{keyring::Entry::new("com.siswajuara.genie.social-api","connection").map_err(|_|"Could not access the credential vault.".into())}
-fn load()->Result<Value,String>{match entry()?.get_password(){Ok(value)=>serde_json::from_str(&value).map_err(|_|"Invalid website API connection.".into()),Err(keyring::Error::NoEntry)=>Ok(json!({"url":"","token":""})),Err(_)=>Err("Unlock your credential vault to connect the website API.".into())}}
-fn public(config:&Value)->Value{json!({"url":config["url"].as_str().unwrap_or(""),"configured":!config["token"].as_str().unwrap_or("").is_empty(),"storage":"keychain"})}
+fn load()->Result<Value,String>{match entry()?.get_password(){Ok(value)=>serde_json::from_str(&value).map_err(|_|"Invalid website API connection.".into()),Err(keyring::Error::NoEntry)=>Ok(json!({"url":DEFAULT_API_URL,"token":""})),Err(_)=>Err("Unlock your credential vault to connect the website API.".into())}}
+fn public(config:&Value)->Value{json!({"url":config["url"].as_str().filter(|url|!url.is_empty()).unwrap_or(DEFAULT_API_URL),"configured":!config["token"].as_str().unwrap_or("").is_empty(),"storage":"keychain"})}
 #[tauri::command]
 pub async fn social_settings(lock:State<'_,SocialLock>,payload:Option<Value>)->Result<Value,String>{
  let lock=lock.0.clone();tauri::async_runtime::spawn_blocking(move||{
   let _guard=lock.lock().map_err(|_|"Connection is busy.")?;let mut config=load()?;
   if let Some(payload)=payload.filter(|p|p.get("url").is_some()||p.get("remove").is_some()){
-   if payload["remove"].as_bool()==Some(true){config=json!({"url":"","token":""});}
+   if payload["remove"].as_bool()==Some(true){config=json!({"url":DEFAULT_API_URL,"token":""});}
    else {
     let raw=payload["url"].as_str().ok_or("Enter your website API URL.")?.trim();
     let url=tauri::Url::parse(raw).map_err(|_|"Enter a valid website API URL.")?;

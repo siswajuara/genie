@@ -26,4 +26,6 @@ Local canvases and chats use a managed desktop library with image deduplication,
 
 Idea and Canvas chat include built-in skills for brainstorming, ideas, carousels, campaigns, and content review. See [assistant skills](docs/skills.md) for usage, source documents, and packaging.
 
+The chat model control opens model, reasoning, web search, account, and usage settings. See [assistant controls](docs/assistant.md).
+
 Connect your website API in **Setting → Social accounts**. The desktop saves its website token in the OS credential vault; the website stores provider keys and social data. The Next.js backend reference and migration are in [website/genie-references](../website/genie-references/README.md). See [social integration setup](docs/social.md).

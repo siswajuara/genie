@@ -62,6 +62,16 @@ fn workspace(app: &tauri::AppHandle, key: &str) -> Result<PathBuf,String> {
     fs::create_dir_all(&dir).map_err(|e|e.to_string())?; Ok(dir)
 }
 #[tauri::command]
+async fn codex_capabilities(app: tauri::AppHandle, codex_path: Option<String>) -> Result<Value, String> {
+    let mut command = bridge_command(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        command.arg("--capabilities");
+        if let Some(path) = codex_path.filter(|p| !p.trim().is_empty()) { command.arg(path); }
+        let output = command.output().map_err(|e| format!("Could not load Codex settings: {e}"))?;
+        serde_json::from_slice(&output.stdout).map_err(|_| "Codex returned invalid settings.".to_string())
+    }).await.map_err(|e|e.to_string())?
+}
+#[tauri::command]
 fn codex_run(app: tauri::AppHandle, runs: State<Runs>, mut request: Value, on_event: Channel<Value>) -> Result<String,String> {
     let dir=workspace(&app,request["key"].as_str().unwrap_or("default"))?;
     request["workingDirectory"]=json!(dir);
@@ -108,7 +118,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init()).manage(Runs::default())
         .manage(social::SocialLock::default())
         .manage(disk::LocalDisk::default())
-        .invoke_handler(tauri::generate_handler![disk::disk_load,disk::disk_write,disk::disk_stats,disk::disk_backup,disk::disk_optimize,disk::disk_reveal,update_status,prepare_update,save_export,codex_run,codex_status,cancel_run,reveal_workspace,social::social_settings,social::social_request])
+        .invoke_handler(tauri::generate_handler![disk::disk_load,disk::disk_write,disk::disk_stats,disk::disk_backup,disk::disk_optimize,disk::disk_reveal,update_status,prepare_update,save_export,codex_run,codex_status,codex_capabilities,cancel_run,reveal_workspace,social::social_settings,social::social_request])
         .on_window_event(|window,event|{if matches!(event,tauri::WindowEvent::Destroyed){for run in window.state::<Runs>().0.lock().unwrap().values(){let _=writeln!(run.stdin.lock().unwrap(),"{{\"type\":\"cancel\"}}");let _=run.child.lock().unwrap().kill();}}})
         .run(tauri::generate_context!()).expect("error while running tauri application");
 }

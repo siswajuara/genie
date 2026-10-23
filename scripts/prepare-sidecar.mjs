@@ -38,6 +38,8 @@ await fs.mkdir(destination, { recursive: true });
 await fs.writeFile(path.join(destination, ".gitkeep"), "");
 for (const file of [
   "codex-bridge.mjs",
+  "codex-capabilities.mjs",
+  "codex-options.mjs",
   "skills.mjs",
   "codex-executable.mjs",
   "platform.mjs",

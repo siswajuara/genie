@@ -1,7 +1,7 @@
 [
   {
     "id": "auto",
-    "label": "Choose automatically",
+    "label": "Auto",
     "description": "Select a relevant skill from your request."
   },
   {

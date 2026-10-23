@@ -4,14 +4,16 @@ export type ApiConnection = {
   configured: boolean;
   storage: "keychain" | "memory";
 };
-let browser = { url: import.meta.env.VITE_SOCIAL_API_URL || "", token: "" };
+export const DEFAULT_API_URL = "https://siswajuara.com/api/genie-social";
+const initialUrl = import.meta.env.VITE_SOCIAL_API_URL || DEFAULT_API_URL;
+let browser = { url: initialUrl, token: "" };
 export async function apiConnection(values?: {
   url?: string;
   token?: string;
   remove?: boolean;
 }): Promise<ApiConnection> {
   if (isTauri()) return invoke("social_settings", { payload: values || {} });
-  if (values?.remove) browser = { url: "", token: "" };
+  if (values?.remove) browser = { url: initialUrl, token: "" };
   else if (values) {
     const url = new URL(values.url || browser.url);
     if (
@@ -24,7 +26,12 @@ export async function apiConnection(values?: {
       throw Error("Use HTTPS or HTTP localhost.");
     if (url.username || url.password || url.search || url.hash)
       throw Error("Use a URL without credentials, query, or fragment.");
-    if(browser.token && url.href.replace(/\/$/,'')!==browser.url && !values.token)throw Error('Enter a token for the new API URL.');
+    if (
+      browser.token &&
+      url.href.replace(/\/$/, "") !== browser.url &&
+      !values.token
+    )
+      throw Error("Enter a token for the new API URL.");
     browser = {
       url: url.href.replace(/\/$/, ""),
       token: values.token || browser.token,

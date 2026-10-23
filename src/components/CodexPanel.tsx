@@ -8,7 +8,15 @@ import { Icon } from "./ui/Icon";
 import { FramePreview } from "../marketing/FramePreview";
 import { chatEvent } from "../marketing/store";
 import { assistantSkills, assistantBrand } from "../lib/assistantSkills";
-import { SelectField } from "./ui/Controls";
+import { PickerPopover, SelectField } from "./ui/Controls";
+import { AssistantSettings } from "./AssistantSettings";
+import {
+  readCodexPreferences,
+  readConversationUsage,
+  effortLabels,
+  type TokenUsage,
+  type CodexPreferences,
+} from "../lib/codexPreferences";
 
 export type ChatMode = "discuss" | "draw";
 type Message = {
@@ -31,6 +39,8 @@ type Event = {
     type: string;
     thread_id?: string;
     error?: { message: string };
+    message?: string;
+    usage?: TokenUsage;
     item?: {
       id: string;
       type: string;
@@ -39,6 +49,10 @@ type Event = {
       aggregated_output?: string;
       status?: string;
       changes?: { path: string }[];
+      items?: { text: string; completed: boolean }[];
+      query?: string;
+      server?: string;
+      tool?: string;
     };
   };
 };
@@ -96,14 +110,12 @@ function CanvasArtifact({
   chatKey,
   n,
   editor: e,
-  onOpenCanvas,
   onCanvasRevision,
   onRestoreRevision,
 }: {
   chatKey: string;
   n: number;
   editor: Editor;
-  onOpenCanvas?: () => void;
   onCanvasRevision?: (doc: CanvasDocument, label: string) => void;
   onRestoreRevision?: (doc: CanvasDocument, pageId?: string) => void;
 }) {
@@ -198,11 +210,6 @@ function CanvasArtifact({
         <button disabled={!revision} onClick={download}>
           Download
         </button>
-        {onOpenCanvas && (
-          <button className="primary" onClick={onOpenCanvas}>
-            Open Canvas <Icon name="right" size={15} />
-          </button>
-        )}
       </div>
     </figure>
   );
@@ -215,11 +222,11 @@ export function CodexPanel({
   promptSeed,
   startFresh = false,
   onKeyChange,
-  onOpenCanvas,
   conversationKey,
   onCanvasRevision,
   onRestoreRevision,
   pageId,
+  headingNote,
 }: {
   editor: Editor;
   scope: string;
@@ -227,11 +234,11 @@ export function CodexPanel({
   promptSeed?: { id: string; text: string; mode?: ChatMode };
   startFresh?: boolean;
   onKeyChange?: (key: string) => void;
-  onOpenCanvas?: () => void;
   conversationKey?: string;
   onCanvasRevision?: (doc: CanvasDocument, label: string) => void;
   onRestoreRevision?: (doc: CanvasDocument, pageId?: string) => void;
   pageId?: string;
+  headingNote?: React.ReactNode;
 }) {
   const storageKey = `genie.chat.${scope}`;
   const [initial] = useState<SavedChat>(() => {
@@ -287,8 +294,14 @@ export function CodexPanel({
   });
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [model, setModel] = useState(""),
     [showSettings, setShowSettings] = useState(false);
+  const [preferences, setPreferences] = useState(() =>
+    readCodexPreferences(scope),
+  );
+  const [usage, setUsage] = useState(() => readConversationUsage(initial.key));
+  function updatePreferences(value: Partial<CodexPreferences>) {
+    setPreferences((previous) => ({ ...previous, ...value }));
+  }
   const [skill, setSkill] = useState("auto");
   const key = initial.key;
   const [thread, setThread] = useState(initial.thread),
@@ -305,6 +318,26 @@ export function CodexPanel({
     mounted = useRef(true);
   latest.current = e;
   const desktop = isTauri();
+  useEffect(() => {
+    try {
+      localStore.setItem(
+        `genie.chat.preferences.${scope}`,
+        JSON.stringify(preferences),
+      );
+    } catch {
+      setError("Assistant preferences could not be saved.");
+    }
+  }, [scope, preferences]);
+  useEffect(() => {
+    try {
+      localStore.setItem(
+        `genie.chat.usage.${initial.key}`,
+        JSON.stringify(usage),
+      );
+    } catch {
+      /* Usage display must not prevent working with the assistant. */
+    }
+  }, [usage, initial.key]);
 
   useEffect(() => {
     try {
@@ -424,12 +457,34 @@ export function CodexPanel({
         if (ev.type === "thread.started") setThread(ev.thread_id);
         if (ev.type === "turn.failed")
           setError(ev.error?.message || "The assistant could not finish.");
+        if (ev.type === "error")
+          setError(ev.message || "The assistant encountered an error.");
+        if (ev.type === "turn.completed" && ev.usage) {
+          const tokens = ev.usage;
+          setUsage((previous) => ({
+            turns: previous.turns + 1,
+            input: previous.input + tokens.input_tokens,
+            output: previous.output + tokens.output_tokens,
+            cached: previous.cached + tokens.cached_input_tokens,
+            last: tokens,
+          }));
+        }
         if (item) {
           const text =
             item.text ||
+            (item.items
+              ? item.items
+                  .map(
+                    (task) =>
+                      `${task.completed ? "Done" : "Pending"}: ${task.text}`,
+                  )
+                  .join("\n")
+              : "") ||
+            (item.query ? `Search: ${item.query}` : "") ||
             [
               item.command,
               item.aggregated_output,
+              item.server && item.tool ? `${item.server}: ${item.tool}` : "",
               item.changes?.map((c) => c.path).join("\n"),
             ]
               .filter(Boolean)
@@ -487,7 +542,9 @@ export function CodexPanel({
         request: {
           key,
           prompt: modePrefix[runMode] + value,
-          model: model.trim() || undefined,
+          model: preferences.model.trim() || undefined,
+          reasoningEffort: preferences.reasoningEffort,
+          webSearchMode: preferences.webSearchMode,
           codexPath: codexPath.trim() || undefined,
           codexThreadId: thread,
           canvas: e.doc,
@@ -537,72 +594,8 @@ export function CodexPanel({
     <section className={`chat-panel chat-${variant}`}>
       <header className="chat-head">
         <h2>{variant === "idea" ? "Conversation" : "Chat"}</h2>
-        <div className="chat-head-actions"></div>
+        {headingNote && <span className="chat-head-note">{headingNote}</span>}
       </header>
-      <div className="chat-skill-picker">
-        <SelectField
-          label="Assistant skill"
-          value={skill}
-          disabled={busy}
-          options={assistantSkills.map((item) => ({
-            value: item.id,
-            label: item.label,
-          }))}
-          onChange={(value) => {
-            setSkill(value);
-            const next = assistantSkills.find(
-              (item) => item.id === value,
-            )?.mode;
-            if (next === "discuss" || next === "draw") setMode(next);
-          }}
-        />
-      </div>
-
-      {showSettings && (
-        <div className="chat-settings" id="chat-settings">
-          <label>
-            Model
-            <input
-              placeholder="Default model"
-              value={model}
-              disabled={busy}
-              onChange={(ev) => setModel(ev.target.value)}
-            />
-          </label>
-          <label>
-            Codex executable
-            <input
-              aria-label="Codex executable"
-              placeholder="Bundled CLI or automatic detection"
-              value={codexPath}
-              disabled={busy}
-              onChange={(ev) => {
-                setCodexPath(ev.target.value);
-                localStore.setItem("genie.codexPath", ev.target.value);
-                setStatus(undefined);
-              }}
-            />
-          </label>
-          <button
-            disabled={!desktop || checking || busy}
-            onClick={() => void check()}
-          >
-            {checking ? "Checking…" : "Check installation"}
-          </button>
-          {status && <p role="status">{status.message}</p>}
-          {desktop && (
-            <button
-              onClick={() =>
-                void invoke("reveal_workspace", { key }).catch((err) =>
-                  setError(String(err)),
-                )
-              }
-            >
-              Open workspace folder
-            </button>
-          )}
-        </div>
-      )}
 
       <div className="chat-thread" aria-live="polite">
         {!messages.length && (
@@ -626,7 +619,7 @@ export function CodexPanel({
                   }}
                 >
                   <span>{s.mode === "draw" ? "Draw" : "Discuss"}</span>
-                  {s.label}
+                  <strong>{s.label}</strong>
                 </button>
               ))}
             </div>
@@ -648,12 +641,16 @@ export function CodexPanel({
               chatKey={key}
               n={b.m.artifact.n}
               editor={e}
-              onOpenCanvas={onOpenCanvas}
               onCanvasRevision={onCanvasRevision}
               onRestoreRevision={onRestoreRevision}
             />
           ) : (
             <article className={`chat-message ${b.m.role}`} key={b.m.id}>
+              {b.m.role === "assistant" && (
+                <span className="chat-author">
+                  <Icon name="idea" size={14} /> Assistant
+                </span>
+              )}
               <ReactMarkdown>{b.m.text}</ReactMarkdown>
             </article>
           ),
@@ -695,7 +692,6 @@ export function CodexPanel({
           </div>
         </div>
       )}
-
       <form
         className="chat-composer"
         onSubmit={(ev) => {
@@ -703,6 +699,86 @@ export function CodexPanel({
           void send();
         }}
       >
+        <div className="chat-model-bar">
+          <PickerPopover
+            label="Assistant settings"
+            open={showSettings}
+            onOpenChange={setShowSettings}
+            side="top"
+            align="start"
+            trigger={
+              <button
+                type="button"
+                className="chat-model-toggle"
+                aria-label="Choose model and assistant settings"
+                aria-expanded={showSettings}
+                aria-controls="chat-settings"
+                title="Model, reasoning, web search, and account"
+              >
+                <Icon name="settings" size={14} />
+                <span>{preferences.model || "Codex default"}</span>
+                <Icon name={showSettings ? "up" : "down"} size={13} />
+              </button>
+            }
+          >
+            <div className="chat-settings-pop">
+              <AssistantSettings
+                preferences={preferences}
+                onChange={updatePreferences}
+                codexPath={codexPath}
+                onPathChange={(value) => {
+                  setCodexPath(value);
+                  localStore.setItem("genie.codexPath", value);
+                  setStatus(undefined);
+                }}
+                busy={busy}
+                checking={checking}
+                status={status}
+                onCheck={() => void check()}
+                conversationKey={key}
+                onError={setError}
+              />
+              {usage.turns > 0 && (
+                <details className="chat-token-usage">
+                  <summary>
+                    {(usage.input + usage.output).toLocaleString()} tokens
+                    across {usage.turns} completed{" "}
+                    {usage.turns === 1 ? "turn" : "turns"}
+                  </summary>
+                  <div>
+                    <span>Input: {usage.input.toLocaleString()}</span>
+                    <span>Output: {usage.output.toLocaleString()}</span>
+                    <span>
+                      Cached input: {usage.cached.toLocaleString()}
+                    </span>
+                  </div>
+                  {usage.last && (
+                    <p>
+                      Last turn:{" "}
+                      {usage.last.input_tokens.toLocaleString()} input,{" "}
+                      {usage.last.output_tokens.toLocaleString()} output,{" "}
+                      {usage.last.cached_input_tokens.toLocaleString()} cached
+                      input.
+                    </p>
+                  )}
+                  <p>
+                    Recorded locally from completed turns reported by Codex.
+                    Input includes conversation context; cached tokens are
+                    included in input.
+                  </p>
+                </details>
+              )}
+            </div>
+          </PickerPopover>
+          {preferences.reasoningEffort !== "default" && (
+            <span className="chat-model-detail">
+              {effortLabels[preferences.reasoningEffort]} effort
+            </span>
+          )}
+          {preferences.webSearchMode === "live" && (
+            <span className="chat-model-detail">Live search</span>
+          )}
+        </div>
         <textarea
           aria-label="Chat message"
           placeholder={
@@ -725,6 +801,24 @@ export function CodexPanel({
           }}
         />
         <div className="chat-composer-bar">
+          <span className="chat-skill" title="Assistant skill">
+            <SelectField
+              label="Assistant skill"
+              value={skill}
+              disabled={busy}
+              options={assistantSkills.map((item) => ({
+                value: item.id,
+                label: item.label,
+              }))}
+              onChange={(value) => {
+                setSkill(value);
+                const next = assistantSkills.find(
+                  (item) => item.id === value,
+                )?.mode;
+                if (next === "discuss" || next === "draw") setMode(next);
+              }}
+            />
+          </span>
           <div className="chat-mode" role="group" aria-label="Chat mode">
             {(["discuss", "draw"] as const).map((m) => (
               <button
@@ -755,11 +849,12 @@ export function CodexPanel({
             </button>
           ) : (
             <button
-              className="primary"
+              className="primary chat-send"
               type="submit"
               disabled={!prompt.trim() || !desktop || checking}
+              title="Send message"
             >
-              Send
+              Send <Icon name="right" size={15} />
             </button>
           )}
         </div>
