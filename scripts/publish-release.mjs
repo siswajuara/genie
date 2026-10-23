@@ -9,12 +9,10 @@ import {
   compareVersions,
 } from "./version.mjs";
 const expected = [
-  "darwin-aarch64",
-  "darwin-x86_64",
+  // Must match the build matrix in .github/workflows/build-desktop.yml.
+  // The release currently builds Windows-only.
   "windows-x86_64",
   "windows-aarch64",
-  "linux-x86_64",
-  "linux-aarch64",
 ];
 const { version } = await versionState(),
   tag = `v${version}`,
@@ -139,5 +137,5 @@ gh(
   `--latest=${latest}`,
 );
 console.log(
-  `Published https://github.com/${repository}/releases/tag/${tag} with all six signed platforms${latest ? " (stable update feed)" : ""}.`,
+  `Published https://github.com/${repository}/releases/tag/${tag} with ${expected.length} signed platforms${latest ? " (stable update feed)" : ""}.`,
 );
