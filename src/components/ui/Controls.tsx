@@ -58,19 +58,26 @@ export function SelectField({
   disabled?: boolean;
 }) {
   const empty = "__canvas_empty__";
+  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
   return (
     <Select.Root
       value={value || empty}
       onValueChange={(v) => onChange(v === empty ? "" : v)}
       disabled={disabled}
     >
-      <Select.Trigger className="select-trigger" aria-label={label}>
+      <Select.Trigger
+        ref={setTrigger}
+        className="select-trigger"
+        aria-label={label}
+      >
         <Select.Value placeholder="Choose" />
         <Select.Icon>
           <Icon name="down" size={15} />
         </Select.Icon>
       </Select.Trigger>
-      <Select.Portal container={portalContainer()}>
+      <Select.Portal
+        container={trigger?.closest("dialog") ?? portalContainer()}
+      >
         <Select.Content
           className="select-menu"
           position="popper"

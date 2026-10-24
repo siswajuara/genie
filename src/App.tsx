@@ -21,8 +21,9 @@ import {
 import { CodexPanel } from "./components/CodexPanel";
 import { saveExport, exportMessage } from "./lib/export";
 import { Icon, type IconName } from "./components/ui/Icon";
-import { drawElement } from "./editor/reference-renderer";
-import { ensureDocumentFonts } from "./lib/fonts";
+import { ExportDialog } from "./editor/ExportDialog";
+import { useAnimationPlayback } from "./editor/useAnimationPlayback";
+import "./editor/animation.css";
 import {
   MarketingWorkspace,
   type IdeaView,
@@ -302,18 +303,13 @@ function WorkspacePage({
     },
     [placeAsset],
   );
+  const playback = useAnimationPlayback(e);
   const [zen, setZen] = useState(false),
-    [exporting, setExporting] = useState(false),
     [json, setJson] = useState(""),
     [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<"project" | "page">();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [exportFrameId, setExportFrameId] = useState<string>("");
-  const [exportScale, setExportScale] = useState<1 | 2 | 3>(2);
-  const [exportFormat, setExportFormat] = useState<"png" | "jpeg">("png");
-  const [exportTransparent, setExportTransparent] = useState(false);
-  const [exportName, setExportName] = useState("");
   const [saved, setSaved] = useState<Preset[]>(() => {
     try {
       return parsePresets(
@@ -396,119 +392,8 @@ function WorkspacePage({
       }
     }
   }
-  async function renderFrame(
-    f: Element,
-    scale: number,
-    format: "png" | "jpeg",
-    transparent: boolean,
-  ) {
-    const objects = e.scene.frameChildren.get(f.id) || [];
-    if (f.w * f.h * scale * scale > 256000000)
-      throw new Error("Frame is too large to export. Reduce its dimensions.");
-    await ensureDocumentFonts(objects);
-    await document.fonts.ready;
-    const images = new Map<string, HTMLImageElement>();
-    for (const o of objects) {
-      if (!o.src || o.hide) continue;
-      let img = images.get(o.src);
-      if (!img) {
-        img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = o.src;
-        images.set(o.src, img);
-      }
-      try {
-        await img.decode();
-      } catch {
-        throw new Error(
-          `Image “${o.n}” could not be loaded. Upload it again, or use a URL that allows CORS.`,
-        );
-      }
-    }
-    const cv = document.createElement("canvas");
-    cv.width = Math.max(1, Math.round(f.w * scale));
-    cv.height = Math.max(1, Math.round(f.h * scale));
-    const ctx = cv.getContext("2d");
-    if (!ctx) throw new Error("Could not create the export canvas.");
-    ctx.scale(scale, scale);
-    if (!(format === "png" && transparent)) {
-      ctx.fillStyle = f.fill || "#fff";
-      ctx.fillRect(f.x, f.y, f.w, f.h);
-    }
-    ctx.translate(-f.x, -f.y);
-    for (const o of objects)
-      drawElement(
-        ctx,
-        { ...o, img: o.src ? images.get(o.src) : undefined },
-        true,
-      );
-    const blob = await new Promise<Blob>((resolve, reject) =>
-      cv.toBlob(
-        (value) =>
-          value ? resolve(value) : reject(new Error("Image encoding failed.")),
-        format === "png" ? "image/png" : "image/jpeg",
-        0.92,
-      ),
-    );
-    return blob;
-  }
-  async function exportPNG() {
-    const list = frames(e.doc);
-    const target =
-      list.find((f) => f.id === (exportFrameId || e.frame?.id)) || e.frame;
-    if (!target || exporting) return;
-    const scale = exportScale;
-    const format = exportFormat;
-    const transparent = exportFormat === "png" && exportTransparent;
-    const base =
-      (exportName.trim() || target.n || "frame").replace(
-        /\.(png|jpe?g)$/i,
-        "",
-      ) + (format === "png" ? ".png" : ".jpg");
-    setExporting(true);
-    try {
-      const blob = await renderFrame(target, scale, format, transparent);
-      e.notify(exportMessage(await saveExport(blob, base)));
-      setExportOpen(false);
-    } catch (err) {
-      e.notify(
-        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    } finally {
-      setExporting(false);
-    }
-  }
-  async function exportAllFrames() {
-    const list = frames(e.doc);
-    if (!list.length || exporting) return;
-    setExporting(true);
-    try {
-      for (const f of list) {
-        const blob = await renderFrame(
-          f,
-          exportScale,
-          exportFormat,
-          exportFormat === "png" && exportTransparent,
-        );
-        const name =
-          (f.n || "frame").replace(/\.(png|jpe?g)$/i, "") +
-          (exportFormat === "png" ? ".png" : ".jpg");
-        e.notify(exportMessage(await saveExport(blob, name)));
-      }
-      setExportOpen(false);
-    } catch (err) {
-      e.notify(
-        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    } finally {
-      setExporting(false);
-    }
-  }
   function openExport() {
-    const list = frames(e.doc);
-    const current = e.frame;
-    setExportFrameId(current?.id || list[0]?.id || "");
-    setExportName(current?.n || list[0]?.n || "frame");
+    playback.edit();
     setExportOpen(true);
   }
 
@@ -555,12 +440,12 @@ function WorkspacePage({
           </button>
           <button
             className="primary export-btn"
-            disabled={!e.frame || exporting}
+            disabled={!artboards.length}
             onClick={openExport}
             title={e.frame ? `Export ${e.frame.n}` : "Add a frame to export"}
           >
             <Icon name="export" size={16} />
-            <span>{exporting ? "Exporting…" : "Export"}</span>
+            <span>Export</span>
           </button>
         </div>
       </header>
@@ -764,12 +649,13 @@ function WorkspacePage({
         )}
         <Canvas
           editor={e}
+          playback={playback}
           onImage={loadImages}
           pendingAsset={pendingAsset}
           onAssetPlace={placeAsset}
           onAssetCancel={cancelAsset}
         />
-        {!zen && <Inspector editor={e} />}
+        {!zen && <Inspector editor={e} playback={playback} />}
       </main>
       <footer className="studio-footer">
         <span role="status">
@@ -865,144 +751,11 @@ function WorkspacePage({
         </div>
       )}
       {exportOpen && (
-        <div
-          className="dialog-backdrop"
-          onClick={() => !exporting && setExportOpen(false)}
-          onKeyDown={(ev) => {
-            if (ev.key === "Escape") setExportOpen(false);
-          }}
-        >
-          <section
-            className="modal-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="export-title"
-            onClick={(ev) => ev.stopPropagation()}
-          >
-            <header className="modal-head">
-              <h2 id="export-title">Export frame</h2>
-              <button
-                className="icon-btn"
-                aria-label="Close export"
-                disabled={exporting}
-                onClick={() => setExportOpen(false)}
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </header>
-            <div className="modal-body">
-              <label className="field">
-                <span>Frame</span>
-                <select
-                  value={exportFrameId}
-                  onChange={(ev) => {
-                    setExportFrameId(ev.target.value);
-                    const found = artboards.find(
-                      (f) => f.id === ev.target.value,
-                    );
-                    if (found) setExportName(found.n);
-                  }}
-                >
-                  {artboards.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.n} · {Math.round(f.w)} × {Math.round(f.h)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="field">
-                <span id="export-scale-label">Scale</span>
-                <div
-                  className="segmented"
-                  role="group"
-                  aria-labelledby="export-scale-label"
-                >
-                  {([1, 2, 3] as const).map((s) => (
-                    <button
-                      key={s}
-                      aria-pressed={exportScale === s}
-                      className={exportScale === s ? "active" : ""}
-                      onClick={() => setExportScale(s)}
-                    >
-                      {s}x
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="field">
-                <span id="export-format-label">Format</span>
-                <div
-                  className="segmented"
-                  role="group"
-                  aria-labelledby="export-format-label"
-                >
-                  {(["png", "jpeg"] as const).map((fmt) => (
-                    <button
-                      key={fmt}
-                      aria-pressed={exportFormat === fmt}
-                      className={exportFormat === fmt ? "active" : ""}
-                      onClick={() => {
-                        setExportFormat(fmt);
-                        if (fmt === "jpeg") setExportTransparent(false);
-                      }}
-                    >
-                      {fmt === "png" ? "PNG" : "JPG"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {exportFormat === "png" && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={exportTransparent}
-                    onChange={(ev) => setExportTransparent(ev.target.checked)}
-                  />
-                  Transparent background
-                </label>
-              )}
-              <label className="field">
-                <span>File name</span>
-                <input
-                  value={exportName}
-                  placeholder="frame"
-                  onChange={(ev) => setExportName(ev.target.value)}
-                />
-              </label>
-              <p className="hint">
-                {(() => {
-                  const f = artboards.find((a) => a.id === exportFrameId);
-                  if (!f) return "Add a frame to export.";
-                  return `Output: ${Math.round(f.w * exportScale)} × ${Math.round(f.h * exportScale)} px · ${exportFormat === "png" ? "PNG" : "JPEG"}`;
-                })()}
-              </p>
-            </div>
-            <footer className="modal-foot split">
-              <button
-                disabled={exporting || artboards.length === 0}
-                onClick={() => void exportAllFrames()}
-                title="Export every frame with these settings"
-              >
-                Export all
-              </button>
-              <div className="row">
-                <button
-                  disabled={exporting}
-                  onClick={() => setExportOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="primary"
-                  disabled={exporting || !exportFrameId}
-                  onClick={() => void exportPNG()}
-                >
-                  {exporting ? "Exporting…" : "Export"}
-                </button>
-              </div>
-            </footer>
-          </section>
-        </div>
+        <ExportDialog
+          editor={e}
+          playhead={playback.time}
+          onClose={() => setExportOpen(false)}
+        />
       )}
       {confirmDelete && (
         <div

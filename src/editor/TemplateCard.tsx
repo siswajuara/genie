@@ -74,6 +74,9 @@ export function TemplateCard({
               {preset.W || 1122} × {preset.H || 1402}
             </span>
           )}
+          {preset.kind === "template" && (
+            <span>{preset.scene?.duration ?? 6}s animated</span>
+          )}
         </small>
       </div>
     </article>

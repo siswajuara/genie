@@ -1,5 +1,11 @@
 import builtins from "./presets.json";
 import { slugify } from "./identifiers";
+import {
+  validateAnimationData,
+  type Animation,
+  type SceneSettings,
+} from "./animation";
+import { withTemplateAnimation } from "./templateAnimation";
 
 export type Element = {
   id: string;
@@ -41,6 +47,8 @@ export type Element = {
   shy?: number;
   bend?: number;
   dash?: number;
+  animation?: Animation;
+  scene?: SceneSettings;
 };
 export type Preset = {
   name: string;
@@ -50,6 +58,7 @@ export type Preset = {
   H?: number;
   objects: Element[];
   b?: number;
+  scene?: SceneSettings;
 };
 export type CanvasDocument = {
   version: 1;
@@ -62,7 +71,9 @@ export type CanvasDocument = {
   elements: Element[];
 };
 export const uid = () => crypto.randomUUID();
-export const presets = builtins as unknown as Preset[];
+export const presets = (builtins as unknown as Preset[]).map(
+  withTemplateAnimation,
+);
 export const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const frames = (doc: CanvasDocument) =>
   doc.elements.filter((o) => o.t === "frame");
@@ -86,6 +97,7 @@ export function applyPreset(
         h: preset.H || 1402,
         n: preset.name,
         identifier: preset.identifier || slugify(preset.name) || undefined,
+        ...(preset.scene ? { scene: copy(preset.scene) } : {}),
       });
     } else {
       frame = {
@@ -98,6 +110,7 @@ export function applyPreset(
         w: preset.W || 1122,
         h: preset.H || 1402,
         fill: "#ffffff",
+        scene: preset.scene ? copy(preset.scene) : undefined,
       };
       next.elements.push(frame);
     }
@@ -227,6 +240,7 @@ export function validateElements(value: unknown): Element[] {
       throw new Error(
         "Images must use image data URLs, HTTP(S), or Tauri asset URLs.",
       );
+    validateAnimationData(o);
     o.id ||= uid();
     if (ids.has(o.id)) throw new Error(`Duplicate element id: ${o.id}`);
     ids.add(o.id);
@@ -267,12 +281,23 @@ export function parsePresets(value: unknown): Preset[] {
       (!(p.W! > 0) || !(p.H! > 0) || p.W! > 16000 || p.H! > 16000)
     )
       throw new Error("Template dimensions must be between 1 and 16,000.");
-    return {
+    if (p.scene !== undefined)
+      validateAnimationData({
+        id: "preset",
+        t: "frame",
+        n: p.name,
+        x: 0,
+        y: 0,
+        w: p.W || 1,
+        h: p.H || 1,
+        scene: p.scene,
+      });
+    return withTemplateAnimation({
       ...p,
       identifier: p.identifier ? slugify(p.identifier) : slugify(p.name),
       b: undefined,
       objects: validateElements(p.objects),
-    };
+    });
   });
 }
 export const elementKinds = [

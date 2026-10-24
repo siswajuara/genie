@@ -515,7 +515,13 @@ export function useEditor(
       name,
       identifier: slugify(name),
       kind,
-      ...(kind === "template" ? { W: frame.w, H: frame.h } : {}),
+      ...(kind === "template"
+        ? {
+            W: frame.w,
+            H: frame.h,
+            scene: frame.scene ? copy(frame.scene) : undefined,
+          }
+        : {}),
       objects: objects.map((o) => ({
         ...copy(o),
         x: o.x - (frame?.x || 0),

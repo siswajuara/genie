@@ -40,3 +40,20 @@ test("native save cancellation is reported separately from write failures", asyn
     "Disk full",
   );
 });
+test.each(["jpg", "mp4", "zip"])(
+  "desktop %s exports retain binary data and the requested extension",
+  async (extension) => {
+    const bytes = new Uint8Array([0, 255, 1, 128, 32]);
+    desktop(async (command, body, options) => {
+      expect(command).toBe("save_export");
+      expect(body).toEqual(bytes);
+      expect(JSON.parse(options.headers["x-export-name"])).toBe(
+        `Animation.${extension}`,
+      );
+      return `/exports/Animation.${extension}`;
+    });
+    expect(
+      await saveExport(new Blob([bytes]), `Animation.${extension}`),
+    ).toEqual({ status: "saved", path: `/exports/Animation.${extension}` });
+  },
+);

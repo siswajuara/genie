@@ -29,6 +29,193 @@
     }
   },
   "$defs": {
+    "easing": {
+      "enum": [
+        "linear",
+        "ease-in",
+        "ease-out",
+        "ease-in-out",
+        "back-out",
+        "sine-in-out",
+        "bounce-out",
+        "elastic-out"
+      ]
+    },
+    "motion": {
+      "type": "object",
+      "required": ["preset", "amount", "easing"],
+      "properties": {
+        "preset": {
+          "enum": [
+            "none",
+            "float",
+            "pulse",
+            "pan-left",
+            "pan-right",
+            "zoom-in",
+            "zoom-out",
+            "dolly-in",
+            "dolly-out",
+            "sway",
+            "rock",
+            "orbit",
+            "breathe",
+            "pan-up",
+            "pan-down",
+            "rotate-clockwise",
+            "rotate-counterclockwise"
+          ]
+        },
+        "amount": { "type": "number", "minimum": 0, "maximum": 500 },
+        "easing": { "$ref": "#/$defs/easing" }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "required": ["preset", "duration", "amount", "easing"],
+      "properties": {
+        "preset": {
+          "enum": [
+            "none",
+            "fade",
+            "slide-left",
+            "slide-right",
+            "slide-up",
+            "slide-down",
+            "zoom",
+            "zoom-3d",
+            "flip",
+            "spin",
+            "pop",
+            "bounce",
+            "elastic",
+            "rise",
+            "drop",
+            "swing",
+            "rotate-in",
+            "zoom-out",
+            "reveal-left",
+            "reveal-right",
+            "reveal-up",
+            "reveal-down"
+          ]
+        },
+        "duration": { "type": "number", "minimum": 0.05, "maximum": 600 },
+        "amount": { "type": "number", "minimum": 0, "maximum": 500 },
+        "easing": { "$ref": "#/$defs/easing" }
+      }
+    },
+    "keyframe": {
+      "type": "object",
+      "required": [
+        "time",
+        "x",
+        "y",
+        "scale",
+        "rotation",
+        "opacity",
+        "rotateY",
+        "z",
+        "easing"
+      ],
+      "properties": {
+        "time": { "type": "number", "minimum": 0, "maximum": 600 },
+        "x": { "type": "number", "minimum": -10000, "maximum": 10000 },
+        "y": { "type": "number", "minimum": -10000, "maximum": 10000 },
+        "scale": { "type": "number", "minimum": 0.01, "maximum": 20 },
+        "rotation": { "type": "number", "minimum": -10000, "maximum": 10000 },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rotateY": { "type": "number", "minimum": -10000, "maximum": 10000 },
+        "z": { "type": "number", "minimum": -10000, "maximum": 10000 },
+        "easing": { "$ref": "#/$defs/easing" }
+      }
+    },
+    "textAnimation": {
+      "type": "object",
+      "required": ["preset", "duration", "delay", "easing"],
+      "description": "Text elements only. Reveal progress changes glyph visibility and transforms without changing layout, line breaks, or inline colors. Timings are relative to the layer start; reveal duration fits the remaining layer lifetime.",
+      "properties": {
+        "preset": {
+          "enum": [
+            "none",
+            "typewriter",
+            "word-by-word",
+            "line-by-line",
+            "character-fade",
+            "character-rise",
+            "word-rise",
+            "word-pop",
+            "wave"
+          ]
+        },
+        "duration": { "type": "number", "minimum": 0.05, "maximum": 600 },
+        "delay": { "type": "number", "minimum": 0, "maximum": 600 },
+        "easing": { "$ref": "#/$defs/easing" },
+        "reverse": { "type": "boolean" }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "description": "Element-local animation. start/end are scene seconds. Keyframe time is relative to start; keyframes must be sorted with unique times. All transform values are offsets from the editable design, scale and opacity are multipliers.",
+      "properties": {
+        "start": { "type": "number", "minimum": 0, "maximum": 600 },
+        "end": { "type": "number", "minimum": 0.05, "maximum": 600 },
+        "depth": { "type": "number", "minimum": -500, "maximum": 500 },
+        "enter": { "$ref": "#/$defs/effect" },
+        "exit": { "$ref": "#/$defs/effect" },
+        "motion": { "$ref": "#/$defs/motion" },
+        "text": { "$ref": "#/$defs/textAnimation" },
+        "keyframes": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/keyframe" }
+        }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "required": ["duration"],
+      "description": "Frame-only video scene. Default duration is 5 seconds. Transition belongs to the outgoing frame and overlaps the next scene by at most half of either scene duration.",
+      "properties": {
+        "duration": { "type": "number", "minimum": 0.1, "maximum": 600 },
+        "camera": { "$ref": "#/$defs/motion" },
+        "transition": {
+          "type": "object",
+          "required": ["type", "duration"],
+          "properties": {
+            "type": {
+              "enum": [
+                "cut",
+                "crossfade",
+                "slide-left",
+                "slide-right",
+                "slide-up",
+                "wipe",
+                "zoom",
+                "slide-down",
+                "push-left",
+                "push-right",
+                "push-up",
+                "push-down",
+                "wipe-right",
+                "wipe-up",
+                "wipe-down",
+                "circle-in",
+                "circle-out",
+                "diamond",
+                "blinds",
+                "fade-through-black",
+                "fade-through-white",
+                "zoom-out",
+                "spin"
+              ]
+            },
+            "duration": { "type": "number", "minimum": 0.05, "maximum": 10 },
+            "easing": { "$ref": "#/$defs/easing" }
+          }
+        }
+      }
+    },
     "element": {
       "type": "object",
       "required": ["id", "t", "n", "x", "y", "w", "h"],
@@ -81,7 +268,9 @@
         "sh": { "type": "number", "minimum": 0 },
         "shc": { "type": "string" },
         "shx": { "type": "number" },
-        "shy": { "type": "number" }
+        "shy": { "type": "number" },
+        "animation": { "$ref": "#/$defs/animation" },
+        "scene": { "$ref": "#/$defs/scene" }
       }
     }
   }

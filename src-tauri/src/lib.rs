@@ -46,7 +46,7 @@ async fn save_export(
         .and_then(|v| v.to_str())
         .unwrap_or("")
         .to_lowercase();
-    if !matches!(extension.as_str(), "png" | "json") {
+    if !matches!(extension.as_str(), "png" | "jpg" | "jpeg" | "mp4" | "zip" | "json") {
         return Err("Unsupported export format.".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
@@ -57,10 +57,12 @@ async fn save_export(
             .set_title("Save export")
             .set_file_name(&filename)
             .add_filter(
-                if extension == "png" {
-                    "PNG image"
-                } else {
-                    "JSON document"
+                match extension.as_str() {
+                    "png" => "PNG image",
+                    "jpg" | "jpeg" => "JPEG image",
+                    "mp4" => "MP4 video",
+                    "zip" => "Image archive",
+                    _ => "JSON document",
                 },
                 &[extension.as_str()],
             )

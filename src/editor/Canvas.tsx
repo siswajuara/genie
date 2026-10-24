@@ -13,6 +13,9 @@ import { ensureFont } from "../lib/fonts";
 import { Icon } from "../components/ui/Icon";
 import { InlineText } from "./InlineText";
 import { assetMime, findAsset, type LibraryAsset } from "./assets";
+import type { AnimationPlayback } from "./useAnimationPlayback";
+import type { AnimationTextures } from "./animationRenderer";
+import { Timeline } from "./Timeline";
 
 type Point = { x: number; y: number };
 type View = Point & { z: number };
@@ -41,6 +44,7 @@ export function Canvas({
   pendingAsset,
   onAssetPlace,
   onAssetCancel,
+  playback,
 }: {
   editor: Editor;
   onImage: (files: File[], at?: Point) => void | Promise<void>;
@@ -52,6 +56,7 @@ export function Canvas({
     slotId?: string,
   ) => Promise<void>;
   onAssetCancel: () => void;
+  playback: AnimationPlayback;
 }) {
   const host = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
@@ -69,6 +74,7 @@ export function Canvas({
   const [imageTick, setImageTick] = useState(0);
   const images = useRef(new Map<string, HTMLImageElement>());
   const rasters = useRef<RenderCache>(new Map());
+  const animationTextures = useRef<AnimationTextures>(new Map());
   const queuedPointer = useRef<PointerEvent | undefined>(undefined);
   const moveFrame = useRef<number | undefined>(undefined);
   const space = useRef(false);
@@ -459,10 +465,19 @@ export function Canvas({
         rasters.current,
         imageTick,
         editing,
+        playback.open && playback.preview && playback.frame
+          ? {
+              frameId: playback.frame.id,
+              time: playback.time,
+              reducedMotion: playback.reducedMotion,
+              textures: animationTextures.current,
+            }
+          : undefined,
       );
       ctx.lineWidth = 1.5 / view.z;
       ctx.strokeStyle = "#2f4bd8";
       for (const o of e.selected) {
+        if (playback.open && playback.preview) continue;
         if (e.scene.isHidden(o)) continue;
         ctx.save();
         const c = { x: o.x + o.w / 2, y: o.y + o.h / 2 };
@@ -541,6 +556,11 @@ export function Canvas({
     guides,
     imageTick,
     editing,
+    playback.open,
+    playback.preview,
+    playback.time,
+    playback.frame?.id,
+    playback.reducedMotion,
   ]);
   useEffect(() => {
     function key(ev: KeyboardEvent) {
@@ -1049,6 +1069,14 @@ export function Canvas({
             <Icon name="redo" />
           </button>
         </div>
+        <button
+          aria-label="Toggle animation timeline"
+          title="Show or hide animation timeline"
+          aria-pressed={playback.open}
+          onClick={() => playback.setOpen(!playback.open)}
+        >
+          <Icon name="film" size={16} /> Timeline
+        </button>
       </div>
       <div
         className={`canvas-stage ${pendingAsset ? "is-placing-asset" : ""}`}
@@ -1109,7 +1137,10 @@ export function Canvas({
           style={{ width: size.w, height: size.h }}
           tabIndex={0}
           aria-label="Design canvas. Use the layers and properties panels for keyboard editing."
-          onPointerDown={down}
+          onPointerDown={(ev) => {
+            playback.edit();
+            down(ev);
+          }}
           onPointerMove={queueMove}
           onPointerUp={up}
           onPointerCancel={cancelDrag}
@@ -1147,6 +1178,7 @@ export function Canvas({
           </div>
         )}
       </div>
+      <Timeline editor={e} playback={playback} />
       {menu && (
         <>
           <div className="menu-dismiss" onClick={() => setMenu(undefined)} />

@@ -1,5 +1,6 @@
+import { graphemes } from "./textAnimation";
 // Original drawing routines from reference/siswa-juara-editor.html.
-export function drawElement(ctx, o, exporting = false) {
+export function drawElement(ctx, o, exporting = false, glyphAnimation) {
   function draw(o) {
     const { x, y, w, h } = o;
     if (o.t === "rect" || o.t === "ellipse") {
@@ -187,13 +188,25 @@ export function drawElement(ctx, o, exporting = false) {
       lh = o.size * (o.lh || 1.15),
       cu = ((o.curve || 0) * Math.PI) / 180,
       cx = o.x + o.w / 2;
+    let glyphIndex = 0;
     ls.forEach((s, i) => {
       const ch = [];
-      parse(s, o.color).forEach((r) =>
-        [...r.s].forEach((c) =>
-          ch.push({ c, k: r.c, w: ctx.measureText(c).width + (o.ls || 0) }),
-        ),
-      );
+      const runs = parse(s, o.color);
+      let run = 0,
+        offset = 0;
+      graphemes(runs.map((r) => r.s).join("")).forEach((c) => {
+        while (run < runs.length - 1 && offset >= runs[run].s.length) {
+          offset -= runs[run].s.length;
+          run++;
+        }
+        ch.push({
+          c,
+          k: runs[run]?.c || o.color,
+          w: ctx.measureText(c).width + (o.ls || 0),
+          index: glyphIndex++,
+        });
+        offset += c.length;
+      });
       const tot = ch.reduce((a, b) => a + b.w, 0),
         by = o.y + o.h / 2 + (i - (ls.length - 1) / 2) * lh,
         R = cu ? tot / Math.abs(cu) : 0;
@@ -209,6 +222,8 @@ export function drawElement(ctx, o, exporting = false) {
         ch.forEach((g) => {
           const m = acc + g.w / 2;
           acc += g.w;
+          const style = glyphAnimation?.(g.index);
+          if (style && style.opacity <= 0) return;
           let px,
             py,
             rt = 0;
@@ -230,8 +245,10 @@ export function drawElement(ctx, o, exporting = false) {
             }
           }
           ctx.save();
-          ctx.translate(px, py);
-          ctx.rotate(rt);
+          if (style) ctx.globalAlpha *= style.opacity;
+          ctx.translate(px, py + (style?.y || 0));
+          ctx.rotate(rt + (style?.rotation || 0));
+          if (style) ctx.scale(style.scale, style.scale);
           ctx.textAlign = "center";
           if (!pass) {
             ctx.lineJoin = "round";

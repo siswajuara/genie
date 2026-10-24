@@ -11,6 +11,8 @@ import { FontField } from "../components/ui/FontField";
 import { Icon, type IconName } from "../components/ui/Icon";
 import { slugify } from "./identifiers";
 import { matchLibraryAsset } from "./assets";
+import { AnimationInspector } from "./AnimationInspector";
+import type { AnimationPlayback } from "./useAnimationPlayback";
 
 export function openAssetBrowser() {
   window.dispatchEvent(new CustomEvent("genie:open-assets"));
@@ -180,7 +182,13 @@ const alignTools: { key: string; icon: IconName }[] = [
   { key: "Middle", icon: "alignMiddle" },
   { key: "Bottom", icon: "alignBottom" },
 ];
-export function Inspector({ editor: e }: { editor: Editor }) {
+export function Inspector({
+  editor: e,
+  playback,
+}: {
+  editor: Editor;
+  playback: AnimationPlayback;
+}) {
   const [tab, setTab] = useState("Properties"),
     [wordColor, setWordColor] = useState("#f7c600");
   const text = useRef<HTMLTextAreaElement>(null),
@@ -224,7 +232,9 @@ export function Inspector({ editor: e }: { editor: Editor }) {
               >
                 <Icon
                   name={
-                    (["alignLeft", "alignCenterH", "alignRight"] as IconName[])[i]
+                    (["alignLeft", "alignCenterH", "alignRight"] as IconName[])[
+                      i
+                    ]
                   }
                   size={14}
                 />
@@ -290,7 +300,7 @@ export function Inspector({ editor: e }: { editor: Editor }) {
   return (
     <aside className="inspector">
       <div className="panel-tabs" role="tablist" aria-label="Inspector">
-        {["Properties", "Layers"].map((t) => (
+        {["Properties", "Animation", "Layers"].map((t) => (
           <button
             role="tab"
             aria-selected={tab === t}
@@ -302,7 +312,9 @@ export function Inspector({ editor: e }: { editor: Editor }) {
         ))}
       </div>
       <div className="panel-scroll">
-        {tab === "Properties" ? (
+        {tab === "Animation" ? (
+          <AnimationInspector editor={e} playback={playback} />
+        ) : tab === "Properties" ? (
           o ? (
             <>
               <div className="section-title">

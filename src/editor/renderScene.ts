@@ -2,6 +2,16 @@ import type { Element } from "./model";
 import type { buildScene, Bounds, LayerNode } from "./scene";
 import { bounds, intersects } from "./scene";
 import { drawElement } from "./reference-renderer";
+import {
+  drawAnimationFrame,
+  type AnimationTextures,
+} from "./animationRenderer";
+export type AnimationPreview = {
+  frameId: string;
+  time: number;
+  reducedMotion: boolean;
+  textures: AnimationTextures;
+};
 type FrameCache = {
   canvas: HTMLCanvasElement;
   frame: Element;
@@ -21,6 +31,7 @@ export function renderScene(
   cache: RenderCache,
   revision: number,
   editing?: string,
+  preview?: AnimationPreview,
 ) {
   const currentFrames = new Set(scene.frames.map((f) => f.id));
   for (const id of cache.keys()) if (!currentFrames.has(id)) cache.delete(id);
@@ -38,6 +49,21 @@ export function renderScene(
     )
       return;
     const children = scene.frameChildren.get(frame.id) || [];
+    if (preview?.frameId === frame.id) {
+      ctx.save();
+      ctx.translate(frame.x, frame.y);
+      drawAnimationFrame(ctx, frame, children, preview.time, images, {
+        width: frame.w,
+        height: frame.h,
+        reducedMotion: preview.reducedMotion,
+        textures: preview.textures,
+      });
+      ctx.restore();
+      ctx.fillStyle = "#555d7a";
+      ctx.font = `${12 / zoom}px Nunito, sans-serif`;
+      ctx.fillText(frame.n, frame.x, frame.y - 12 / zoom);
+      return;
+    }
     const density = Math.max(
       0.01,
       Math.min(
