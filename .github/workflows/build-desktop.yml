@@ -84,6 +84,8 @@ jobs:
           else
             npm run build:desktop -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
           fi
+      - name: Check native Node bridge startup with Windows resource paths
+        run: cargo test --manifest-path src-tauri/Cargo.toml --locked --lib node_bridge::tests
       - name: Smoke test packaged runtime without global installations
         run: npm run sidecar:check
       - name: Check resources inside the final installer payload

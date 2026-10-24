@@ -1370,6 +1370,7 @@ dependencies = [
 name = "genie"
 version = "1.0.3"
 dependencies = [
+ "dunce",
  "fs2",
  "keyring",
  "rusqlite",

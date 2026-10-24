@@ -53,6 +53,8 @@ The SDK's older transitive CLI is deliberately excluded from the payload. Releas
 
 `NODE_BIN` and Chat's executable setting/`CODEX_PATH` remain explicit overrides. Development mode still discovers an installed Node/Codex. Windows npm `.cmd` launchers resolve to the native `.exe`; paths with spaces are passed as process arguments without a shell. Codex receives its helper directories and the bundled Node directory on its child PATH.
 
+The native launcher simplifies Windows resource paths before starting either Node bridge, avoiding Node 22's startup failure on `\\?\` paths. Both Windows build jobs run a native startup regression check using canonical paths, spaces, and Unicode in the script path, covering installation checks, settings requests, and chat input without model or provider calls.
+
 `npm run sidecar:check` starts the staged Node and Codex from an unrelated working directory with global Node/Codex removed from PATH. It verifies versions, architecture, hashes, SDK loading, bridge status, and streaming flag support. It does not authenticate or make a model call. CI repeats the check using resources extracted from the actual macOS application, Linux DEB, or silently installed Windows NSIS payload.
 
 Generated sidecar files are ignored by Git. Install dependencies independently on each runner; never commit or copy a macOS `node_modules` directory into Windows/Linux builds.

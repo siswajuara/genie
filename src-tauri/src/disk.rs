@@ -1,6 +1,6 @@
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet},
@@ -424,21 +424,23 @@ mod tests {
             read_records(&db).unwrap()[0].value.as_ref().unwrap(),
             &value
         );
-        assert!(write_records(
-            &mut db,
-            &[
-                Record {
-                    key: "genie.workspace.v1".into(),
-                    value: Some("{}".into())
-                },
-                Record {
-                    key: "unsupported.key".into(),
-                    value: Some("bad".into())
-                },
-            ],
-            false
-        )
-        .is_err());
+        assert!(
+            write_records(
+                &mut db,
+                &[
+                    Record {
+                        key: "genie.workspace.v1".into(),
+                        value: Some("{}".into())
+                    },
+                    Record {
+                        key: "unsupported.key".into(),
+                        value: Some("bad".into())
+                    },
+                ],
+                false
+            )
+            .is_err()
+        );
         assert_eq!(
             read_records(&db).unwrap()[0].value.as_ref().unwrap(),
             &value
