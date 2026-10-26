@@ -4,18 +4,10 @@ import { createHash } from "node:crypto";
 import { captureUsage, assertRequestBudget } from "./social-usage.mjs";
 import { createElevenLabsPool, elevenLabsMedia } from "./elevenlabs.mjs";
 import { publicElevenLabs } from "./elevenlabs-config.mjs";
-import { cloudflareChat, publicCloudflare } from "./cloudflare-ai.mjs";
 const providers = ["buffer", "zernio"];
-export const emptyConfig = () => ({
-  buffer: { key: "", organizationId: "" },
-  zernio: { key: "", profileId: "" },
-  elevenlabs: { key: "" },
-  cloudflare: { key: "", accountId: "", gatewayId: "" },
-});
 export const publicConfig = (config, storage) => ({
   storage,
   elevenlabs: publicElevenLabs(config),
-  cloudflare: publicCloudflare(config),
   buffer: {
     configured: !!config.buffer.key,
     organizationId: config.buffer.organizationId || "",
@@ -296,9 +288,6 @@ export function createSocialService({
     return result;
   }
   async function dispatch(config, action, payload = {}) {
-    if (action === "cloudflare.status") return publicCloudflare(config);
-    if (action === "cloudflare.chat")
-      return cloudflareChat(config, payload, fetchImpl);
     const pool = createElevenLabsPool({ state, persist, fetchImpl });
     if (action === "elevenlabs.usage")
       return pool.usage(config, payload.accountId);

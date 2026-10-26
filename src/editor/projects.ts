@@ -2,8 +2,8 @@ import {
   mergeCanvasAssets,
   validateCanvasAsset,
   type CanvasAsset,
-} from "./canvasAssets";
-import { localStore, useLocalStorageStatus } from "../lib/localStore";
+} from "./canvas-assets";
+import { localStore, useLocalStorageStatus } from "../lib/local-store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   copy,
@@ -50,7 +50,7 @@ function newPage(name: string, canvas?: CanvasDocument): Page {
     },
   };
 }
-export function newProject(name: string, canvas?: CanvasDocument): Project {
+function newProject(name: string, canvas?: CanvasDocument): Project {
   return {
     id: uid(),
     name,
@@ -76,7 +76,7 @@ function migrateWorkspace(savedCanvas?: string | null): Workspace {
     activePageId: project.pages[0].id,
   };
 }
-export function parseWorkspace(raw: unknown): Workspace {
+function parseWorkspace(raw: unknown): Workspace {
   const w = raw as Workspace;
   if (w?.version !== 1 || !Array.isArray(w.projects) || !w.projects.length)
     throw new Error("Expected a canvas backup with pages.");

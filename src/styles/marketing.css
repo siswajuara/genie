@@ -1,0 +1,1781 @@
+@layer components {.marketing-workspace {
+  @apply grid grid-cols-[76px_minmax(0,_1fr)] grid-rows-[minmax(0,_1fr)] h-dvh overflow-hidden;
+  --marketing-muted: var(--muted-foreground);
+  @apply text-[14px];
+}
+.marketing-workspace button {
+  @apply font-bold;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.marketing-workspace button.primary {
+  @apply py-[10px] px-[16px];
+}
+.marketing-workspace input,
+.marketing-workspace textarea {
+  @apply py-[10px] px-[12px];
+}
+.marketing-workspace h1,
+.marketing-workspace h2,
+.marketing-workspace h3 {
+  @apply text-foreground;
+}
+.marketing-skip {
+  @apply fixed left-[90px] top-[-60px] z-[2000] bg-card p-[12px] text-primary border-[2px] border-solid border-primary;
+}
+.marketing-skip:focus {
+  @apply top-[10px];
+}
+.marketing-rail {
+  @apply flex flex-col items-center pt-[22px] pr-0 pb-[14px] pl-0 bg-card border-r border-solid border-r-border relative z-[40];
+}
+.marketing-brand {
+  @apply w-[40px] h-[40px] border-0 rounded-[12px] bg-[#fff] text-[#14226e];
+  @apply text-[17px] font-black! p-0 tracking-[-1px];
+}
+.marketing-brand:hover {
+  @apply bg-[#fff]!;
+}
+.marketing-brand img {
+  @apply block w-full h-full object-contain rounded-[inherit];
+}
+.marketing-rail nav {
+  @apply flex flex-col items-center gap-[12px] flex-[1] w-full pt-[32px] pr-0 pb-[18px] pl-0;
+}
+.rail-button {
+  @apply relative flex items-center justify-center w-[46px] h-[46px] border-0 rounded-[10px] p-0 text-muted-foreground bg-transparent;
+}
+.rail-button[aria-current="page"] {
+  @apply bg-secondary text-primary;
+}
+.rail-button[aria-current="page"]:before {
+  content: "";
+  @apply absolute left-[-15px] top-[13px] bottom-[13px] w-[3px] bg-primary rounded-[0_3px_3px_0];
+}
+.rail-settings {
+  @apply mt-[auto];
+}
+.rail-tooltip {
+  @apply hidden absolute left-[58px] top-[50%];
+  transform: translateY(-50%);
+  @apply w-max max-w-[230px] py-[9px] px-[12px] bg-foreground text-card rounded-[6px] shadow-[0_3px_12px_#0002] text-left pointer-events-none text-[12px] font-normal leading-[1.5];
+}
+.rail-tooltip strong,
+.rail-tooltip > span {
+  @apply block;
+}
+.rail-tooltip > span {
+  @apply text-[11px] opacity-85;
+}
+.rail-button:hover .rail-tooltip,
+.rail-button:focus-visible .rail-tooltip {
+  @apply block;
+}
+.marketing-body {
+  @apply min-w-0 min-h-0 flex flex-col;
+}
+.marketing-header {
+  @apply h-[76px] min-h-[76px] flex items-center justify-between py-0 px-[36px] bg-card border-b border-solid border-b-border gap-[16px];
+}
+.marketing-breadcrumb,
+.marketing-header-actions {
+  @apply flex items-center gap-[12px] min-w-0;
+}
+.marketing-breadcrumb {
+  @apply text-muted-foreground text-[13px];
+}
+.marketing-breadcrumb > span:last-child {
+  @apply text-foreground font-extrabold;
+}
+.workspace-label {
+  @apply font-extrabold whitespace-nowrap;
+}
+.marketing-header-actions > .select-trigger {
+  @apply w-[180px] text-[12px] py-[9px] px-[12px];
+}
+.device-save {
+  @apply text-[11px] text-muted-foreground flex items-center gap-[5px] whitespace-nowrap mr-[8px];
+}
+.marketing-main {
+  @apply overflow-auto pt-[36px] pr-[42px] pb-[50px] pl-[42px];
+  scrollbar-gutter: stable;
+  @apply [outline:none];
+}
+.marketing-page-intro {
+  @apply flex items-center justify-between gap-[20px] mt-0 mr-0 mb-[30px] ml-0;
+}
+.marketing-page-intro h1 {
+  @apply text-[31px] tracking-[-0.7px] leading-[1.25] mt-0 mr-0 mb-[8px] ml-0 font-extrabold [outline:none];
+}
+.marketing-page-intro p {
+  @apply m-0 text-muted-foreground text-[14px];
+}
+.marketing-page-intro > button {
+  @apply shrink-0;
+}
+.eyebrow {
+  @apply text-[11px] font-extrabold text-muted-foreground;
+}
+.subtle-badge {
+  @apply inline-flex items-center whitespace-nowrap text-[11px] leading-[1.5] py-[4px] px-[8px] bg-background text-muted-foreground border border-solid border-border rounded-[5px];
+}
+.marketing-main .row {
+  @apply gap-[8px];
+}
+.marketing-storage-error {
+  @apply py-[10px] px-[36px] text-destructive bg-card border-b border-solid border-b-border text-[12px];
+}
+.marketing-toast {
+  @apply fixed bottom-[24px] left-[50%];
+  transform: translateX(-50%);
+  @apply bg-foreground text-card flex items-center gap-[10px] py-[13px] px-[16px] rounded-[8px] shadow-[0_5px_25px_#0002] z-[2000] max-w-[min(640px,_calc(100vw_-_40px))] text-[13px];
+}
+.marketing-toast button {
+  @apply bg-transparent text-inherit border-0 p-[2px] ml-[8px];
+}
+.marketing-empty {
+  @apply text-center flex flex-col items-center justify-center py-[55px] px-[24px] min-h-[300px];
+}
+.empty-state-icon {
+  @apply w-[62px] h-[62px] rounded-[15px] bg-secondary text-primary flex items-center justify-center mb-[18px];
+}
+.marketing-empty h2 {
+  @apply text-[18px] font-extrabold mb-[8px];
+}
+.marketing-empty p {
+  @apply max-w-[350px] text-muted-foreground text-[13px] leading-[1.7] mt-0 mr-0 mb-[20px] ml-0;
+}
+.marketing-empty button {
+  @apply mt-[2px];
+}
+.marketing-segments {
+  @apply inline-flex gap-[3px] p-[3px] bg-background border border-solid border-border rounded-[7px] flex-wrap;
+}
+.marketing-segments button {
+  @apply border border-solid border-transparent bg-transparent py-[6px] px-[10px] text-[12px] text-muted-foreground;
+}
+.marketing-segments button[data-state="on"] {
+  @apply bg-card text-foreground border-border;
+}
+.marketing-search {
+  @apply flex items-center gap-[7px] bg-card border border-solid border-border rounded-[6px] py-0 px-[10px] text-muted-foreground min-w-0;
+}
+.marketing-search:focus-within {
+  @apply outline-[2px] outline-solid outline-primary outline-offset-[1px];
+}
+.marketing-search input {
+  @apply border-0 [outline:none]! w-full py-[9px] px-0 text-[12px] bg-transparent;
+}
+.panel-heading {
+  @apply flex items-center justify-between gap-[16px] mb-[22px];
+}
+.panel-heading h2 {
+  @apply text-[17px] mt-0 mr-0 mb-[4px] ml-0;
+}
+.panel-heading p {
+  @apply text-[12px] text-muted-foreground m-0;
+}
+.marketing-field {
+  @apply flex flex-col gap-[7px] text-[12px] font-extrabold mt-[22px] mr-0 mb-0 ml-0;
+}
+.marketing-field input,
+.marketing-field textarea {
+  @apply w-full text-[13px] font-normal;
+}
+.field-optional {
+  @apply font-normal text-muted-foreground text-[11px] mt-[-3px];
+}
+.platform-icon {
+  @apply w-[28px] h-[28px] inline-flex justify-center items-center rounded-[6px] bg-background shrink-0;
+}
+.platform-instagram {
+  @apply text-[#b23c82];
+}
+.platform-facebook {
+  @apply text-[#2769cf];
+}
+.platform-linkedin {
+  @apply text-[#1675b3];
+}
+.platform-youtube {
+  @apply text-[#d1363e];
+}
+.platform-tiktok,
+.platform-x {
+  @apply text-foreground;
+}
+.studio[data-theme="dark"] .platform-instagram {
+  @apply text-[#ee8fc8];
+}
+.studio[data-theme="dark"] .platform-facebook {
+  @apply text-[#80b4ff];
+}
+.studio[data-theme="dark"] .platform-linkedin {
+  @apply text-[#80c9f4];
+}
+.studio[data-theme="dark"] .platform-youtube {
+  @apply text-[#ff8e94];
+}
+.frame-preview-canvas {
+  @apply block max-w-full max-h-full h-auto object-contain;
+}
+.media-unavailable {
+  @apply flex items-center justify-center flex-col gap-[10px] p-[20px] text-muted-foreground text-[11px] h-full;
+}
+.context-heading {
+  @apply flex items-center gap-[7px] mb-[18px];
+}
+.context-heading h2 {
+  @apply text-[14px] m-0 flex-[1];
+}
+.context-heading > .ui-icon {
+  @apply text-primary;
+}
+.context-heading .subtle-badge {
+  @apply text-[10px] py-[2px] px-[6px];
+}
+.canvas-context-copy {
+  @apply flex flex-col gap-[3px] my-[16px] mx-0;
+}
+.canvas-context-copy strong {
+  @apply text-[13px];
+}
+.canvas-context-copy > span {
+  @apply text-[11px] text-muted-foreground;
+}
+.context-open,
+.context-publish {
+  @apply w-full flex! items-center justify-between! py-[10px] px-[12px];
+}
+.context-publish {
+  @apply mt-[8px] text-[12px];
+}
+.context-note {
+  @apply text-[11px] text-muted-foreground leading-[1.6] mt-[13px] mr-0 mb-0 ml-0;
+}
+.history-layout {
+  @apply grid grid-cols-[350px_minmax(0,_1fr)] min-h-[580px] border border-solid border-border rounded-[10px] overflow-hidden bg-card;
+}
+.history-list {
+  @apply border-r border-solid border-r-border p-[18px] min-w-0;
+}
+.history-list > .marketing-segments {
+  @apply my-[14px] mx-0 w-full;
+}
+.history-list .marketing-segments button {
+  @apply flex-[1] p-[6px] text-[11px];
+}
+.history-results > .marketing-empty {
+  @apply py-[40px] px-[10px];
+}
+.history-results .marketing-empty h2 {
+  @apply text-[15px];
+}
+.history-row {
+  @apply flex gap-[10px] items-start w-full text-left py-[14px] px-[10px] border border-solid border-transparent bg-transparent my-[3px] mx-0;
+}
+.history-row.selected {
+  @apply bg-secondary border-border;
+}
+.history-row > span:nth-child(2) {
+  @apply min-w-0 flex-[1];
+}
+.history-row strong {
+  @apply text-[12px] block overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.history-row small {
+  @apply block text-[10px] text-muted-foreground mt-[5px];
+}
+.history-row p {
+  @apply text-[11px] font-normal text-muted-foreground leading-[1.6] mt-[7px] mr-0 mb-0 ml-0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  @apply overflow-hidden;
+}
+.history-row-icon {
+  @apply text-primary pt-[2px];
+}
+.history-detail {
+  @apply flex flex-col min-w-0;
+}
+.history-detail > .marketing-empty {
+  @apply flex-[1];
+}
+.history-detail-head {
+  @apply py-[22px] px-[25px] border-b border-solid border-b-border;
+}
+.history-detail-head h2 {
+  @apply text-[17px] mt-[7px] mr-0 mb-[16px] ml-0 wrap-anywhere;
+}
+.history-detail-head button {
+  @apply text-[12px];
+}
+.history-messages {
+  @apply py-[22px] px-[28px] max-h-[650px] overflow-auto;
+}
+.history-message {
+  @apply p-[16px] mb-[14px] bg-background rounded-[7px] text-[13px] leading-[1.8] wrap-anywhere;
+}
+.history-message.user {
+  @apply bg-secondary;
+}
+.history-message > span {
+  @apply text-[10px] text-muted-foreground font-extrabold;
+}
+.history-message pre {
+  @apply whitespace-pre-wrap;
+}
+.marketing-footnote {
+  @apply text-[11px] text-muted-foreground mt-[18px];
+}
+.publish-layout {
+  @apply grid grid-cols-[minmax(0,_1fr)_350px] gap-[32px] max-w-[1320px] my-0 mx-[auto];
+}
+.publish-editor {
+  @apply min-w-0 bg-card border border-solid border-border rounded-[10px];
+}
+.publish-step {
+  @apply py-[27px] px-[28px] border-b border-solid border-b-border;
+}
+.publish-step:last-child {
+  @apply border-b-0;
+}
+.step-heading {
+  @apply flex gap-[12px] items-start mb-[22px];
+}
+.step-heading > span {
+  @apply w-[25px] h-[25px] rounded-[7px] text-primary bg-secondary flex items-center justify-center font-extrabold text-[12px] shrink-0;
+}
+.step-heading h2 {
+  @apply text-[16px] mt-[1px] mr-0 mb-[4px] ml-0;
+}
+.step-heading p {
+  @apply text-[12px] text-muted-foreground m-0;
+}
+.media-drop-zone {
+  @apply flex flex-col items-center justify-center border border-dashed border-border rounded-[8px] bg-background min-h-[205px] py-[22px] px-[14px] text-center;
+}
+.media-drop-icon {
+  @apply text-primary mt-0 mr-0 mb-[12px] ml-0;
+}
+.media-drop-zone > strong {
+  @apply text-[13px];
+}
+.media-drop-zone > p {
+  @apply text-[12px] text-muted-foreground mt-[5px] mr-0 mb-[16px] ml-0;
+}
+.media-drop-zone button {
+  @apply text-[11px];
+}
+.media-drop-zone.has-media {
+  @apply items-stretch min-h-0 p-[14px];
+}
+.composer-media-list {
+  @apply flex gap-[10px] overflow-x-auto p-[3px];
+}
+.composer-media-item {
+  @apply relative shrink-0 w-[100px] h-[115px];
+}
+.composer-media-select {
+  @apply w-full h-full p-[6px] bg-card overflow-hidden flex items-center justify-center relative;
+}
+.composer-media-select[aria-pressed="true"] {
+  @apply border-primary outline-[1px] outline-solid outline-primary;
+}
+.composer-media-select img,
+.composer-media-select video {
+  @apply max-w-full max-h-full object-contain;
+}
+.composer-media-select > span {
+  @apply absolute bottom-[4px] left-[5px] bg-card py-0 px-[4px] text-[10px] rounded-[3px];
+}
+.remove-media {
+  @apply absolute right-[3px] top-[3px] w-[20px] h-[20px] rounded-[4px] flex items-center justify-center p-0 bg-card;
+}
+.media-add-actions {
+  @apply flex gap-[8px] mt-[12px];
+}
+.caption-label {
+  @apply flex items-center justify-between text-[12px] font-extrabold mt-[24px] mr-0 mb-[8px] ml-0;
+}
+.caption-label button {
+  @apply text-[11px] py-[4px] px-[6px] border-0 text-primary bg-transparent;
+}
+.caption-input {
+  @apply w-full text-[13px] leading-[1.8];
+}
+.caption-meta {
+  @apply flex justify-between gap-[12px] text-[10px] text-muted-foreground mt-[7px];
+}
+.alt-text-field {
+  @apply mt-[20px];
+}
+.channel-choices {
+  @apply grid grid-cols-[repeat(3,_minmax(0,_1fr))] gap-[9px];
+}
+.channel-choices button {
+  @apply flex items-center gap-[7px] text-[12px] py-[10px] px-[9px];
+}
+.channel-choices button.chosen {
+  @apply bg-secondary border-primary;
+}
+.channel-choices button > span:nth-child(2) {
+  @apply flex-[1] text-left;
+}
+.connection-inline {
+  @apply flex items-center gap-[6px] text-[11px] text-muted-foreground mt-[17px] mr-0 mb-0 ml-0 flex-wrap;
+}
+.connection-inline button {
+  @apply text-[11px] border-0 py-0 px-[3px] text-primary bg-transparent;
+}
+.timing-choices {
+  @apply grid grid-cols-[1fr_1fr] gap-[10px];
+}
+.timing-choices button {
+  @apply flex items-center gap-[10px] text-left py-[13px] px-[12px];
+}
+.timing-choices button[aria-pressed="true"] {
+  @apply bg-secondary border-primary;
+}
+.timing-choices button > span:first-of-type {
+  @apply flex flex-col gap-[2px] flex-[1];
+}
+.timing-choices button strong {
+  @apply text-[12px];
+}
+.timing-choices button small {
+  @apply text-muted-foreground text-[10px] font-normal;
+}
+.choice-radio {
+  @apply block w-[15px] h-[15px] shrink-0 border border-solid border-border rounded-[50%] bg-card;
+}
+[aria-pressed="true"] > .choice-radio {
+  @apply border-[4px] border-solid border-primary;
+}
+.schedule-fields {
+  @apply grid grid-cols-[1fr_1fr] gap-[12px_16px];
+}
+.schedule-fields .marketing-field {
+  @apply mt-[18px];
+}
+.schedule-fields .date-trigger {
+  @apply min-h-[35px];
+}
+.time-inputs {
+  @apply flex items-center gap-[7px] max-w-[230px];
+}
+.time-inputs .number-field {
+  @apply w-[95px];
+}
+.schedule-timezone {
+  @apply col-[1/-1] flex items-center gap-[5px] text-[11px] text-muted-foreground m-0;
+}
+.schedule-timezone > span {
+  @apply text-[10px];
+}
+.local-plan-note {
+  @apply text-[11px] text-muted-foreground leading-[1.7] mt-[20px] mr-0 mb-0 ml-0 p-[12px] bg-background rounded-[5px];
+}
+.publish-submit {
+  @apply flex justify-end gap-[10px] mt-[22px];
+}
+.publish-validation {
+  @apply text-[12px] text-destructive mt-[16px];
+}
+.publish-preview {
+  @apply sticky top-0;
+  align-self: start;
+  @apply min-w-0;
+}
+.preview-heading {
+  @apply flex items-center justify-between mb-[14px];
+}
+.preview-heading h2 {
+  @apply text-[14px] m-0;
+}
+.preview-heading > span {
+  @apply text-[11px] text-muted-foreground;
+}
+.preview-platforms {
+  @apply flex gap-[8px] mb-[14px];
+}
+.preview-platforms button {
+  @apply p-[4px] bg-card;
+}
+.preview-platforms button[aria-pressed="true"] {
+  @apply border-primary outline-[1px] outline-solid outline-primary;
+}
+.social-preview {
+  @apply bg-card border border-solid border-border rounded-[9px] overflow-hidden;
+}
+.social-preview-head {
+  @apply flex gap-[9px] items-center p-[14px];
+}
+.social-avatar {
+  @apply w-[34px] h-[34px] flex items-center justify-center rounded-[10px] bg-[#f7c600] text-[#14226e];
+  @apply text-[11px] font-black;
+}
+.social-preview-head > div {
+  @apply flex flex-col gap-[2px];
+}
+.social-preview-head strong {
+  @apply text-[12px];
+}
+.social-preview-head small {
+  @apply text-[10px] text-muted-foreground;
+}
+.social-preview-media {
+  @apply bg-background min-h-[240px] max-h-[450px] flex items-center justify-center relative overflow-hidden;
+}
+.social-preview-media canvas {
+  @apply max-h-[440px] w-auto max-w-full;
+}
+.social-preview-media img,
+.social-preview-media video {
+  @apply w-full max-h-[440px] object-contain;
+}
+.preview-placeholder {
+  @apply flex flex-col items-center justify-center gap-[14px] text-muted-foreground text-[12px] min-h-[260px];
+}
+.carousel-counter {
+  @apply absolute right-[12px] top-[12px] py-[3px] px-[9px] bg-card text-foreground rounded-[5px] text-[11px] border border-solid border-border;
+}
+.preview-carousel-controls {
+  @apply flex items-center justify-between py-[7px] px-[12px] text-[10px] text-muted-foreground border-b border-solid border-b-border;
+}
+.preview-carousel-controls button {
+  @apply p-[3px];
+}
+.social-caption {
+  @apply p-[15px] text-[12px] leading-[1.8] min-h-[80px] whitespace-pre-wrap wrap-anywhere;
+}
+.social-caption > span {
+  @apply text-muted-foreground;
+}
+.preview-disclaimer {
+  @apply text-[11px] leading-[1.7] text-muted-foreground py-0 px-[5px] my-[14px] mx-0;
+}
+.preview-tip {
+  @apply flex items-start gap-[9px] py-[15px] px-0 border-t border-solid border-t-border mt-[23px];
+}
+.preview-tip > .ui-icon {
+  @apply text-primary mt-[2px];
+}
+.preview-tip strong {
+  @apply text-[12px];
+}
+.preview-tip p {
+  @apply text-[11px] text-muted-foreground leading-[1.7] mt-[5px] mr-0 mb-0 ml-0;
+}
+.marketing-dialog {
+  @apply border border-solid border-border rounded-[12px] text-foreground bg-card p-0 w-[min(700px,_calc(100vw_-_36px))] max-h-[85dvh] shadow-[0_15px_60px_#0003];
+}
+.marketing-dialog::backdrop {
+  @apply bg-[#11162b66];
+}
+.marketing-dialog > section {
+  @apply p-[26px];
+}
+.marketing-dialog-head {
+  @apply flex items-center justify-between gap-[20px];
+}
+.marketing-dialog-head h2 {
+  @apply text-[20px] m-0;
+}
+.marketing-dialog-head button {
+  @apply border-0 p-[5px];
+}
+.marketing-dialog p {
+  @apply text-muted-foreground text-[13px] leading-[1.8];
+}
+.dialog-description {
+  @apply mt-[12px] mr-0 mb-[22px] ml-0;
+}
+.dialog-footer {
+  @apply flex items-center justify-between gap-[12px] border-t border-solid border-t-border pt-[18px] mt-[22px];
+}
+.canvas-media-picker {
+  @apply grid grid-cols-[repeat(3,_minmax(0,_1fr))] gap-[14px] max-h-[450px] overflow-auto p-[3px];
+}
+.canvas-media-picker > button {
+  @apply p-[8px] min-w-0 text-left;
+}
+.canvas-media-picker > button.chosen {
+  @apply border-primary outline-[1px] outline-solid outline-primary;
+}
+.canvas-media-picker > button > div {
+  @apply h-[160px] bg-background relative flex items-center justify-center rounded-[4px] overflow-hidden;
+}
+.canvas-media-picker strong {
+  @apply block text-[11px] mt-[9px] mr-0 mb-[3px] ml-0 overflow-hidden whitespace-nowrap text-ellipsis;
+}
+.canvas-media-picker small {
+  @apply text-[10px] text-muted-foreground;
+}
+.media-chosen {
+  @apply absolute right-[5px] top-[5px] w-[22px] h-[22px] flex items-center justify-center bg-primary text-white rounded-[5px];
+}
+.no-canvas-media {
+  @apply text-center p-[35px];
+}
+.no-canvas-media h3 {
+  @apply text-[15px] text-foreground my-[12px] mx-0;
+}
+.help-steps {
+  @apply pl-[22px] my-[25px] mx-0;
+}
+.help-steps li {
+  @apply mb-[20px] pl-[5px];
+}
+.help-steps strong {
+  @apply text-[14px];
+}
+.help-steps p {
+  @apply mt-[5px] mr-0 mb-0 ml-0;
+}
+.schedule-summary {
+  @apply flex items-center gap-[28px] mb-[24px];
+}
+.schedule-summary > div {
+  @apply flex items-center gap-[9px] text-muted-foreground text-[13px];
+}
+.schedule-summary strong {
+  @apply text-foreground text-[22px] font-extrabold mr-[5px];
+}
+.schedule-summary > p {
+  @apply ml-[auto] text-[11px] text-muted-foreground flex items-center gap-[6px];
+}
+.plan-connection-note {
+  @apply flex items-center gap-[13px] py-[17px] px-[20px] bg-secondary border border-solid border-border rounded-[8px] mb-[24px];
+}
+.plan-connection-note > .ui-icon {
+  @apply text-primary;
+}
+.plan-connection-note > div {
+  @apply flex-[1];
+}
+.plan-connection-note strong {
+  @apply text-[12px];
+}
+.plan-connection-note p {
+  @apply text-[11px] text-muted-foreground mt-[3px] mr-0 mb-0 ml-0;
+}
+.plan-connection-note button {
+  @apply text-[11px] whitespace-nowrap bg-card;
+}
+.schedule-panel {
+  @apply bg-card border border-solid border-border rounded-[10px] overflow-hidden;
+}
+.schedule-toolbar {
+  @apply p-[20px] flex items-center justify-between gap-[15px] border-b border-solid border-b-border flex-wrap;
+}
+.schedule-filters {
+  @apply flex gap-[9px] items-center flex-wrap;
+}
+.schedule-filters .marketing-search {
+  @apply w-[170px];
+}
+.schedule-filters .select-trigger {
+  @apply text-[11px];
+}
+.schedule-filters .date-trigger {
+  @apply w-auto max-w-[195px];
+}
+.scheduled-post {
+  @apply flex items-center gap-[20px] py-[22px] px-[24px] border-b border-solid border-b-border;
+}
+.scheduled-post:last-child {
+  @apply border-b-0;
+}
+.post-date-block {
+  @apply w-[58px] shrink-0 flex flex-col items-center text-muted-foreground;
+}
+.post-date-block > span {
+  @apply text-[11px];
+}
+.post-date-block > strong {
+  @apply text-[28px] text-foreground leading-[1.3];
+}
+.post-date-block > small {
+  @apply text-[10px] mt-[3px];
+}
+.post-list-thumbnail {
+  @apply w-[72px] h-[85px] shrink-0 border border-solid border-border rounded-[5px] flex items-center justify-center bg-background overflow-hidden;
+}
+.post-list-thumbnail img,
+.post-list-thumbnail video {
+  @apply max-w-full max-h-full object-contain;
+}
+.post-list-copy {
+  @apply min-w-0 flex-[1];
+}
+.post-list-copy h2 {
+  @apply text-[14px] mt-[7px] mr-0 mb-[3px] ml-0 overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.post-list-copy p {
+  @apply text-[11px] text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis mt-0 mr-0 mb-[7px] ml-0;
+}
+.post-status {
+  @apply py-[3px] px-[6px] text-[10px] border border-solid border-border rounded-[4px] text-muted-foreground bg-background;
+}
+.post-status.planned {
+  @apply bg-secondary text-primary border-border;
+}
+.post-media-count {
+  @apply text-[10px] text-muted-foreground ml-[8px];
+}
+.post-list-channels {
+  @apply flex gap-[5px] text-[10px] text-muted-foreground;
+}
+.post-list-channels .platform-icon {
+  @apply w-[22px] h-[22px];
+}
+.scheduled-post-actions {
+  @apply flex gap-[8px] items-center;
+}
+.scheduled-post-actions button {
+  @apply text-[11px];
+}
+.settings-layout {
+  @apply grid grid-cols-[210px_minmax(0,_760px)] gap-[30px];
+  align-items: start;
+}
+.settings-nav {
+  @apply flex flex-col gap-[5px];
+}
+.settings-nav button {
+  @apply flex items-center gap-[10px] text-left text-[12px] py-[12px] px-[11px] border border-solid border-transparent bg-transparent;
+}
+.settings-nav button > .ui-icon:last-child {
+  @apply ml-[auto];
+}
+.settings-nav button[aria-current="page"] {
+  @apply bg-card border-border text-primary;
+}
+.settings-content {
+  @apply p-[28px] bg-card border border-solid border-border rounded-[14px] min-w-0 min-h-[410px];
+}
+/* --- Unified settings design system --- */
+.settings-stack {
+  @apply flex flex-col gap-[16px] min-w-0;
+}
+.settings-panel-head {
+  @apply mb-0 pb-[16px] border-b border-solid border-b-border;
+}
+.settings-panel-head h2 {
+  @apply text-[19px] tracking-[-0.02em];
+}
+.settings-eyebrow {
+  @apply text-[11px]! font-extrabold uppercase tracking-[0.08em] text-primary! mt-0! mr-0! mb-[4px]! ml-0!;
+}
+.settings-card {
+  @apply border border-solid border-border rounded-[12px] bg-card overflow-hidden;
+}
+section.settings-card {
+  @apply py-[6px] px-[18px];
+}
+.settings-card-head {
+  @apply flex items-start justify-between gap-[12px] pt-[14px] pr-0 pb-[10px] pl-0 border-b border-solid border-b-border;
+}
+.settings-card-head h3 {
+  @apply m-0 text-[14px] text-foreground;
+}
+.settings-row {
+  @apply flex items-center gap-[13px] py-[15px] px-0;
+}
+.settings-row + .settings-row {
+  @apply border-t border-solid border-t-border;
+}
+.settings-row-icon {
+  @apply w-[36px] h-[36px] rounded-[10px] grid place-items-center bg-background border border-solid border-border text-primary shrink-0;
+}
+.settings-row-icon.is-large {
+  @apply w-[44px] h-[44px] rounded-[12px];
+}
+.settings-row-text {
+  @apply flex-[1] min-w-0;
+}
+.settings-row-text strong {
+  @apply text-[13px] block text-foreground;
+}
+.settings-row-text p {
+  @apply text-[12px] text-muted-foreground mt-[3px] mr-0 mb-0 ml-0 leading-[1.55];
+}
+.settings-value-pill {
+  @apply inline-flex items-center gap-[6px] text-[12px] font-bold py-[6px] px-[11px] rounded-full border border-solid border-border bg-background text-foreground whitespace-nowrap shrink-0 tabular-nums;
+}
+.settings-value-pill.is-accent {
+  @apply text-[#1c7a3d] border-[#bfe3cb] bg-[#eef8f0];
+}
+.settings-note {
+  @apply flex gap-[10px] items-start text-[12px] text-muted-foreground leading-[1.7] py-[13px] px-[14px] bg-background border border-solid border-border rounded-[10px] m-0;
+}
+.settings-note .ui-icon {
+  @apply shrink-0 mt-[3px] text-primary;
+}
+.settings-note span {
+  @apply min-w-0;
+}
+.settings-alert {
+  @apply text-[12px] leading-[1.6] py-[11px] px-[13px] rounded-[10px] m-0 wrap-anywhere;
+}
+.settings-alert.is-error {
+  @apply text-destructive bg-[color-mix(in_srgb,_var(--destructive)_8%,_var(--card))] border border-solid border-[color-mix(in_srgb,_var(--destructive)_28%,_transparent)];
+}
+.settings-alert.is-success {
+  @apply text-[#176340] bg-[#ecf8f1] border border-solid border-[#bfe3cb];
+}
+.settings-refresh {
+  @apply inline-flex items-center gap-[7px] text-[12px] font-bold whitespace-nowrap shrink-0;
+}
+.settings-field {
+  @apply m-0 py-[14px] px-0 text-[13px];
+}
+.settings-field + .settings-field {
+  @apply border-t border-solid border-t-border;
+}
+.settings-field input,
+.settings-field textarea {
+  @apply mt-[2px];
+}
+/* nav */
+.settings-nav button {
+  @apply rounded-[10px];
+}
+.settings-nav-icon {
+  @apply w-[32px] h-[32px] rounded-[8px] grid place-items-center bg-background border border-solid border-border text-muted-foreground shrink-0;
+}
+.settings-nav-text {
+  @apply flex flex-col gap-[1px] min-w-0 flex-[1];
+}
+.settings-nav-name {
+  @apply font-extrabold text-[12.5px] leading-[1.3];
+}
+.settings-nav-hint {
+  @apply text-[11px] font-normal text-muted-foreground leading-[1.3];
+}
+.settings-nav button[aria-current="page"] .settings-nav-icon {
+  @apply bg-primary border-primary text-[#fff];
+}
+.settings-nav button > .ui-icon:last-child {
+  @apply text-muted-foreground opacity-60;
+}
+.settings-nav button[aria-current="page"] > .ui-icon:last-child {
+  @apply opacity-100 text-primary;
+}
+.settings-explanation {
+  @apply text-[12px] text-muted-foreground leading-[1.8] p-[14px] bg-background rounded-[6px] mt-0 mr-0 mb-[20px] ml-0;
+}
+.social-account-list > div {
+  @apply flex items-center gap-[14px] py-[18px] px-0 border-b border-solid border-b-border;
+}
+.social-account-list > div:last-child {
+  @apply border-b-0;
+}
+.social-account-list .platform-icon {
+  @apply w-[40px] h-[40px] rounded-[9px];
+}
+.social-account-list > div > div {
+  @apply flex flex-col gap-[3px] flex-[1];
+}
+.social-account-list strong {
+  @apply text-[13px];
+}
+.social-account-list > div > div > span {
+  @apply text-[11px] text-muted-foreground;
+}
+.social-account-list button {
+  @apply text-[11px];
+}
+.settings-privacy {
+  @apply flex gap-[8px] items-start text-muted-foreground text-[11px] leading-[1.7] mt-[23px] mr-0 mb-0 ml-0 pt-[18px] border-t border-solid border-t-border;
+}
+.settings-privacy .ui-icon {
+  @apply mt-[3px];
+}
+.settings-autosave {
+  @apply text-[11px] text-muted-foreground flex items-center gap-[6px] mt-[25px];
+}
+.settings-preference {
+  @apply flex items-center justify-between gap-[20px] py-[22px] px-0 border-t border-solid border-t-border;
+}
+.settings-preference strong {
+  @apply text-[13px];
+}
+.settings-preference p {
+  @apply text-[11px] text-muted-foreground mt-[4px] mr-0 mb-0 ml-0 max-w-[310px];
+}
+.settings-preference > span {
+  @apply text-[12px];
+}
+.storage-settings {
+  @apply flex flex-col gap-[16px];
+}
+.storage-head {
+  @apply mb-0;
+}
+.storage-status {
+  @apply inline-flex items-center gap-[7px] text-[11px] font-extrabold py-[6px] px-[11px] rounded-full border border-solid border-border bg-background whitespace-nowrap shrink-0;
+}
+.storage-status-dot {
+  @apply w-[7px] h-[7px] rounded-[50%] bg-muted-foreground;
+}
+.storage-status--ready {
+  @apply text-[#1c7a3d] border-[#bfe3cb] bg-[#eef8f0];
+}
+.storage-status--ready .storage-status-dot {
+  @apply bg-[#22a355];
+}
+.storage-status--busy {
+  @apply text-primary border-border;
+}
+.storage-status--busy .storage-status-dot {
+  @apply bg-primary;
+}
+.storage-status--warn {
+  @apply text-destructive border-current;
+}
+.storage-status--warn .storage-status-dot {
+  @apply bg-destructive;
+}
+.storage-overview {
+  @apply bg-background border border-solid border-border rounded-[10px] p-[16px];
+}
+.storage-overview-top {
+  @apply flex justify-between items-start gap-[16px];
+}
+.storage-overview-label {
+  @apply text-[11px] font-extrabold uppercase tracking-[0.06em] text-muted-foreground m-0;
+}
+.storage-overview-value {
+  @apply text-[28px] font-extrabold leading-[1.1] my-[4px] mx-0;
+}
+.storage-overview-sub {
+  @apply text-[12px] text-muted-foreground m-0;
+}
+.storage-free {
+  @apply text-right shrink-0;
+}
+.storage-free-value {
+  @apply text-[16px] font-extrabold mt-[4px] mr-0 mb-0 ml-0 tabular-nums;
+}
+.storage-bar {
+  @apply flex h-[8px] rounded-full overflow-hidden bg-card border border-solid border-border mt-[14px];
+}
+.storage-bar-segment {
+  @apply h-full min-w-0;
+}
+.storage-bar-segment.is-library {
+  @apply bg-primary;
+}
+.storage-bar-segment.is-backup {
+  @apply bg-[#8b93e8];
+}
+.storage-bar-segment.is-assistant {
+  @apply bg-[#37b58a];
+}
+.storage-legend {
+  @apply flex gap-[14px] list-none p-0 mt-[10px] mr-0 mb-0 ml-0 text-[11px] text-muted-foreground;
+}
+.storage-legend li {
+  @apply inline-flex items-center gap-[6px];
+}
+.storage-swatch {
+  @apply w-[10px] h-[10px] rounded-[3px] inline-block;
+}
+.storage-swatch.is-library {
+  @apply bg-primary;
+}
+.storage-swatch.is-backup {
+  @apply bg-[#8b93e8];
+}
+.storage-swatch.is-assistant {
+  @apply bg-[#37b58a];
+}
+.storage-list {
+  @apply border border-solid border-border rounded-[10px] overflow-hidden bg-card;
+}
+.storage-row,
+.storage-location {
+  @apply flex items-center gap-[12px] py-[14px] px-[16px];
+}
+.storage-row + .storage-row,
+.storage-row + .storage-location,
+.storage-location + .storage-row {
+  @apply border-t border-solid border-t-border;
+}
+.storage-location {
+  @apply bg-background;
+}
+.storage-icon {
+  @apply w-[34px] h-[34px] rounded-[9px] grid place-items-center bg-card border border-solid border-border text-primary shrink-0;
+}
+.storage-location .storage-icon {
+  @apply bg-card;
+}
+.storage-row-text {
+  @apply flex-[1] min-w-0;
+}
+.storage-row-text strong {
+  @apply text-[13px] block;
+}
+.storage-row-text p {
+  @apply text-[12px] text-muted-foreground mt-[3px] mr-0 mb-0 ml-0 leading-[1.5];
+}
+.storage-path {
+  @apply font-[ui-monospace,_SFMono-Regular,_Menlo,_monospace] text-[11px]! overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.storage-size {
+  @apply text-[13px] font-extrabold tabular-nums bg-background border border-solid border-border rounded-full py-[4px] px-[10px] whitespace-nowrap shrink-0;
+}
+.storage-link-btn {
+  @apply text-[12px] py-[7px] px-[11px] shrink-0;
+}
+.storage-actions {
+  @apply flex flex-wrap gap-[8px];
+}
+.storage-actions button {
+  @apply text-[12px];
+}
+.storage-primary {
+  @apply bg-primary border-primary text-[#fff] font-extrabold;
+}
+.storage-primary:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+.storage-note {
+  @apply flex gap-[9px] items-start m-0;
+}
+.storage-note .ui-icon {
+  @apply shrink-0 mt-[4px];
+}
+.storage-alert {
+  @apply text-[12px] py-[11px] px-[13px] rounded-[8px] m-0 wrap-anywhere;
+}
+.storage-alert--error {
+  @apply text-destructive bg-[color-mix(in_srgb,_var(--destructive)_9%,_var(--card))] border border-solid border-[color-mix(in_srgb,_var(--destructive)_30%,_transparent)];
+}
+.storage-alert--success {
+  @apply text-foreground bg-secondary border border-solid border-border;
+}
+.storage-loading {
+  @apply text-[12px] text-muted-foreground;
+}
+.studio[data-theme="dark"] .storage-status--ready {
+  @apply text-[#7fe0a8] border-[#2c5a3c] bg-[#1a2b21];
+}
+.settings-projects {
+  @apply flex flex-col gap-[10px] my-[24px] mx-0;
+}
+.settings-projects > button {
+  @apply flex items-center gap-[12px] text-left p-[13px];
+}
+.settings-projects > button[aria-current="true"] {
+  @apply border-primary bg-secondary;
+}
+.settings-projects > button > span {
+  @apply flex-[1] flex flex-col gap-[3px] text-[12px];
+}
+.settings-projects small {
+  @apply text-[10px] font-normal text-muted-foreground;
+}
+.backup-callout {
+  @apply flex items-center gap-[12px] border-t border-solid border-t-border pt-[22px];
+}
+.backup-callout > div {
+  @apply flex-[1];
+}
+.backup-callout h3 {
+  @apply m-0 text-[13px] text-foreground;
+}
+.backup-callout p {
+  @apply text-[11px] text-muted-foreground my-[4px] mx-0;
+}
+.backup-callout button {
+  @apply text-[11px];
+}
+.marketing-advanced {
+  @apply text-[12px] pt-0! pr-[18px]! pb-[6px]! pl-[18px]!;
+}
+.marketing-advanced summary {
+  @apply cursor-pointer text-foreground font-extrabold text-[13px] list-none flex items-center justify-between gap-[10px] py-[15px] px-0;
+}
+.marketing-advanced summary::-webkit-details-marker {
+  @apply hidden;
+}
+.marketing-advanced summary .ui-icon {
+  @apply text-muted-foreground;
+  transition: transform 0.15s ease;
+}
+.marketing-advanced[open] summary .ui-icon {
+  transform: rotate(180deg);
+}
+.marketing-advanced .advanced-body {
+  @apply pt-0 pr-0 pb-[14px] pl-0 border-t border-solid border-t-border;
+}
+.marketing-advanced .advanced-actions {
+  @apply flex items-center flex-wrap gap-[10px] mt-[14px];
+}
+.studio[data-theme="dark"] .settings-value-pill.is-accent {
+  @apply text-[#7fe0a8] border-[#2c5a3c] bg-[#1a2b21];
+}
+.canvas-back {
+  @apply whitespace-nowrap text-[11px] flex items-center gap-[5px];
+}
+@media (min-width: 1700px) {
+  .marketing-main {
+    @apply py-[42px] px-[65px];
+  }
+  .marketing-page-intro {
+    @apply max-w-[1400px] ml-[auto] mr-[auto];
+  }
+  .publish-layout {
+    @apply gap-[48px] grid-cols-[minmax(0,_1fr)_390px];
+  }
+}
+@media (max-width: 1250px) {
+  .marketing-main {
+    @apply p-[28px];
+  }
+  .marketing-header {
+    @apply py-0 px-[28px];
+  }
+  .device-save {
+    @apply hidden;
+  }
+  .publish-layout {
+    @apply gap-[22px] grid-cols-[minmax(0,_1fr)_300px];
+  }
+  .publish-step {
+    @apply py-[23px] px-[20px];
+  }
+  .channel-choices {
+    @apply grid-cols-[repeat(2,_minmax(0,_1fr))];
+  }
+  .settings-layout {
+    @apply gap-[20px] grid-cols-[185px_minmax(0,_1fr)];
+  }
+  .history-layout {
+    @apply grid-cols-[315px_minmax(0,_1fr)];
+  }
+}
+@media (max-width: 1000px) {
+  .marketing-workspace {
+    @apply grid-cols-[64px_minmax(0,_1fr)];
+  }
+  .marketing-rail {
+    @apply pt-[18px];
+  }
+  .rail-button[aria-current="page"]:before {
+    @apply left-[-9px];
+  }
+  .marketing-header {
+    @apply h-[68px] min-h-[68px] py-0 px-[22px];
+  }
+  .marketing-main {
+    @apply py-[25px] px-[22px];
+  }
+  .marketing-page-intro h1 {
+    @apply text-[27px];
+  }
+  .workspace-label {
+    @apply hidden;
+  }
+  .marketing-breadcrumb > .ui-icon {
+    @apply hidden;
+  }
+  .marketing-header-actions > .select-trigger {
+    @apply w-[160px];
+  }
+  .publish-layout {
+    @apply grid-cols-[minmax(0,_1fr)_260px] gap-[18px];
+  }
+  .publish-step {
+    @apply py-[20px] px-[16px];
+  }
+  .media-drop-zone .row {
+    @apply flex-col;
+  }
+  .timing-choices button {
+    @apply py-[10px] px-[8px] gap-[6px];
+  }
+  .timing-choices button > .ui-icon {
+    @apply hidden;
+  }
+  .schedule-fields {
+    @apply grid-cols-[1fr];
+  }
+  .schedule-fields > .marketing-field {
+    @apply mt-[14px];
+  }
+  .schedule-timezone {
+    @apply mt-[3px];
+  }
+  .schedule-fields .time-inputs {
+    @apply max-w-none;
+  }
+  .time-inputs .number-field {
+    @apply w-[110px];
+  }
+  .history-layout {
+    @apply grid-cols-[280px_minmax(0,_1fr)];
+  }
+  .history-list {
+    @apply p-[14px];
+  }
+  .history-detail-head {
+    @apply p-[20px];
+  }
+  .history-detail-head .row {
+    @apply items-start flex-col;
+  }
+  .settings-layout {
+    @apply grid-cols-[1fr];
+  }
+  .settings-nav {
+    @apply flex-row flex-wrap gap-[5px];
+  }
+  .settings-nav button {
+    @apply text-[11px] p-[9px];
+  }
+  .settings-nav button > .ui-icon:last-child {
+    @apply hidden;
+  }
+  .scheduled-post {
+    @apply gap-[13px] p-[18px];
+  }
+  .post-list-thumbnail {
+    @apply w-[60px] h-[70px];
+  }
+  .scheduled-post-actions {
+    @apply flex-col;
+  }
+  .plan-connection-note {
+    @apply gap-[10px] p-[15px];
+  }
+  .plan-connection-note > button {
+    @apply text-[10px];
+  }
+}
+@media (max-width: 800px) {
+  .marketing-main {
+    @apply py-[24px] px-[18px];
+  }
+  .marketing-header {
+    @apply py-0 px-[18px];
+  }
+  .marketing-page-intro {
+    @apply items-start;
+  }
+  .marketing-page-intro h1 {
+    @apply text-[25px];
+  }
+  .marketing-page-intro p {
+    @apply text-[12px];
+  }
+  .marketing-page-intro > button {
+    @apply text-[11px];
+  }
+  .context-heading {
+    @apply col-[1/-1] mb-[5px];
+  }
+  .canvas-context-copy {
+    @apply my-[6px] mx-0;
+  }
+  .context-note {
+    @apply m-0 col-[2];
+  }
+  .context-open,
+  .context-publish {
+    @apply text-[11px];
+  }
+  .context-publish {
+    @apply m-0;
+  }
+  .publish-layout {
+    @apply grid-cols-[1fr];
+  }
+  .publish-preview {
+    @apply static max-w-[430px] w-full mt-[8px] mr-[auto] mb-0 ml-[auto];
+  }
+  .channel-choices {
+    @apply grid-cols-[repeat(3,_minmax(0,_1fr))];
+  }
+  .media-drop-zone .row {
+    @apply flex-row;
+  }
+  .schedule-fields {
+    @apply grid-cols-[1fr_1fr];
+  }
+  .history-layout {
+    @apply grid-cols-[1fr];
+  }
+  .history-list {
+    @apply border-r-0 border-b border-solid border-b-border;
+  }
+  .history-results {
+    @apply max-h-[300px] overflow-auto;
+  }
+  .history-detail-head .row {
+    @apply flex-row;
+  }
+  .history-messages {
+    @apply max-h-[450px];
+  }
+  .history-detail > .marketing-empty {
+    @apply min-h-[250px];
+  }
+  .schedule-summary {
+    @apply gap-[18px];
+  }
+  .plan-connection-note {
+    @apply flex-wrap;
+  }
+  .plan-connection-note > div {
+    @apply min-w-[200px];
+  }
+  .plan-connection-note > button {
+    @apply ml-[29px];
+  }
+  .scheduled-post {
+    @apply flex-wrap;
+  }
+  .scheduled-post-actions {
+    @apply flex-row ml-[auto];
+  }
+  .post-list-copy {
+    @apply min-w-[130px];
+  }
+  .canvas-media-picker {
+    @apply grid-cols-[repeat(2,_minmax(0,_1fr))];
+  }
+}
+@media (max-width: 560px) {
+  .marketing-workspace {
+    @apply grid-cols-[54px_minmax(0,_1fr)] min-h-dvh h-dvh;
+  }
+  .marketing-rail {
+    @apply pt-[15px] pr-0 pb-[10px] pl-0;
+  }
+  .marketing-brand {
+    @apply w-[33px] h-[33px] rounded-[9px] text-[14px];
+  }
+  .marketing-rail nav {
+    @apply gap-[9px] pt-[24px] pr-0 pb-[15px] pl-0;
+  }
+  .rail-button {
+    @apply w-[38px] h-[40px];
+  }
+  .rail-button .ui-icon {
+    @apply w-[20px] h-[20px];
+  }
+  .rail-button[aria-current="page"]:before {
+    @apply left-[-8px];
+  }
+  .rail-tooltip {
+    @apply left-[44px];
+  }
+  .marketing-header {
+    @apply py-0 px-[12px] h-[65px] min-h-[65px];
+  }
+  .marketing-breadcrumb {
+    @apply text-[12px];
+  }
+  .marketing-header-actions {
+    @apply gap-[7px];
+  }
+  .marketing-header-actions > .select-trigger {
+    @apply w-[120px] p-[7px] text-[10px];
+  }
+  .marketing-header-actions > button.primary {
+    @apply text-[10px] p-[8px];
+  }
+  .marketing-header-actions > button.primary > .ui-icon {
+    @apply hidden;
+  }
+  .marketing-main {
+    @apply pt-[24px] pr-[13px] pb-[35px] pl-[13px];
+  }
+  .marketing-page-intro {
+    @apply gap-[15px] mb-[22px] flex-wrap;
+  }
+  .marketing-page-intro h1 {
+    @apply text-[24px] tracking-[-0.5px];
+  }
+  .marketing-page-intro p {
+    @apply leading-[1.7];
+  }
+  .context-note {
+    @apply text-[10px];
+  }
+  .context-heading h2 {
+    @apply text-[13px];
+  }
+  .context-heading .subtle-badge {
+    @apply ml-[auto];
+  }
+  .context-open,
+  .context-publish {
+    @apply text-[10px] p-[8px]!;
+  }
+  .publish-step {
+    @apply py-[21px] px-[14px];
+  }
+  .step-heading p {
+    @apply text-[11px] leading-[1.7];
+  }
+  .step-heading h2 {
+    @apply text-[14px];
+  }
+  .step-heading {
+    @apply gap-[9px];
+  }
+  .media-drop-zone {
+    @apply py-[20px] px-[10px];
+  }
+  .media-drop-zone .row {
+    @apply flex-col;
+  }
+  .channel-choices {
+    @apply grid-cols-[repeat(2,_minmax(0,_1fr))];
+  }
+  .caption-label {
+    @apply gap-[10px];
+  }
+  .caption-label button {
+    @apply text-[10px];
+  }
+  .caption-meta {
+    @apply flex-col gap-[4px];
+  }
+  .timing-choices {
+    @apply grid-cols-[1fr];
+  }
+  .timing-choices button {
+    @apply p-[12px];
+  }
+  .timing-choices button > .ui-icon {
+    @apply inline-block;
+  }
+  .schedule-fields {
+    @apply grid-cols-[1fr];
+  }
+  .publish-submit {
+    @apply gap-[7px];
+  }
+  .publish-submit button {
+    @apply text-[11px] p-[9px]!;
+  }
+  .marketing-dialog > section {
+    @apply p-[20px];
+  }
+  .marketing-dialog-head h2 {
+    @apply text-[18px];
+  }
+  .canvas-media-picker {
+    @apply gap-[10px];
+  }
+  .canvas-media-picker > button > div {
+    @apply h-[130px];
+  }
+  .dialog-footer button {
+    @apply text-[11px];
+  }
+  .schedule-summary {
+    @apply gap-[16px] flex-wrap;
+  }
+  .schedule-summary > div {
+    @apply text-[11px];
+  }
+  .schedule-summary > div > .ui-icon {
+    @apply w-[17px];
+  }
+  .schedule-summary strong {
+    @apply text-[20px];
+  }
+  .schedule-summary > p {
+    @apply m-0 w-full text-[10px];
+  }
+  .schedule-toolbar {
+    @apply p-[14px];
+  }
+  .schedule-filters {
+    @apply w-full;
+  }
+  .schedule-filters .marketing-search {
+    @apply w-full;
+  }
+  .schedule-filters .date-trigger {
+    @apply max-w-full;
+  }
+  .plan-connection-note > div {
+    @apply min-w-0 basis-[75%];
+  }
+  .plan-connection-note strong {
+    @apply text-[11px];
+  }
+  .plan-connection-note p {
+    @apply text-[10px] leading-[1.7];
+  }
+  .scheduled-post {
+    @apply py-[15px] px-[12px] gap-[10px];
+  }
+  .post-date-block {
+    @apply w-[40px];
+  }
+  .post-date-block > strong {
+    @apply text-[23px];
+  }
+  .post-list-thumbnail {
+    @apply w-[45px] h-[60px];
+  }
+  .post-list-copy {
+    @apply min-w-[100px];
+  }
+  .post-list-copy h2 {
+    @apply text-[12px];
+  }
+  .scheduled-post-actions {
+    @apply ml-[50px];
+  }
+  .post-status {
+    @apply text-[9px];
+  }
+  .settings-nav button {
+    @apply p-[7px] text-[10px] gap-[5px];
+  }
+  .settings-nav button > .ui-icon {
+    @apply w-[15px] h-[15px];
+  }
+  .settings-nav-icon {
+    @apply w-[26px] h-[26px];
+  }
+  .settings-nav-hint {
+    @apply hidden;
+  }
+  .settings-content {
+    @apply py-[20px] px-[15px];
+  }
+  .settings-content .panel-heading {
+    @apply flex-wrap;
+  }
+  section.settings-card {
+    @apply pl-[14px] pr-[14px];
+  }
+  .settings-row {
+    @apply flex-wrap gap-[10px];
+  }
+  .settings-value-pill {
+    @apply ml-[49px];
+  }
+  .settings-row .marketing-segments {
+    @apply ml-[49px];
+  }
+  .social-account-list > div {
+    @apply gap-[8px];
+  }
+  .social-account-list .platform-icon {
+    @apply w-[31px] h-[34px];
+  }
+  .social-account-list button {
+    @apply text-[10px] max-w-[108px] p-[6px];
+  }
+  .social-account-list button > .ui-icon {
+    @apply hidden;
+  }
+  .social-account-list strong {
+    @apply text-[12px];
+  }
+  .settings-preference {
+    @apply flex-wrap gap-[14px];
+  }
+  .storage-head {
+    @apply items-start flex-col;
+  }
+  .storage-overview-top {
+    @apply flex-col;
+  }
+  .storage-free {
+    @apply text-left;
+  }
+  .storage-row,
+  .storage-location {
+    @apply flex-wrap;
+  }
+  .storage-size {
+    @apply ml-[46px];
+  }
+  .storage-location .storage-link-btn {
+    @apply ml-[46px];
+  }
+  .backup-callout {
+    @apply flex-wrap;
+  }
+  .backup-callout > div {
+    @apply min-w-[70%];
+  }
+  .backup-callout > button {
+    @apply ml-[36px];
+  }
+  .history-detail-head {
+    @apply py-[18px] px-[14px];
+  }
+  .history-detail-head button {
+    @apply text-[10px] p-[8px]!;
+  }
+  .history-messages {
+    @apply py-[16px] px-[14px];
+  }
+  .marketing-toast {
+    @apply left-[calc(50%_+_20px)] max-w-[calc(100vw_-_90px)] text-[11px] p-[12px];
+  }
+  .marketing-empty {
+    @apply py-[35px] px-[16px];
+  }
+  .marketing-empty h2 {
+    @apply text-[16px];
+  }
+  .marketing-empty p {
+    @apply text-[12px];
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-workspace button {
+    transition: none;
+  }
+}
+
+/* Canvases gallery */
+.canvas-gallery-bar {
+  @apply flex items-center gap-[12px] flex-wrap mt-[16px] mr-0 mb-[4px] ml-0;
+}
+.canvas-search {
+  @apply flex-[1_1_200px] max-w-[320px] m-0;
+}
+.canvas-gallery-spacer {
+  @apply flex-[1];
+}
+.canvas-backup-btn {
+  @apply inline-flex items-center gap-[7px] text-[12px] font-bold whitespace-nowrap;
+}
+.canvas-count {
+  @apply text-[11px] text-muted-foreground mt-[10px] mr-0 mb-[14px] ml-0;
+}
+.canvas-grid {
+  @apply grid grid-cols-[repeat(auto-fill,_minmax(250px,_1fr))] gap-[18px];
+}
+.canvas-card {
+  @apply flex flex-col bg-card border border-solid border-border rounded-[16px] overflow-hidden;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+.canvas-card:hover {
+  @apply border-primary shadow-[0_10px_28px_#1b2a7a14];
+  transform: translateY(-2px);
+}
+.canvas-card.is-active {
+  @apply border-primary shadow-[0_0_0_1px_var(--primary)];
+}
+.canvas-card.is-empty {
+  @apply border-dashed;
+}
+.canvas-preview {
+  @apply relative aspect-[4_/_3] overflow-hidden;
+  background:
+    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 1px) 0 0 /
+      16px 16px,
+    var(--background);
+  @apply border-b border-solid border-b-border;
+}
+.canvas-preview-open {
+  @apply absolute inset-0 grid place-items-center p-[18px];
+  background: none;
+  @apply border-0 rounded-none cursor-pointer;
+}
+.canvas-preview-open:hover {
+  background: none;
+  @apply border-transparent;
+}
+.canvas-preview-open canvas {
+  @apply max-w-full max-h-full w-auto h-auto rounded-[8px] shadow-[0_6px_20px_#0003] bg-[#fff];
+}
+.canvas-preview-empty {
+  @apply flex flex-col items-center gap-[8px] text-muted-foreground text-[12px] font-semibold;
+}
+.canvas-preview-bar {
+  @apply absolute left-[10px] right-[10px] bottom-[10px] flex items-center justify-between gap-[8px] opacity-0 invisible;
+  transform: translateY(6px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    visibility 140ms;
+}
+.canvas-card:hover .canvas-preview-bar,
+.canvas-card:focus-within .canvas-preview-bar {
+  @apply opacity-100 visible;
+  transform: none;
+}
+@media (hover: none) {
+  .canvas-preview-bar {
+    @apply opacity-100 visible;
+    transform: none;
+  }
+}
+.canvas-open-pill {
+  @apply inline-flex items-center gap-[6px] text-[12px] font-extrabold;
+  @apply text-[#fff] bg-primary border border-solid border-primary rounded-full py-[7px] px-[14px] shadow-[0_4px_14px_#0004] cursor-pointer;
+}
+.canvas-preview-tools {
+  @apply flex gap-[6px];
+}
+.canvas-preview-tools button {
+  @apply w-[30px] h-[30px] grid place-items-center bg-card border border-solid border-border rounded-[50%] shadow-[0_2px_8px_#0002] cursor-pointer text-foreground;
+}
+.canvas-preview-tools button:hover {
+  @apply border-primary bg-secondary;
+}
+.canvas-preview-tools button.danger-ghost {
+  @apply text-destructive;
+}
+.canvas-preview-tools button:disabled {
+  @apply opacity-35 cursor-not-allowed;
+}
+.canvas-card-badge {
+  @apply absolute top-[10px] right-[10px] text-[10px] font-extrabold uppercase tracking-[0.05em] bg-primary;
+  @apply text-[#fff] rounded-full py-[3px] px-[10px];
+}
+.canvas-card-body {
+  @apply flex flex-col gap-[2px] pt-[12px] pr-[14px] pb-[14px] pl-[14px];
+}
+.canvas-card-name {
+  @apply text-[13px] overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.canvas-card-body > small {
+  @apply text-[11px] text-muted-foreground;
+}
+.canvas-card-rename {
+  @apply flex items-center gap-[4px];
+}
+.canvas-card-rename input {
+  @apply flex-[1] min-w-0 text-[12px] py-[6px] px-[8px];
+}
+.icon-btn.small {
+  @apply w-[30px] h-[30px] min-w-[30px] rounded-[8px];
+}
+.icon-btn.small.danger-ghost {
+  @apply text-destructive;
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-card,
+  .canvas-preview-bar {
+    transition: none;
+  }
+  .canvas-card:hover {
+    transform: none;
+  }
+}
+}

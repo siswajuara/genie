@@ -1,4 +1,4 @@
-import { graphemes } from "./textAnimation";
+import { graphemes } from "./text-animation";
 // Original drawing routines from reference/siswa-juara-editor.html.
 export function drawElement(ctx, o, exporting = false, glyphAnimation) {
   function draw(o) {

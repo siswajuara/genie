@@ -7,11 +7,5 @@
       { "id": "team", "name": "Team account", "key": "", "enabled": true }
     ]
   },
-  "soniox": { "key": "" },
-  "cloudflare": {
-    "key": "",
-    "accountId": "",
-    "gatewayId": "",
-    "model": "@cf/openai/gpt-oss-120b"
-  }
+  "soniox": { "key": "" }
 }

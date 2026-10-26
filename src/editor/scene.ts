@@ -181,7 +181,7 @@ function segmentDistance(p: Point, a: Point, b: Point) {
     );
   return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
 }
-export function containsPoint(o: Element, p: Point, tolerance = 5): boolean {
+function containsPoint(o: Element, p: Point, tolerance = 5): boolean {
   const q = localPoint(p, o);
   if (o.t === "line") {
     const length = Math.hypot(o.w, o.h) || 1,

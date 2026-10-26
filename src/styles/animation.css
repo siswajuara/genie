@@ -1,0 +1,597 @@
+@layer components {.animation-inspector fieldset,
+.export-options fieldset,
+.export-frames {
+  @apply border-0 p-0 m-0 min-w-0;
+}
+.animation-inspector .section-title > span {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap max-w-[130px];
+}
+.animation-preview-row {
+  @apply flex gap-[6px] mb-[12px];
+}
+.animation-preview-row button {
+  @apply flex-[1] text-[11px] py-[7px] px-[5px];
+}
+.animation-inspector .property > span {
+  @apply min-w-[56px];
+}
+.animation-inspector .hint {
+  @apply text-[11px] my-[8px] mx-0;
+}
+.keyframe-list {
+  @apply flex flex-wrap gap-[4px] my-[10px] mx-0;
+}
+.keyframe-list button {
+  @apply py-[4px] px-[7px] text-[11px];
+}
+.keyframe-list button[aria-pressed="true"] {
+  @apply border-primary text-foreground;
+}
+.animation-inspector fieldset:disabled {
+  @apply opacity-65;
+}
+.animation-timeline {
+  @apply flex-[0_1_auto] flex flex-col min-w-0 min-h-0 max-h-[calc(100%_-_230px)] bg-card border-t border-solid border-t-border;
+}
+.timeline-toolbar {
+  @apply shrink-0 flex flex-wrap items-center justify-between gap-[8px] py-[8px] px-[10px] border-b border-solid border-b-border;
+}
+.timeline-toolbar .row {
+  @apply gap-[4px];
+}
+.timeline-toolbar button,
+.timeline-toolbar select {
+  @apply text-[11px] py-[5px] px-[7px] min-h-[29px];
+}
+.timeline-toolbar output {
+  @apply text-[11px] tabular-nums min-w-[100px] text-foreground text-center;
+}
+.timeline-toolbar .check {
+  @apply text-[10px] gap-[4px];
+}
+.timeline-toolbar button[aria-pressed="true"] {
+  @apply border-primary text-foreground;
+}
+.timeline-scroll {
+  @apply flex-[1_1_auto] max-h-[min(235px,_27dvh)] min-h-[60px] overflow-auto overscroll-contain;
+}
+.timeline-grid {
+  @apply grid grid-cols-[170px_1fr] relative min-h-[85px];
+}
+.timeline-label {
+  @apply sticky left-0 z-[3] bg-card flex items-center gap-[7px] h-[34px] border-0 rounded-none border-b border-solid border-b-border;
+  @apply border-r border-solid border-r-border py-[5px] px-[10px] text-left text-[11px];
+}
+.timeline-label > span,
+.timeline-label strong {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.timeline-label .ui-icon {
+  @apply shrink-0;
+}
+.timeline-ruler-label {
+  @apply h-[30px];
+}
+.timeline-ruler {
+  @apply relative h-[30px] border-b border-solid border-b-border overflow-hidden bg-background;
+}
+.timeline-ruler > span {
+  @apply absolute top-[6px] text-[10px] pl-[4px] text-muted-foreground border-l border-solid border-l-border pointer-events-none;
+}
+.timeline-ruler > [data-slot="slider"] {
+  @apply opacity-0 absolute inset-0 m-0 w-full h-full cursor-ew-resize;
+}
+.timeline-ruler:focus-within {
+  @apply outline-[2px] outline-solid outline-primary outline-offset-[-2px];
+}
+.timeline-row {
+  @apply contents;
+}
+.timeline-track {
+  @apply relative h-[34px] border-b border-solid border-b-border bg-background cursor-crosshair;
+}
+.timeline-row.selected .timeline-label {
+  @apply bg-secondary text-foreground;
+}
+.timeline-row.selected .timeline-clip {
+  @apply border-primary outline-[1px] outline-solid outline-primary;
+}
+.timeline-clip {
+  @apply absolute top-[5px] h-[24px] min-w-[4px] border border-solid border-[color-mix(in_srgb,_var(--primary)_50%,_var(--border))] rounded-[4px] bg-[color-mix(in_srgb,_var(--primary)_15%,_var(--card))] text-foreground text-[10px] cursor-grab touch-none select-none;
+}
+.timeline-clip:active {
+  @apply cursor-grabbing;
+}
+.timeline-clip:focus-visible {
+  @apply outline-[2px] outline-solid outline-primary;
+}
+.timeline-clip.is-hidden {
+  @apply opacity-45;
+}
+.clip-name {
+  @apply block py-[3px] px-[12px] relative z-[1] overflow-hidden text-ellipsis whitespace-nowrap pointer-events-none;
+}
+.clip-effect {
+  @apply absolute;
+  inset-block: 0;
+  @apply bg-[color-mix(in_srgb,_var(--primary)_20%,_transparent)] pointer-events-none;
+}
+.clip-effect.enter {
+  @apply left-0;
+  clip-path: polygon(0 100%, 100% 0, 100% 100%);
+}
+.clip-effect.exit {
+  @apply right-0;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+.timeline-trim {
+  @apply absolute top-0 bottom-0 w-[8px] z-[4] cursor-ew-resize;
+}
+.timeline-trim.start {
+  @apply left-0 border-l-[2px] border-solid border-l-primary;
+}
+.timeline-trim.end {
+  @apply right-0 border-r-[2px] border-solid border-r-primary;
+}
+.timeline-keyframe {
+  @apply absolute top-[4px] w-[16px] h-[16px] p-0 border-0 rounded-[1px] bg-transparent text-foreground;
+  transform: translateX(-50%);
+  @apply z-[5];
+}
+.timeline-playhead {
+  @apply absolute top-0 bottom-0 w-[1px] bg-primary z-[2] pointer-events-none;
+}
+.timeline-playhead::before {
+  content: "";
+  @apply absolute top-0 left-[-4px] w-[9px] h-[9px] bg-primary;
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+}
+.timeline-empty {
+  @apply col-[2] text-muted-foreground py-0 px-[12px] text-[11px];
+}
+.animation-timeline > footer {
+  @apply shrink-0 py-[5px] px-[10px] text-muted-foreground text-[10px] border-t border-solid border-t-border;
+}
+.timeline-selection-message {
+  @apply flex gap-[12px] items-center justify-center min-h-[120px] p-[20px] text-muted-foreground;
+}
+.timeline-selection-message strong {
+  @apply text-foreground text-[12px];
+}
+.timeline-selection-message p {
+  @apply mt-[4px] mr-0 mb-0 ml-0 text-[11px];
+}
+.timeline-no-selection .timeline-toolbar strong {
+  @apply text-[11px];
+}
+.timeline-context {
+  @apply fixed z-[100] w-[240px] max-h-[min(400px,_calc(100dvh_-_16px))] overflow-y-auto;
+}
+.media-export-dialog {
+  @apply w-[min(880px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_40px)] m-[auto] p-0 text-foreground;
+}
+.media-export-dialog[data-state="closed"] {
+  @apply hidden;
+}
+.media-export-dialog::backdrop {
+  @apply bg-[#11182780];
+}
+.media-export-dialog .modal-head p {
+  @apply mt-[3px] mr-0 mb-0 ml-0 text-muted-foreground text-[11px];
+}
+.media-export-body {
+  @apply grid grid-cols-[minmax(0,_1.25fr)_minmax(240px,_1fr)] overflow-y-auto min-h-0;
+}
+.export-preview-column {
+  @apply p-[18px] border-r border-solid border-r-border min-w-0;
+}
+.export-preview {
+  @apply flex justify-center items-center h-[240px] p-[10px] bg-background border border-solid border-border rounded-[7px] overflow-hidden;
+}
+.export-preview canvas {
+  @apply max-w-full max-h-full object-contain;
+}
+.export-preview > p {
+  @apply p-[12px] text-muted-foreground text-[12px] text-center;
+}
+.export-preview.checkerboard {
+  @apply bg-[#fff];
+  background-image: conic-gradient(
+    #dedede 25%,
+    transparent 0 50%,
+    #dedede 0 75%,
+    transparent 0
+  );
+  background-size: 16px 16px;
+}
+.export-options {
+  @apply p-[18px] min-w-0;
+}
+.export-options fieldset {
+  @apply grid gap-[16px];
+}
+.export-frames > legend {
+  @apply p-0 font-extrabold my-[8px] mx-0;
+}
+.export-frames > .row {
+  @apply justify-start text-[11px] gap-[8px];
+}
+.export-frames > .row button {
+  @apply py-[4px] px-[8px] text-[11px];
+}
+.export-frames > .row span {
+  @apply ml-[auto] text-muted-foreground;
+}
+.export-frame-list {
+  @apply max-h-[215px] overflow-auto mt-[10px] border border-solid border-border rounded-[6px];
+}
+.export-frame-row {
+  @apply flex items-center justify-between gap-[6px] p-[8px] border-b border-solid border-b-border;
+}
+.export-frame-row:last-child {
+  @apply border-b-0;
+}
+.export-frame-row label {
+  @apply flex items-center gap-[8px] min-w-0 flex-[1] cursor-pointer;
+}
+.export-frame-row [data-slot="checkbox"] {
+  @apply accent-primary shrink-0 w-[15px] h-[15px];
+}
+.export-frame-row label > span {
+  @apply min-w-0;
+}
+.export-frame-row strong {
+  @apply block text-[11px] overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.export-frame-row small {
+  @apply block text-[10px] text-muted-foreground;
+}
+.export-frame-row .row {
+  @apply gap-[3px];
+}
+.export-frame-row button {
+  @apply p-[4px] flex;
+}
+.sequence-preview-controls {
+  @apply flex flex-wrap items-center justify-between gap-[8px] mt-[10px];
+}
+.sequence-preview-controls button {
+  @apply text-[11px];
+}
+.sequence-preview-controls output {
+  @apply text-[11px] tabular-nums;
+}
+.sequence-preview-controls [data-slot="slider"] {
+  @apply w-full p-0 accent-primary;
+}
+.export-error {
+  @apply text-[var(--destructive,_#b42318)] p-[10px];
+  @apply text-[12px] bg-background rounded-[6px];
+}
+.export-progress {
+  @apply grid gap-[7px] mt-[15px] text-[11px] text-muted-foreground;
+}
+.export-progress [data-slot="progress"] {
+  @apply w-full accent-primary;
+}
+.timeline-resizer {
+  @apply shrink-0 h-[6px] border-b border-solid border-b-border cursor-ns-resize touch-none;
+}
+.timeline-resizer:hover,
+.timeline-resizer:focus-visible {
+  @apply bg-secondary outline-[1px] outline-solid outline-primary;
+}
+.timeline-transport,
+.timeline-tools {
+  @apply flex-wrap;
+}
+.timeline-transport > button,
+.timeline-tools > button {
+  @apply w-[28px] h-[28px] p-[5px];
+}
+.timeline-toolbar output {
+  @apply min-w-[120px] text-[11px];
+}
+.timeline-toolbar output span {
+  @apply text-muted-foreground pl-[5px] text-[10px];
+}
+.timeline-toolbar .select-trigger,
+.timeline-editbar .select-trigger {
+  @apply min-h-[28px] text-[11px] py-[4px] px-[7px] w-full gap-[4px];
+}
+.timeline-speed {
+  @apply w-[96px];
+}
+.timeline-zoom-select {
+  @apply w-[74px];
+}
+.timeline-editbar {
+  @apply shrink-0 flex items-center gap-[6px] py-[7px] px-[10px] flex-wrap border-b border-solid border-b-border;
+}
+.timeline-search {
+  @apply flex-[1_1_100px] max-w-[190px] flex items-center gap-[5px] min-w-[80px] text-muted-foreground;
+}
+.timeline-search input {
+  @apply py-[5px] px-[7px] min-w-0 w-full text-[11px];
+}
+.timeline-filter {
+  @apply w-[120px];
+}
+.timeline-fps {
+  @apply w-[76px];
+}
+.timeline-range-tools {
+  @apply gap-[3px];
+}
+.timeline-range-tools button {
+  @apply p-[4px] min-h-[26px];
+}
+.timeline-range-readout {
+  @apply text-[10px] text-muted-foreground tabular-nums;
+}
+.timeline-editbar .check {
+  @apply text-[10px] gap-[4px];
+}
+.timeline-edit-button {
+  @apply text-[10px] py-[5px] px-[7px];
+}
+.timeline-edit-button:disabled {
+  @apply cursor-not-allowed;
+}
+.timeline-editbar .row button.is-active {
+  @apply border-primary text-foreground;
+}
+.timeline-range-menu {
+  @apply relative;
+}
+.timeline-range-menu > button {
+  @apply inline-flex items-center gap-[5px] text-[11px] py-[5px] px-[7px] min-h-[29px];
+}
+.timeline-range-menu > button span {
+  @apply text-[11px];
+}
+.timeline-menu {
+  @apply absolute top-[calc(100%_+_6px)] left-0 z-[50] grid gap-[2px] min-w-[220px] p-[6px] bg-card border border-solid border-border rounded-[8px] shadow-[0_8px_24px_rgb(0_0_0_/_0.12)];
+}
+.timeline-menu button {
+  @apply text-left text-[11px] py-[7px] px-[9px];
+}
+.timeline-settings {
+  @apply grid gap-[10px] min-w-[200px] p-[4px];
+}
+.timeline-settings .check {
+  @apply flex items-center gap-[6px] text-[11px];
+}
+.timeline-preview-range {
+  @apply absolute;
+  inset-block: 0;
+  @apply border-y-[2px] border-solid border-y-primary bg-[color-mix(in_srgb,_var(--primary)_10%,_transparent)] pointer-events-none;
+}
+.timeline-range-handle {
+  @apply absolute top-0 h-full w-[10px] p-0 border-0 rounded-none bg-transparent z-[4] cursor-ew-resize touch-none;
+}
+.timeline-range-handle.start {
+  @apply border-l-[3px] border-solid border-l-primary;
+}
+.timeline-range-handle.end {
+  @apply border-r-[3px] border-solid border-r-primary;
+  transform: translateX(-100%);
+}
+.export-options .select-trigger {
+  @apply w-full;
+}
+.media-export-dialog .select-menu {
+  @apply max-h-[min(280px,_var(--radix-select-content-available-height))];
+}
+.studio[data-theme="dark"] .select-option[data-highlighted] {
+  @apply text-foreground;
+}
+.studio[data-theme="dark"]
+  :is(.animation-timeline, .animation-inspector, .media-export-dialog)
+  button.primary {
+  @apply bg-[#4c64da] border-[#4c64da];
+}
+@media (max-width: 1000px) {
+  .timeline-toolbar {
+    @apply gap-[5px];
+  }
+  .animation-timeline > footer {
+    @apply hidden;
+  }
+}
+@media (max-width: 640px) {
+  .media-export-body {
+    @apply grid-cols-[minmax(0,_1fr)];
+  }
+  .export-preview-column {
+    @apply border-r-0 border-b border-solid border-b-border;
+  }
+  .export-preview {
+    @apply h-[170px];
+  }
+  .media-export-dialog .modal-foot {
+    @apply flex-wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animation-timeline *,
+  .media-export-dialog *,
+  .animation-inspector * {
+    @apply scroll-auto;
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---- Effect grid picker (In / During / Out slots) ---- */
+.anim-slots {
+  @apply grid grid-cols-[repeat(3,_minmax(0,_1fr))] gap-[6px] mt-[8px] mr-0 mb-[10px] ml-0;
+}
+.anim-slot {
+  @apply grid gap-[5px] justify-items-center pt-[8px] pr-[4px] pb-[7px] pl-[4px] border border-solid border-border rounded-[10px] bg-background text-[11px] min-w-0;
+}
+.anim-slot > strong {
+  @apply text-[10px] uppercase tracking-[0.05em] text-muted-foreground;
+}
+.anim-slot-value {
+  @apply flex items-center gap-[4px] max-w-full overflow-hidden whitespace-nowrap text-ellipsis font-extrabold text-[11px];
+}
+.anim-slot.is-active {
+  @apply border-primary bg-secondary;
+}
+.anim-slot.is-none .anim-slot-value {
+  @apply text-muted-foreground font-semibold;
+}
+.fx-picker {
+  @apply mt-[4px] mr-0 mb-[8px] ml-0;
+}
+.fx-chips {
+  @apply flex flex-wrap gap-[4px] mb-[8px];
+}
+.fx-chips button {
+  @apply py-[3px] px-[9px] text-[11px] rounded-full;
+}
+.fx-chips button.is-active {
+  @apply border-primary text-foreground bg-secondary;
+}
+.fx-grid {
+  @apply grid grid-cols-[repeat(3,_minmax(0,_1fr))] gap-[6px];
+}
+.fx-tile {
+  @apply grid gap-[4px] justify-items-center pt-[7px] pr-[4px] pb-[6px] pl-[4px] border border-solid border-border rounded-[9px] bg-card text-[10px] min-w-0;
+}
+.fx-tile.is-active {
+  @apply border-primary bg-secondary text-foreground;
+}
+.fx-thumb {
+  @apply grid place-items-center w-full h-[44px] rounded-[6px] bg-background overflow-hidden;
+}
+.fx-shape {
+  @apply block w-[22px] h-[16px] rounded-[4px] bg-primary opacity-90;
+}
+.fx-shape.fx-aa {
+  @apply w-auto h-auto;
+  background: none;
+  @apply text-foreground font-black text-[17px] opacity-100;
+}
+.fx-none {
+  @apply text-muted-foreground text-[17px];
+}
+.fx-label {
+  @apply max-w-full overflow-hidden whitespace-nowrap text-ellipsis;
+}
+.anim-selected {
+  @apply border border-solid border-border rounded-[10px] pt-[10px] pr-[10px] pb-[6px] pl-[10px] mt-0 mr-0 mb-[10px] ml-0 bg-card;
+}
+.anim-selected > h4 {
+  @apply mt-0 mr-0 mb-[6px] ml-0 text-[11px] uppercase tracking-[0.06em] text-muted-foreground;
+}
+.anim-selected details {
+  @apply my-[4px] mx-0 text-[11px];
+}
+.anim-selected summary {
+  @apply cursor-pointer text-muted-foreground font-extrabold;
+}
+.fx-tile:hover .fx-shape,
+.fx-tile:focus-visible .fx-shape {
+  animation-duration: 0.7s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+.fx-tile:hover .fx-thumb[data-kind="motion"] .fx-shape,
+.fx-tile:focus-visible .fx-thumb[data-kind="motion"] .fx-shape {
+  animation-iteration-count: infinite;
+  animation-duration: 1.1s;
+}
+/* Entrance / exit effects */
+.fx-thumb[data-preset="fade"] .fx-shape { animation-name: fx-fade; }
+.fx-thumb[data-preset^="slide-"] .fx-shape,
+.fx-thumb[data-preset^="reveal-"] .fx-shape,
+.fx-thumb[data-preset^="push-"] .fx-shape { animation-name: fx-slide; }
+.fx-thumb[data-preset="slide-left"] .fx-shape { --fx-x: -16px; --fx-y: 0; }
+.fx-thumb[data-preset="slide-right"] .fx-shape,
+.fx-thumb[data-preset="push-right"] .fx-shape { --fx-x: 16px; --fx-y: 0; }
+.fx-thumb[data-preset="slide-up"] .fx-shape,
+.fx-thumb[data-preset="push-up"] .fx-shape,
+.fx-thumb[data-preset="reveal-up"] .fx-shape { --fx-x: 0; --fx-y: 14px; }
+.fx-thumb[data-preset="slide-down"] .fx-shape,
+.fx-thumb[data-preset="push-down"] .fx-shape,
+.fx-thumb[data-preset="reveal-down"] .fx-shape { --fx-x: 0; --fx-y: -14px; }
+.fx-thumb[data-preset="slide-left"] .fx-shape,
+.fx-thumb[data-preset="push-left"] .fx-shape,
+.fx-thumb[data-preset="reveal-left"] .fx-shape { --fx-x: -16px; --fx-y: 0; }
+.fx-thumb[data-preset="reveal-right"] .fx-shape { --fx-x: 16px; --fx-y: 0; }
+.fx-thumb[data-preset="zoom"] .fx-shape,
+.fx-thumb[data-preset="zoom-in"] .fx-shape,
+.fx-thumb[data-preset="circle-in"] .fx-shape,
+.fx-thumb[data-preset="diamond"] .fx-shape { animation-name: fx-zoom-in; }
+.fx-thumb[data-preset="zoom-out"] .fx-shape,
+.fx-thumb[data-preset="circle-out"] .fx-shape { animation-name: fx-zoom-out; }
+.fx-thumb[data-preset="zoom-3d"] .fx-shape,
+.fx-thumb[data-preset="flip"] .fx-shape { animation-name: fx-flip; }
+.fx-thumb[data-preset="spin"] .fx-shape,
+.fx-thumb[data-preset="rotate-clockwise"] .fx-shape,
+.fx-thumb[data-preset="rotate-in"] .fx-shape { animation-name: fx-spin; }
+.fx-thumb[data-preset="rotate-counterclockwise"] .fx-shape { animation-name: fx-spin-rev; }
+.fx-thumb[data-preset="pop"] .fx-shape,
+.fx-thumb[data-preset="word-pop"] .fx-shape { animation-name: fx-pop; }
+.fx-thumb[data-preset="bounce"] .fx-shape { animation-name: fx-bounce; }
+.fx-thumb[data-preset="elastic"] .fx-shape { animation-name: fx-elastic; }
+.fx-thumb[data-preset="rise"] .fx-shape,
+.fx-thumb[data-preset="float"] .fx-shape,
+.fx-thumb[data-preset="pan-up"] .fx-shape,
+.fx-thumb[data-preset="breathe"] .fx-shape { animation-name: fx-rise; }
+.fx-thumb[data-preset="drop"] .fx-shape,
+.fx-thumb[data-preset="pan-down"] .fx-shape { animation-name: fx-drop; }
+.fx-thumb[data-preset="swing"] .fx-shape,
+.fx-thumb[data-preset="rock"] .fx-shape { animation-name: fx-swing; }
+.fx-thumb[data-preset="pulse"] .fx-shape { animation-name: fx-pulse; }
+.fx-thumb[data-preset="pan-left"] .fx-shape,
+.fx-thumb[data-preset="sway"] .fx-shape,
+.fx-thumb[data-preset="orbit"] .fx-shape,
+.fx-thumb[data-preset="dolly-in"] .fx-shape,
+.fx-thumb[data-preset="dolly-out"] .fx-shape,
+.fx-thumb[data-preset="wipe"] .fx-shape,
+.fx-thumb[data-preset^="wipe-"] .fx-shape,
+.fx-thumb[data-preset="blinds"] .fx-shape,
+.fx-thumb[data-preset="crossfade"] .fx-shape,
+.fx-thumb[data-preset="cut"] .fx-shape,
+.fx-thumb[data-preset^="fade-"] .fx-shape { animation-name: fx-fade-slide; }
+@keyframes fx-fade { from { opacity: 0; } to { opacity: 0.9; } }
+@keyframes fx-slide {
+  from { opacity: 0; transform: translate(var(--fx-x, -16px), var(--fx-y, 0)); }
+  to { opacity: 0.9; transform: none; }
+}
+@keyframes fx-fade-slide {
+  from { opacity: 0; transform: translateX(var(--fx-x, 8px)); }
+  to { opacity: 0.9; transform: none; }
+}
+@keyframes fx-zoom-in { from { opacity: 0; transform: scale(0.4); } to { opacity: 0.9; transform: scale(1); } }
+@keyframes fx-zoom-out { from { opacity: 0; transform: scale(1.5); } to { opacity: 0.9; transform: scale(1); } }
+@keyframes fx-flip { from { opacity: 0; transform: perspective(60px) rotateY(70deg); } to { opacity: 0.9; transform: none; } }
+@keyframes fx-spin { from { opacity: 0; transform: rotate(-140deg) scale(0.6); } to { opacity: 0.9; transform: none; } }
+@keyframes fx-spin-rev { from { opacity: 0; transform: rotate(140deg) scale(0.6); } to { opacity: 0.9; transform: none; } }
+@keyframes fx-pop { 0% { opacity: 0; transform: scale(0.4); } 60% { opacity: 1; transform: scale(1.12); } 100% { opacity: 0.9; transform: scale(1); } }
+@keyframes fx-bounce { 0% { opacity: 0; transform: translateY(-14px); } 55% { opacity: 1; transform: translateY(3px); } 75% { transform: translateY(-2px); } 100% { opacity: 0.9; transform: none; } }
+@keyframes fx-elastic { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.12); } 80% { transform: scale(0.96); } 100% { opacity: 0.9; transform: scale(1); } }
+@keyframes fx-rise { from { opacity: 0; transform: translateY(12px) scale(0.92); } to { opacity: 0.9; transform: none; } }
+@keyframes fx-drop { from { opacity: 0; transform: translateY(-12px) rotate(-8deg); } to { opacity: 0.9; transform: none; } }
+@keyframes fx-swing { 0% { opacity: 0.2; transform: rotate(-18deg); } 50% { opacity: 1; transform: rotate(10deg); } 100% { opacity: 0.9; transform: none; } }
+@keyframes fx-pulse { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
+.fx-picker[data-reduced="true"] .fx-shape {
+  animation: none !important;
+}
+/* Sticky preview action + transition chip */
+.animation-preview-row {
+  @apply sticky top-[-18px] z-[2] bg-card pt-[4px] pr-0 pb-[10px] pl-0;
+}
+.anim-chip {
+  @apply inline-flex items-center gap-[6px] py-[3px] px-[9px] border border-solid border-border rounded-full text-[11px] font-extrabold bg-background;
+}
+.anim-timing-line {
+  @apply flex items-center gap-[6px] text-[11px] tabular-nums;
+}
+.timeline-transition-chip {
+  @apply ml-[6px] max-w-[140px] overflow-hidden whitespace-nowrap text-ellipsis;
+}
+}

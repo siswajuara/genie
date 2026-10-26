@@ -1,0 +1,38 @@
+@layer base {* {
+  @apply box-border;
+  /* Tailwind's directional border utilities expect a zero-width baseline. */
+  @apply border-0;
+}
+html,
+body,
+#root {
+  @apply h-full m-0;
+}
+body {
+  font:
+    13px/1.5 Nunito,
+    system-ui,
+    sans-serif;
+}
+.canvas-versions .settings-popover {
+  @apply w-[min(360px,_85vw)] max-h-[65vh] overflow-y-auto;
+}
+.canvas-versions article {
+  @apply border-t border-solid border-t-border py-[12px] px-0;
+}
+.canvas-versions article small {
+  @apply block text-muted-foreground mt-[4px] mr-0 mb-[8px] ml-0;
+}
+h2 {
+  @apply text-[15px] mt-0 mr-0 mb-[8px] ml-0 font-extrabold;
+}
+h3 {
+  @apply text-[12px] mt-[24px] mr-0 mb-[10px] ml-0 text-muted-foreground;
+}
+p {
+  @apply my-[8px] mx-0;
+}
+small {
+  @apply text-[11px];
+}
+}

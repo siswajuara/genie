@@ -1,21 +1,18 @@
-import { localStore } from "../lib/localStore";
+import { localStore } from "../lib/local-store";
 import { useEffect, useState } from "react";
-import type { IconName } from "../components/ui/Icon";
-import type { StoryDraft } from "../story/storyPipeline";
 
 export const platforms: {
   id: string;
   name: string;
-  icon: IconName;
   color: string;
 }[] = [
-  { id: "instagram", name: "Instagram", icon: "instagram", color: "#a63175" },
-  { id: "facebook", name: "Facebook", icon: "facebook", color: "#2166ce" },
-  { id: "tiktok", name: "TikTok", icon: "tiktok", color: "#292938" },
-  { id: "linkedin", name: "LinkedIn", icon: "linkedin", color: "#0a66a2" },
-  { id: "youtube", name: "YouTube", icon: "youtube", color: "#c42b30" },
-  { id: "x", name: "X", icon: "x", color: "#424252" },
-  { id: "threads", name: "Threads", icon: "threads", color: "#424252" },
+  { id: "instagram", name: "Instagram", color: "#a63175" },
+  { id: "facebook", name: "Facebook", color: "#2166ce" },
+  { id: "tiktok", name: "TikTok", color: "#292938" },
+  { id: "linkedin", name: "LinkedIn", color: "#0a66a2" },
+  { id: "youtube", name: "YouTube", color: "#c42b30" },
+  { id: "x", name: "X", color: "#424252" },
+  { id: "threads", name: "Threads", color: "#424252" },
 ];
 export type Media = {
   id: string;
@@ -28,7 +25,6 @@ export type Media = {
   alt?: string;
 };
 export type Post = {
-  story?: StoryDraft;
   id: string;
   projectId: string;
   title: string;

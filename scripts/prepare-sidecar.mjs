@@ -24,7 +24,6 @@ for (const file of [
   "elevenlabs.mjs",
   "elevenlabs-config.mjs",
   "voice-prototype.mjs",
-  "cloudflare-ai.mjs",
 ])
   await fs.copyFile(path.join(source, file), path.join(destination, file));
 await fs.writeFile(

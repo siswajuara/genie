@@ -1,0 +1,231 @@
+@layer components {.provider-settings {
+  @apply pt-[6px]! pr-[18px]! pb-[16px]! pl-[18px]! m-0;
+}
+.provider-settings,
+.provider-queue,
+.social-data-panel {
+  @apply rounded-[12px];
+}
+.settings-card-head {
+  @apply flex items-start;
+}
+.provider-title {
+  @apply flex items-center gap-[10px];
+}
+.provider-title h3 {
+  @apply m-0 text-[15px];
+}
+.provider-dot {
+  @apply w-[10px] h-[10px] rounded-[50%] shrink-0;
+}
+.provider-dot.is-buffer {
+  @apply bg-[#2f4bd8];
+}
+.provider-dot.is-zernio {
+  @apply bg-[#37b58a];
+}
+.provider-hint {
+  @apply text-[12px] text-muted-foreground leading-[1.6] mt-[10px] mr-0 mb-[4px] ml-0;
+}
+.provider-hint strong {
+  @apply text-foreground;
+}
+.connection-badge {
+  @apply inline-flex items-center gap-[6px] text-[11px] font-bold py-[5px] px-[10px] border border-solid border-border rounded-full bg-background text-muted-foreground whitespace-nowrap;
+}
+.badge-dot {
+  @apply w-[7px] h-[7px] rounded-[50%] bg-current shrink-0;
+}
+.connection-badge.connected {
+  @apply text-[#176340] bg-[#ecf8f1] border-[#bfe3cb];
+}
+.provider-status {
+  @apply text-[#176340] bg-[#ecf8f1] border border-solid border-[#bfe3cb];
+}
+.connection-badge.error {
+  @apply text-destructive bg-background;
+}
+.connection-badge.saved {
+  @apply text-primary bg-secondary;
+}
+.studio[data-theme="dark"] .connection-badge.connected,
+.studio[data-theme="dark"] .provider-status {
+  @apply bg-[#1b392d] text-[#96e3b9] border-[#2c5a3c];
+}
+.social-account-list {
+  @apply pt-[4px] pr-0 pb-[10px] pl-0;
+}
+.social-account-row {
+  @apply border border-solid border-border rounded-[10px] p-[12px]! mt-[10px] bg-background;
+}
+.social-account-row + .social-account-row {
+  @apply mt-[8px];
+}
+.social-empty {
+  @apply flex gap-[12px] items-center border border-dashed border-border rounded-[10px] p-[14px]! mt-[10px] bg-background;
+}
+.social-empty strong {
+  @apply block;
+}
+.social-empty span span {
+  @apply block mt-[2px];
+}
+.provider-actions,
+.provider-connect,
+.provider-create-profile,
+.social-filter-bar {
+  @apply flex items-center flex-wrap gap-[8px] mt-[14px];
+}
+.provider-actions button,
+.provider-connect button {
+  @apply text-[12px];
+}
+.provider-outline {
+  @apply inline-flex items-center gap-[7px];
+}
+.danger-ghost {
+  @apply text-destructive;
+}
+.provider-resource {
+  @apply mt-[4px];
+}
+.provider-resource .marketing-field {
+  @apply mt-0 mr-0 mb-[7px] ml-0;
+}
+.provider-resource > .select-trigger {
+  @apply w-full;
+}
+.provider-status {
+  @apply py-[10px] px-[12px] rounded-[8px] text-[12px] mt-[12px];
+}
+.provider-create-profile input {
+  @apply flex-[1] min-w-[120px];
+}
+.provider-connect .select-trigger {
+  @apply flex-[1] min-w-[140px];
+}
+.social-read-error {
+  @apply p-[12px] bg-card border border-solid border-border rounded-[5px] text-[12px] wrap-anywhere;
+}
+.social-connected .plan-connection-note {
+  @apply hidden;
+}
+.provider-queue > .panel-heading {
+  @apply mb-[15px];
+}
+.social-filter-bar {
+  @apply mt-0 mr-0 mb-[20px] ml-0;
+}
+.social-filter-bar input {
+  @apply flex-[1] min-w-[140px] text-[12px];
+}
+.social-filter-bar .select-trigger {
+  @apply text-[12px];
+}
+.live-post-list article {
+  @apply flex items-center gap-[15px] py-[18px] px-0 border-t border-solid border-t-border;
+}
+.live-post-list article > div {
+  @apply flex-[1] min-w-0;
+}
+.live-post-list strong {
+  @apply text-[13px] block whitespace-pre-wrap wrap-anywhere max-h-[100px] overflow-auto;
+}
+.live-post-list p,
+.live-post-list small {
+  @apply text-[11px] text-muted-foreground;
+}
+.live-post-list button {
+  @apply text-[11px] whitespace-nowrap;
+}
+.social-table-wrap {
+  @apply overflow-auto;
+}
+.social-table {
+  @apply border-collapse w-full text-[11px];
+}
+.social-table th,
+.social-table td {
+  @apply text-left p-[12px] border-b border-solid border-b-border align-top;
+}
+.social-table th {
+  @apply capitalize text-muted-foreground;
+}
+.social-table td:first-child {
+  @apply min-w-[210px] max-w-[360px];
+}
+.social-table strong {
+  @apply block max-h-[90px] overflow-auto text-[12px];
+}
+.social-table small {
+  @apply block text-muted-foreground;
+}
+.account-provider-label {
+  @apply block text-[10px] text-muted-foreground font-normal mt-[2px];
+}
+.public-media-url {
+  @apply flex gap-[8px] basis-full mb-[12px];
+}
+.public-media-url input {
+  @apply flex-[1] min-w-0 text-[11px];
+}
+.public-media-url button {
+  @apply whitespace-nowrap;
+}
+.caption-label:has(.public-media-url) {
+  @apply flex-wrap;
+}
+.delivery-results > div {
+  @apply flex flex-col gap-[5px] border border-solid border-border rounded-[5px] p-[12px] mt-[12px] text-[12px];
+}
+.delivery-results .success {
+  @apply text-[#176340];
+}
+.studio[data-theme="dark"] .delivery-results .success {
+  @apply text-[#96e3b9];
+}
+.delivery-results p {
+  @apply text-[11px] leading-[1.7];
+}
+@media (max-width: 700px) {
+  .provider-settings,
+  .provider-queue,
+  .social-data-panel {
+    @apply p-[16px];
+  }
+  .provider-heading {
+    @apply flex-wrap;
+  }
+  .provider-settings .provider-actions button {
+    @apply text-[10px];
+  }
+  .live-post-list article {
+    @apply flex-wrap gap-[9px];
+  }
+  .live-post-list article > div {
+    @apply basis-[70%];
+  }
+  .social-connections > .panel-heading {
+    @apply flex-wrap;
+  }
+  .provider-connect {
+    @apply items-stretch;
+  }
+  .provider-connect .select-trigger {
+    @apply w-full;
+  }
+}
+
+.provider-usage {
+  @apply mt-[24px] pt-[16px] border-t border-solid border-t-border;
+}
+.provider-usage caption {
+  @apply text-left py-[8px] px-0 text-muted-foreground;
+}
+.provider-usage-counts > div {
+  @apply flex justify-between gap-[16px] py-[6px] px-0;
+}
+.provider-usage-counts dd {
+  @apply m-0;
+}
+}

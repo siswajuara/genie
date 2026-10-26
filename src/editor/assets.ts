@@ -5,7 +5,7 @@ import {
   parseAssetManifest,
   type PackAsset,
   type AssetManifest,
-} from "./assetManifest";
+} from "./asset-manifest";
 
 type AssetCategory = string;
 export type LibraryAsset = {

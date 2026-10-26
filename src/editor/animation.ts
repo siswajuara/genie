@@ -1,5 +1,5 @@
 import type { Element } from "./model";
-import { textEffects, type TextAnimation } from "./textAnimation";
+import { textEffects, type TextAnimation } from "./text-animation";
 
 export const effects = [
   "none",

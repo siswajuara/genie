@@ -23,12 +23,6 @@ type Account = {
 export type Issue = { provider: Provider; message: string };
 export type Config = {
   storage: "file";
-  cloudflare: {
-    configured: boolean;
-    accountId: string;
-    gatewayId: string;
-    model: string;
-  };
   elevenlabs: { configured: boolean; accounts: AudioAccount[] };
   buffer: { configured: boolean; organizationId: string };
   zernio: { configured: boolean; profileId: string };
@@ -53,7 +47,6 @@ type SaveValues = {
   accountId?: string;
   name?: string;
   enabled?: boolean;
-  gatewayId?: string;
 };
 export type PublishResult = {
   provider: Provider;
@@ -104,7 +97,7 @@ type SocialContextValue = {
   revision: number;
   refresh: () => Promise<void>;
   save: (
-    provider: Provider | "elevenlabs" | "cloudflare",
+    provider: Provider | "elevenlabs",
     values: SaveValues,
   ) => Promise<void>;
   test: (provider: Provider) => Promise<AccountsResult>;
@@ -113,12 +106,6 @@ type SocialContextValue = {
 const Context = createContext<SocialContextValue | null>(null);
 const initial: Config = {
   storage: "file",
-  cloudflare: {
-    configured: false,
-    accountId: "",
-    gatewayId: "",
-    model: "@cf/openai/gpt-oss-120b",
-  },
   elevenlabs: { configured: false, accounts: [] },
   buffer: { configured: false, organizationId: "" },
   zernio: { configured: false, profileId: "" },
@@ -154,7 +141,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
   const save = useCallback(
     async (
-      provider: Provider | "elevenlabs" | "cloudflare",
+      provider: Provider | "elevenlabs",
       values: SaveValues,
     ) => {
       setConfig(await transport<Config>("settings", { provider, ...values }));

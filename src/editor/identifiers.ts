@@ -10,7 +10,7 @@ const colors =
   "blue-yellow|blue-gold|blue|yellow|gold|gray|grey|red|green|orange|purple|pink|white|black|brown|original";
 const facing = "front|back|left|right|up|down";
 const suffix = new RegExp(`^(.+?)-(${colors})-(${facing})$`);
-export function parseAssetIdentifier(value: string) {
+function parseAssetIdentifier(value: string) {
   const match = slugify(value).match(suffix);
   return match
     ? {

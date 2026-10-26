@@ -1,0 +1,1044 @@
+@layer components {
+.studio {
+  @apply bg-background text-foreground h-dvh grid grid-rows-[66px_minmax(0,_1fr)_30px];
+  color-scheme: light;
+}
+.studio[data-theme="dark"] {
+  color-scheme: dark;
+}
+.studio-header {
+  @apply flex items-center justify-between py-0 px-[14px] gap-[12px] bg-card border-b border-solid border-b-border min-h-[66px];
+}
+.header-left,
+.header-center,
+.header-right {
+  @apply flex items-center gap-[8px] min-w-0;
+}
+.header-left {
+  @apply flex-[1_1_0];
+}
+.header-center {
+  @apply flex-[0_1_auto] justify-center;
+}
+.header-right {
+  @apply flex-[1_1_0] justify-end;
+}
+.header-divider {
+  @apply w-[1px] h-[22px] bg-border shrink-0;
+}
+.icon-text-btn {
+  @apply inline-flex items-center gap-[6px] border-border bg-transparent font-bold text-[12px] py-[7px] px-[10px] whitespace-nowrap;
+}
+.project-name {
+  @apply font-extrabold text-[14px] border-transparent bg-transparent py-[7px] px-[10px] max-w-[260px] w-full text-ellipsis;
+}
+.project-name:hover {
+  @apply border-border bg-background;
+}
+.project-name:focus {
+  @apply border-primary bg-card;
+}
+.icon-btn {
+  @apply w-[34px] h-[34px] min-w-[34px] p-0 grid place-items-center rounded-[9px] border-border bg-card;
+}
+.pill-btn {
+  @apply inline-flex items-center gap-[6px] text-[12px] font-bold py-[7px] px-[11px] border border-solid border-border rounded-full bg-card cursor-pointer list-none whitespace-nowrap;
+}
+.pill-btn:hover {
+  @apply bg-secondary border-primary;
+}
+.export-btn {
+  @apply inline-flex items-center gap-[7px] font-extrabold py-[8px] px-[14px] rounded-[9px] whitespace-nowrap;
+}
+.wordmark {
+  @apply flex items-center gap-[10px] text-[16px] font-extrabold shrink-0;
+}
+.wordmark small {
+  @apply block text-muted-foreground text-[11px] font-semibold;
+}
+.brand-mark {
+  @apply grid place-items-center w-[36px] h-[36px] bg-[#f7c600] rounded-[9px] text-[#14226e];
+  @apply text-[15px];
+}
+.project-logo {
+  @apply block shrink-0 object-contain rounded-[5px] bg-[#fff];
+}
+.document-name {
+  @apply w-[260px] text-center bg-transparent border-transparent;
+}
+.studio-main {
+  @apply grid grid-cols-[52px_310px_minmax(0,_1fr)_auto] min-h-0;
+}
+.studio-main.without-inspector {
+  @apply grid-cols-[52px_310px_minmax(0,_1fr)];
+}
+.studio-main.zen {
+  @apply grid-cols-[minmax(0,_1fr)];
+}
+.library,
+.inspector {
+  @apply bg-card min-w-0 min-h-0 flex flex-col border-r border-solid border-r-border;
+}
+.inspector {
+  @apply relative border-l border-solid border-l-border border-r-0 min-w-[260px] max-w-[440px] overflow-hidden;
+}
+.inspector-resizer {
+  @apply absolute left-0 top-0 bottom-0 w-[6px] cursor-ew-resize z-[5] touch-none;
+}
+.inspector-resizer:hover,
+.inspector-resizer:active {
+  @apply bg-secondary outline-[1px] outline-solid outline-primary;
+}
+.transform-wh {
+  @apply grid grid-cols-[minmax(0,_1fr)_28px_minmax(0,_1fr)] gap-[8px];
+  align-items: end;
+  @apply my-[6px] mx-0;
+}
+.transform-wh .property {
+  @apply m-0;
+}
+.transform-wh .property > span {
+  @apply w-[30px] text-[10px];
+}
+.transform-wh .aspect-lock {
+  @apply w-[28px] h-[28px] min-w-[28px] mb-[1px];
+}
+.arrange-label {
+  @apply mt-[10px] mr-0 mb-[4px] ml-0 text-[10px] font-extrabold uppercase tracking-[0.06em] text-muted-foreground;
+}
+.style-presets {
+  @apply grid grid-cols-[repeat(4,_minmax(0,_1fr))] gap-[6px] my-[8px] mx-0;
+}
+.style-presets button {
+  @apply grid gap-[2px] justify-items-center pt-[7px] pr-[2px] pb-[6px] pl-[2px] text-[10px] rounded-[8px];
+}
+.style-aa {
+  @apply font-black text-[16px] leading-[1];
+}
+.layer-anim-dot {
+  @apply w-[7px] h-[7px] rounded-[50%] bg-primary shrink-0 ml-[2px];
+}
+.layer-filter-chips {
+  @apply mt-[8px] mr-0 mb-[4px] ml-0;
+}
+.layer-hint {
+  @apply flex items-center justify-between gap-[8px] whitespace-nowrap overflow-hidden;
+}
+.layer-hint button {
+  @apply border-0;
+  background: none;
+  @apply py-0 px-[4px] text-[13px] text-muted-foreground;
+}
+/* Keep native tooltips and floating menus inside the viewport. */
+.inspector .tool-btn,
+.layer-toolbar-actions button {
+  @apply overflow-visible;
+}
+.inspector .tool-row {
+  @apply overflow-visible;
+}
+.library-tabs,
+.panel-tabs {
+  @apply flex min-h-[47px] border-b border-solid border-b-border py-0 px-[6px] gap-[1px];
+}
+.library-tabs button,
+.panel-tabs button {
+  @apply border-0 border-b-[2px] border-solid border-b-transparent;
+  background: none;
+  @apply rounded-none py-[12px] px-[8px] text-[12px] text-muted-foreground;
+}
+.library-tabs button[aria-selected="true"],
+.panel-tabs button[aria-selected="true"] {
+  @apply border-b-primary text-foreground font-extrabold;
+}
+.panel-tabs button {
+  @apply flex-[1];
+}
+.library-content,
+.panel-scroll {
+  @apply py-[18px] px-[16px] overflow-auto min-h-0 flex-[1];
+}
+.section-title {
+  @apply flex items-center justify-between gap-[8px] mb-[12px];
+}
+.section-title h2 {
+  @apply m-0;
+}
+.section-title > span {
+  @apply text-[11px] text-muted-foreground;
+}
+.format-grid,
+.element-grid {
+  @apply grid grid-cols-[1fr_1fr] gap-[8px];
+}
+.format-grid button {
+  @apply min-h-[109px] flex items-center flex-col justify-center gap-[5px] bg-background;
+}
+.format-grid small {
+  @apply text-muted-foreground text-[10px];
+}
+.format-preview {
+  @apply block h-[30px] border-[1.5px] border-solid border-muted-foreground bg-card max-w-[55px];
+}
+.section-heading {
+  @apply mt-[28px] mr-0 mb-[12px] ml-0;
+}
+.element-grid button {
+  @apply flex flex-col justify-center items-center gap-[7px] py-[14px] px-[6px] bg-background cursor-grab text-[12px];
+}
+.element-symbol {
+  @apply text-[25px] font-[Georgia,_serif] leading-[1.1];
+}
+.row {
+  @apply flex items-center gap-[6px] flex-wrap;
+}
+.full {
+  @apply w-full;
+}
+.hint {
+  @apply text-[11px] leading-[1.6] text-muted-foreground;
+}
+.empty {
+  @apply py-[30px] px-[8px] text-center text-muted-foreground;
+}
+.empty h2,
+.empty strong {
+  @apply text-foreground;
+}
+.canvas-column {
+  @apply min-w-0 min-h-0 flex flex-col;
+}
+.canvas-toolbar {
+  @apply min-h-[48px] flex items-center justify-between gap-[8px] py-[7px] px-[12px] bg-card border-b border-solid border-b-border flex-wrap;
+}
+.canvas-toolbar button {
+  @apply text-[11px] py-[5px] px-[9px];
+}
+.zoom-value {
+  @apply text-[11px] min-w-[36px] text-center;
+}
+.divider {
+  @apply h-[18px] w-[1px] bg-border my-0 mx-[3px];
+}
+.canvas-stage {
+  @apply flex-[1] relative min-h-[180px] overflow-hidden bg-[#d9dce6];
+}
+.canvas-stage canvas {
+  @apply block touch-none;
+}
+.canvas-zoom {
+  @apply absolute left-[12px] bottom-[12px] z-[5] flex items-center gap-[4px] p-[6px] bg-card border border-solid border-border rounded-[8px] shadow-[0_4px_14px_rgba(0,_0,_0,_0.12)];
+}
+.canvas-zoom button {
+  @apply text-[11px] py-[4px] px-[6px];
+}
+.canvas-zoom .zoom-value {
+  @apply min-w-[34px];
+}
+.canvas-hints {
+  @apply py-[7px] px-[12px] text-[10px] text-center text-muted-foreground border-t border-solid border-t-border bg-card;
+}
+.canvas-empty {
+  @apply absolute top-[45%] w-full text-center text-[#3b4669] pointer-events-none;
+}
+.inline-text {
+  @apply absolute resize-none p-0 border-[2px] border-solid border-[#2f4bd8] bg-[#fffffff2] text-[#14226e] leading-[1.15] text-center rounded-none;
+}
+.studio-footer {
+  @apply flex justify-between items-center py-0 px-[16px] gap-[20px] border-t border-solid border-t-border text-[10px] bg-card text-muted-foreground;
+}
+.studio-footer span {
+  @apply whitespace-nowrap overflow-hidden text-ellipsis;
+}
+.studio-footer span:first-child {
+  @apply flex-[1];
+}
+.geometry {
+  @apply grid grid-cols-[1fr_1fr] gap-[8px];
+}
+.property {
+  @apply flex items-center gap-[8px] my-[6px] mx-0 text-[11px];
+}
+.property > span {
+  @apply w-[52px] shrink-0 text-muted-foreground font-bold text-[11px];
+}
+.property input,
+.property select,
+.property textarea {
+  @apply w-full text-[12px] min-w-0;
+}
+.property:has(textarea) {
+  @apply block;
+}
+.property:has(textarea) > span {
+  @apply block mb-[5px];
+}
+.geometry .property {
+  @apply m-0;
+}
+.geometry .property > span {
+  @apply w-[30px] text-[10px];
+}
+.geometry input {
+  @apply p-[6px] min-w-0;
+}
+.property input[type="color"] {
+  @apply h-[31px] p-[3px];
+}
+.row input[type="color"] {
+  @apply w-[34px] h-[30px] p-[2px];
+}
+.insp-section {
+  @apply py-[12px] px-0 border-t border-solid border-t-border;
+}
+.insp-section:first-of-type {
+  @apply border-t-0 pt-0;
+}
+.insp-section h3 {
+  @apply mt-0 mr-0 mb-[8px] ml-0 text-[11px] uppercase tracking-[0.06em] text-muted-foreground;
+}
+.ui-accordion.insp-more {
+  @apply m-0 py-[12px] px-0 border-t border-solid border-t-border;
+}
+.insp-more .accordion-trigger {
+  @apply text-[11px] font-extrabold uppercase tracking-[0.06em] text-muted-foreground;
+}
+.tool-row {
+  @apply flex items-center gap-[4px] flex-wrap mt-[8px] mr-0 mb-0 ml-0;
+}
+.tool-btn {
+  @apply w-[32px] h-[32px] min-w-[32px] p-0 grid place-items-center rounded-[8px] text-foreground;
+}
+.tool-btn.is-active {
+  @apply bg-secondary border-primary text-primary;
+}
+.tool-btn.is-danger {
+  @apply text-destructive;
+}
+.tool-sep {
+  @apply w-[1px] h-[20px] bg-border my-0 mx-[4px];
+}
+.tool-text-btn {
+  @apply inline-flex items-center gap-[6px] h-[32px] py-0 px-[12px] text-[12px] font-extrabold rounded-[8px];
+}
+.segmented.small {
+  @apply flex-[1] p-[2px];
+}
+.segmented.small button {
+  @apply py-[5px] px-[4px];
+}
+.identifier-field .match-dot {
+  @apply w-[8px] h-[8px] rounded-[50%] bg-border shrink-0;
+}
+.identifier-field .match-dot.is-match {
+  @apply bg-[#22a06b];
+}
+.asset-match {
+  @apply flex items-center gap-[8px] mt-[6px] mr-0 mb-0 ml-[60px] pt-[6px] pr-[6px] pb-[6px] pl-[8px] border border-solid border-border rounded-[8px] bg-background text-[11px] font-bold min-w-0;
+}
+.asset-match img {
+  @apply w-[32px] h-[32px] object-contain rounded-[6px] bg-card shrink-0;
+}
+.asset-match span {
+  @apply flex-[1] overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.asset-match .tool-btn {
+  @apply w-[28px] h-[28px] min-w-[28px];
+}
+.asset-preview {
+  @apply border border-solid border-border rounded-[8px] overflow-hidden bg-background max-h-[140px] grid place-items-center;
+}
+.asset-preview img {
+  @apply max-w-full max-h-[140px] object-contain block;
+}
+.word-color-row {
+  @apply flex items-center gap-[6px] flex-[1] min-w-0;
+}
+.section-actions {
+  @apply my-[12px] mx-0;
+}
+.layer {
+  @apply flex items-center border-b border-solid border-b-border gap-[2px];
+}
+.layer button {
+  @apply border-0;
+  background: none;
+  @apply py-[8px] px-[4px] text-[11px];
+}
+.layer .layer-name {
+  @apply flex-[1] flex items-center gap-[8px] text-left min-w-0;
+}
+.layer-name span:last-child {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.layer.selected {
+  @apply bg-secondary shadow-[inset_2px_0_var(--primary)];
+}
+.frame-layer {
+  @apply bg-background font-extrabold;
+}
+.layer-icon {
+  @apply w-[18px] shrink-0 text-center;
+}
+.template-list {
+  @apply grid grid-cols-[repeat(2,_minmax(0,_1fr))] gap-[12px_10px] mt-[14px];
+}
+.template-card {
+  @apply flex flex-col min-w-0 overflow-hidden bg-card border border-solid border-border rounded-[10px];
+  transition: border-color 120ms ease;
+}
+.template-card:hover,
+.template-card:focus-within {
+  @apply border-primary;
+}
+.template-card:focus-within {
+  @apply outline-[2px] outline-solid outline-primary outline-offset-[2px];
+}
+.template-card-preview {
+  @apply relative;
+}
+.template-caption {
+  @apply p-[10px] border-t border-solid border-t-border;
+}
+.template-card strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  @apply overflow-hidden min-h-[2.8em] wrap-anywhere text-[12px] leading-[1.4] font-bold;
+}
+.template-card small {
+  @apply flex flex-wrap gap-[2px_6px] text-muted-foreground mt-[5px] text-[10px];
+}
+.template-card-actions {
+  @apply absolute inset-[auto_6px_6px] flex flex-col gap-[5px] p-[6px] border border-solid border-border rounded-[8px] bg-card opacity-0 pointer-events-none;
+  transition: opacity 120ms ease;
+}
+.template-card-actions button {
+  @apply flex items-center justify-center gap-[4px] min-h-[30px];
+}
+.template-delete {
+  @apply absolute top-[6px] right-[6px] grid place-items-center min-w-[30px] min-h-[30px] opacity-0 pointer-events-none bg-card;
+}
+.template-card:hover .template-card-actions,
+.template-card:focus-within .template-card-actions,
+.template-card:hover .template-delete,
+.template-card:focus-within .template-delete {
+  @apply opacity-100 pointer-events-auto;
+}
+.template-card button {
+  @apply text-[10px] py-[4px] px-[7px];
+}
+.template-card .template-preview-button {
+  @apply block w-full p-0 overflow-hidden bg-background border-0 rounded-none;
+}
+.template-thumbnail {
+  @apply grid place-items-center w-full aspect-[4_/_5] p-[6px];
+}
+.template-thumbnail img {
+  @apply w-full h-full object-contain min-h-0;
+}
+.template-preview-status {
+  @apply flex flex-col items-center gap-[8px] text-muted-foreground text-[10px];
+}
+@media (hover: none), (pointer: coarse) {
+  .template-card-actions {
+    @apply static m-[6px] opacity-100 pointer-events-auto;
+  }
+  .template-delete {
+    @apply opacity-100 pointer-events-auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .template-card,
+  .template-card-actions {
+    transition: none;
+  }
+}
+.upload-grid {
+  @apply grid grid-cols-[1fr_1fr] gap-[8px] mt-[16px];
+}
+.upload-grid img {
+  @apply w-full h-[80px] object-contain;
+}
+.upload-grid button {
+  @apply overflow-hidden cursor-grab;
+}
+.upload-grid span {
+  @apply block text-[10px] overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.debug-dialog {
+  @apply w-[min(560px,_calc(100vw_-_32px))] max-h-[min(720px,_calc(100dvh_-_48px))];
+}
+.debug-dialog .modal-body {
+  @apply flex flex-col min-h-0;
+}
+.debug-dialog .debug-panel {
+  @apply min-h-[320px];
+}
+.studio-footer .footer-meta {
+  @apply inline-flex items-center gap-[8px] shrink-0 max-w-[60%];
+}
+.footer-seg {
+  @apply font-semibold;
+}
+.footer-seg.footer-name {
+  @apply text-foreground font-extrabold max-w-[180px];
+}
+.footer-seg.is-active {
+  @apply text-primary font-extrabold;
+}
+.footer-dot {
+  @apply w-[3px] h-[3px] shrink-0 rounded-[50%] bg-current opacity-40;
+}
+.footer-divider {
+  @apply w-[1px] h-[14px] shrink-0 bg-border;
+}
+.debug-inline {
+  @apply inline-grid place-items-center w-[24px] h-[24px] shrink-0 p-0 border border-solid border-transparent rounded-[7px] bg-transparent text-inherit cursor-pointer opacity-65;
+}
+.debug-inline:hover {
+  @apply opacity-100 text-foreground border-border bg-secondary;
+}
+.debug-inline:focus-visible {
+  @apply opacity-100 outline-[2px] outline-solid outline-primary outline-offset-[1px];
+}
+.debug-panel {
+  @apply flex flex-col gap-[10px] min-h-0 min-w-0 w-full overflow-auto;
+}
+.debug-heading,
+.debug-source,
+.debug-tools,
+.debug-code-meta {
+  @apply flex items-center gap-[6px];
+}
+.debug-heading h2 {
+  @apply m-0 text-[13px];
+}
+.debug-heading > span {
+  @apply ml-[auto] max-w-[70%] overflow-hidden text-ellipsis whitespace-nowrap text-muted-foreground text-[11px];
+}
+.debug-source > .select-trigger {
+  @apply flex-[1] w-0 min-w-0;
+}
+.debug-source > button,
+.debug-tools button {
+  @apply text-[11px] py-[5px] px-[8px] min-h-[30px];
+}
+.debug-panel .debug-icon {
+  @apply inline-flex items-center justify-center w-[30px] shrink-0 p-[5px];
+}
+.debug-code {
+  @apply flex flex-col flex-[1] min-h-[160px] overflow-hidden border border-solid border-border rounded-[7px] bg-background;
+}
+.debug-tools {
+  @apply p-[4px] border-b border-solid border-b-border bg-card;
+}
+.debug-tools button {
+  @apply border-transparent bg-transparent;
+}
+.debug-tools button:hover:not(:disabled) {
+  @apply bg-secondary;
+}
+.debug-tool-spacer {
+  @apply flex-[1];
+}
+.debug-panel .json-editor {
+  @apply flex-[1] w-full min-h-[80px] m-0 p-[10px] border-0 rounded-none bg-transparent resize-none;
+  tab-size: 2;
+  font:
+    11px/1.65 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.debug-panel .json-editor:focus-visible {
+  @apply outline-offset-[-2px];
+}
+.debug-code-meta {
+  @apply justify-between py-[5px] px-[9px] border-t border-solid border-t-border text-muted-foreground text-[10px];
+}
+.debug-status {
+  @apply text-muted-foreground text-[11px] leading-[1.45] wrap-anywhere max-h-[68px] overflow-auto;
+}
+.debug-status.has-error {
+  @apply text-destructive;
+}
+.debug-apply {
+  @apply w-full shrink-0;
+}
+.debug-note {
+  @apply m-0 text-muted-foreground text-[10px] leading-[1.5];
+}
+.debug-heading,
+.debug-source,
+.debug-status,
+.debug-note {
+  @apply shrink-0;
+}
+.menu-dismiss {
+  @apply fixed inset-0 z-[50];
+}
+.context-menu {
+  @apply fixed z-[51] bg-card border border-solid border-border rounded-[8px] p-[5px] shadow-[0_6px_20px_#0002] w-[200px];
+}
+.context-menu button {
+  @apply block w-full border-0 text-left py-[5px] px-[10px];
+  background: none;
+}
+.connection-note,
+.pending-update {
+  @apply p-[10px] bg-secondary border border-solid border-border text-[11px] rounded-[6px];
+}
+.error {
+  @apply text-[11px] wrap-anywhere;
+}
+.pending-update p {
+  @apply mt-0 mr-0 mb-[8px] ml-0;
+}
+@media (max-width: 1150px) {
+  .studio-main {
+    @apply grid-cols-[minmax(52px,_5%)_270px_minmax(0,_1fr)_240px];
+  }
+  .studio-main.without-inspector {
+    @apply grid-cols-[minmax(52px,_5%)_270px_minmax(0,_1fr)];
+  }
+  .library-tabs {
+    @apply p-0;
+  }
+  .library-tabs button {
+    @apply py-[12px] px-[6px] text-[11px];
+  }
+  .studio-header {
+    @apply gap-[8px] py-0 px-[10px];
+  }
+  .project-name {
+    @apply max-w-[170px];
+  }
+  .property > span {
+    @apply w-[70px];
+  }
+  .geometry {
+    @apply grid-cols-[1fr];
+  }
+  .geometry .property > span {
+    @apply w-[70px];
+  }
+}
+@media (max-width: 850px) {
+  .studio {
+    @apply h-auto min-h-dvh grid-rows-[auto_1fr_auto];
+  }
+  .studio-header {
+    @apply flex-wrap py-[10px] px-[12px] gap-y-[8px];
+  }
+  .header-left {
+    @apply flex-[1_1_auto];
+  }
+  .project-name {
+    @apply max-w-none;
+  }
+  .header-center {
+    @apply order-[3] w-full justify-start;
+  }
+  .settings-popover {
+    @apply left-0;
+    transform: none;
+  }
+  .studio-main,
+  .studio-main.without-inspector {
+    @apply grid-cols-[52px_240px_minmax(0,_1fr)] grid-rows-[minmax(500px,_75dvh)_auto];
+  }
+  .page-rail {
+    @apply row-[1_/_-1];
+  }
+  .inspector {
+    @apply col-[1/-1] border-t border-solid border-t-border max-h-[500px];
+  }
+  .geometry {
+    @apply grid-cols-[repeat(3,_1fr)];
+  }
+  .canvas-hints {
+    @apply hidden;
+  }
+  .studio-footer {
+    @apply py-[8px] px-[12px];
+  }
+  .studio-footer .footer-seg,
+  .studio-footer .footer-dot {
+    @apply hidden;
+  }
+  .library-tabs {
+    @apply flex-wrap;
+  }
+  .library-tabs button {
+    @apply flex-[1] py-[8px] px-[4px];
+  }
+  .panel-scroll {
+    @apply p-[16px];
+  }
+  .canvas-toolbar {
+    @apply p-[6px];
+  }
+  .canvas-toolbar button {
+    @apply py-[4px] px-[6px];
+  }
+}
+@media (max-width: 560px) {
+  .studio-main,
+  .studio-main.without-inspector {
+    @apply flex flex-col;
+  }
+  .page-rail {
+    @apply flex-row items-center w-auto border-r-0 border-b border-solid border-b-border overflow-x-auto overflow-y-hidden py-[6px] px-[12px];
+  }
+  .page-rail-list {
+    @apply flex-row overflow-x-auto overflow-y-hidden flex-[1];
+  }
+  .page-rail-add.page-circle {
+    @apply mt-0 ml-[auto];
+  }
+  .library {
+    @apply h-[330px] border-b border-solid border-b-border;
+  }
+  .library-tabs {
+    @apply flex-nowrap;
+  }
+  .library-tabs button {
+    @apply p-[10px];
+  }
+  .canvas-column {
+    @apply h-[65dvh] min-h-[420px];
+  }
+  .library-content {
+    @apply p-[12px];
+  }
+  .format-grid {
+    @apply grid-cols-[repeat(4,_1fr)];
+  }
+  .format-grid button {
+    @apply min-h-[90px] text-[10px] py-[6px] px-[2px];
+  }
+  .format-grid small {
+    @apply text-[8px];
+  }
+  .element-grid {
+    @apply grid-cols-[repeat(5,_1fr)];
+  }
+  .element-grid button {
+    @apply py-[8px] px-[2px] text-[9px];
+  }
+  .element-symbol {
+    @apply text-[20px];
+  }
+  .geometry {
+    @apply grid-cols-[repeat(2,_1fr)];
+  }
+  .wordmark {
+    @apply text-[14px];
+  }
+  .back-label {
+    @apply hidden;
+  }
+  .icon-text-btn {
+    @apply py-[7px] px-[8px];
+  }
+  .export-btn span {
+    @apply hidden;
+  }
+  .export-btn {
+    @apply py-[8px] px-[10px];
+  }
+  .brand-mark {
+    @apply w-[28px] h-[28px];
+  }
+  .studio-footer span {
+    @apply whitespace-normal;
+  }
+  .template-list {
+    @apply grid-cols-[1fr_1fr];
+  }
+}
+/* A canvas contains pages; each page contains frames. */
+.studio {
+  @apply grid-rows-[66px_minmax(0,_1fr)_30px];
+}
+.sr-only {
+  @apply absolute w-[1px] h-[1px] overflow-hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.project-switcher {
+  @apply flex items-center gap-[8px] min-w-0;
+}
+.project-switcher select {
+  @apply max-w-[260px] font-bold;
+}
+.ui-accordion.workspace-settings {
+  @apply relative m-0 shrink-0;
+}
+.workspace-settings .accordion-trigger.pill-btn {
+  @apply text-[12px] w-auto;
+}
+.canvas-versions .accordion-trigger[data-state="open"] {
+  @apply bg-secondary border-primary;
+}
+.settings-popover {
+  @apply absolute top-[calc(100%_+_8px)] left-[50%];
+  transform: translateX(-50%);
+  @apply w-[300px] p-[16px] bg-card border border-solid border-border shadow-[0_12px_32px_#0003] rounded-[12px] z-[40] grid gap-[10px];
+}
+.settings-popover label {
+  @apply grid gap-[6px] text-muted-foreground text-[11px];
+}
+.settings-popover button {
+  @apply text-left text-[12px];
+}
+/* Modal dialogs: settings + export */
+.modal-dialog {
+  @apply w-[min(440px,_calc(100vw_-_32px))] max-h-[min(640px,_calc(100dvh_-_48px))] overflow-hidden flex flex-col rounded-[14px] bg-card border border-solid border-border shadow-[0_20px_60px_#0005];
+}
+.modal-head {
+  @apply flex items-center justify-between gap-[12px] py-[14px] px-[16px] border-b border-solid border-b-border;
+}
+.modal-head h2 {
+  @apply m-0 text-[15px];
+}
+.modal-body {
+  @apply p-[16px] overflow-y-auto grid gap-[18px];
+}
+.modal-foot {
+  @apply flex items-center justify-end gap-[8px] py-[12px] px-[16px] border-t border-solid border-t-border;
+}
+.modal-foot.split {
+  @apply justify-between;
+}
+.setting-group {
+  @apply grid gap-[8px];
+}
+.setting-group h3 {
+  @apply m-0 text-[11px] uppercase tracking-[0.06em] text-muted-foreground;
+}
+.setting-group.danger-zone h3 {
+  @apply text-destructive;
+}
+.field {
+  @apply grid gap-[6px] text-[12px] font-bold;
+}
+.field > span {
+  @apply text-muted-foreground font-bold text-[11px];
+}
+.field input,
+.field select {
+  @apply w-full;
+}
+.check {
+  @apply flex items-center gap-[8px] text-[12px] font-semibold;
+}
+.check [data-slot="checkbox"] {
+  @apply w-[16px] h-[16px] accent-primary;
+}
+.segmented {
+  @apply flex gap-[4px] p-[3px] border border-solid border-border rounded-[9px] bg-background;
+}
+.segmented button {
+  @apply flex-[1] border-transparent bg-transparent py-[7px] px-[8px] text-[12px] font-bold inline-flex items-center justify-center gap-[6px] text-muted-foreground;
+}
+.segmented button.active {
+  @apply bg-card border-border text-foreground shadow-[0_1px_4px_#0001];
+}
+.page-rail {
+  @apply flex flex-col items-center gap-[8px] py-[10px] px-[6px] bg-card border-r border-solid border-r-border w-[52px] min-h-0 overflow-y-auto shrink-0;
+}
+.page-rail-label {
+  @apply text-[11px] text-muted-foreground text-center;
+}
+.page-rail-list {
+  @apply flex flex-col items-center gap-[6px] overflow-y-auto min-h-0 flex-[1];
+}
+.page-rail-list button.page-circle,
+.page-rail-add.page-circle {
+  @apply w-[32px] h-[32px] min-w-[32px] min-h-[32px] shrink-0 rounded-[50%] grid place-items-center p-0 border border-solid border-transparent bg-transparent text-[13px] font-semibold leading-[1] text-foreground;
+}
+.page-rail-list button.page-circle[aria-current="page"] {
+  @apply bg-secondary border-border font-extrabold text-primary;
+}
+.page-rail-add.page-circle {
+  @apply mt-[auto] border-dashed;
+}
+.library-tabs button {
+  @apply flex-[1] text-[12px];
+}
+.editor-tabs {
+  @apply flex border border-solid border-border rounded-[6px] p-[3px] mb-[20px] gap-[4px];
+}
+.editor-tabs button {
+  @apply flex-[1] border-transparent p-[5px] text-[12px] bg-transparent text-muted-foreground;
+}
+.editor-tabs button[aria-selected="true"] {
+  @apply bg-secondary text-foreground font-extrabold;
+}
+.frame-list {
+  @apply my-[16px] mx-0;
+}
+.frame-list h3 {
+  @apply mt-0 mr-0 mb-[7px] ml-0;
+}
+.frame-list > button {
+  @apply flex items-center text-left gap-[8px] w-full text-[11px] p-[7px] my-[4px] mx-0 overflow-hidden text-ellipsis whitespace-nowrap;
+}
+.frame-list > button.active {
+  @apply bg-secondary border-primary;
+}
+.frame-list button > span {
+  @apply grid place-items-center shrink-0 w-[20px] h-[20px] bg-background rounded-[4px] text-[10px];
+}
+.dialog-backdrop {
+  @apply fixed inset-0 z-[100] bg-[#0006] grid place-items-center p-[20px];
+}
+.confirm-dialog {
+  @apply w-[400px] max-w-full p-[24px] rounded-[10px] bg-card border border-solid border-border;
+}
+.confirm-dialog p {
+  @apply mt-[12px] mr-0 mb-[20px] ml-0 text-muted-foreground;
+}
+.confirm-dialog .row {
+  @apply justify-end;
+}
+.cli-settings {
+  @apply text-[11px] p-[8px] border border-solid border-border rounded-[6px];
+}
+.cli-settings label {
+  @apply grid gap-[5px] my-[7px] mx-0;
+}
+.cli-settings input {
+  @apply w-full text-[10px];
+}
+.cli-status {
+  @apply wrap-anywhere text-[10px] text-muted-foreground mt-[7px];
+}
+.connection-note {
+  @apply m-0;
+}
+@media (max-width: 1150px) {
+  .wordmark {
+    @apply text-[14px];
+  }
+}
+@media (max-width: 850px) {
+  .studio {
+    @apply grid-rows-[auto_auto_1fr_auto];
+  }
+  .studio-header {
+    @apply flex-wrap;
+  }
+  .page-rail {
+    @apply py-[8px] px-[6px];
+  }
+  .page-rail-label {
+    @apply hidden;
+  }
+  .canvas-toolbar .row {
+    @apply gap-[4px];
+  }
+  .canvas-toolbar button {
+    @apply text-[10px];
+  }
+  .workspace-settings .settings-popover {
+    @apply left-0;
+    transform: none;
+  }
+}
+@media (max-width: 560px) {
+  .library-tabs button {
+    @apply text-[12px] p-[10px];
+  }
+  .library {
+    @apply h-[400px];
+  }
+  .format-grid {
+    @apply grid-cols-[repeat(2,_1fr)];
+  }
+  .element-grid {
+    @apply grid-cols-[repeat(3,_1fr)];
+  }
+  .frame-list > button {
+    @apply p-[6px];
+  }
+  .settings-popover {
+    @apply w-[min(270px,_80vw)];
+  }
+}
+.layer-tree {
+  @apply mt-[12px];
+}
+.tree-layer {
+  @apply min-h-[34px] cursor-pointer select-none;
+}
+.tree-layer:focus-visible {
+  @apply outline-[2px] outline-solid outline-primary outline-offset-[-2px];
+}
+.tree-layer .layer-disclosure {
+  @apply grid place-items-center w-[18px] shrink-0 py-[4px] px-0 text-[11px];
+}
+.tree-layer-name {
+  @apply flex-[1] overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-semibold min-w-0;
+}
+.tree-layer .layer-icon {
+  @apply w-[16px] shrink-0 text-muted-foreground;
+}
+.tree-layer .layer-count {
+  @apply text-[9px] text-muted-foreground mr-[4px];
+}
+.tree-layer.is-hidden {
+  @apply opacity-55;
+}
+.tree-layer.drop-target {
+  @apply shadow-[inset_0_2px_var(--primary)];
+}
+.tree-layer button {
+  @apply shrink-0 min-w-[19px];
+}
+.layer-empty {
+  @apply text-[10px] text-muted-foreground pt-[6px] pb-[6px] m-0;
+}
+.layer-tree [role="group"] {
+  @apply border-l-0 ml-0;
+}
+.tree-layer.frame-layer {
+  @apply mt-[6px];
+}
+.tree-layer:hover:not(.selected) {
+  @apply bg-background;
+}
+
+.layer-toolbar {
+  @apply flex flex-col gap-[8px] mt-[10px];
+}
+.layer-search {
+  @apply w-full;
+}
+.layer-toolbar-actions {
+  @apply flex-wrap gap-[4px];
+}
+.layer-toolbar-actions button {
+  @apply min-w-[26px] py-[4px] px-[6px];
+}
+.layer-grip {
+  @apply grid place-items-center w-[14px] shrink-0 text-muted-foreground cursor-grab;
+}
+.layer-grip:active {
+  @apply cursor-grabbing;
+}
+.tree-layer .layer-actions {
+  @apply flex gap-[2px] ml-[4px];
+}
+.layer-thumb {
+  @apply w-[16px] h-[16px] object-cover rounded-[3px] border border-solid border-border;
+}
+.layer-rename {
+  @apply flex-[1] min-w-0 text-[11px] py-[2px] px-[4px];
+}
+.tree-layer .layer-disclosure {
+  @apply w-[16px];
+}
+}
+

@@ -25,7 +25,7 @@ pub(crate) fn load(app: &tauri::AppHandle) -> Result<Value, String> {
     if !config.is_object() {
         return Err("config.json must contain an object.".into());
     }
-    for provider in ["buffer", "zernio", "elevenlabs", "soniox", "cloudflare"] {
+    for provider in ["buffer", "zernio", "elevenlabs", "soniox"] {
         if config.get(provider).is_none() {
             config[provider] = json!({"key":""});
         }
@@ -49,30 +49,7 @@ pub(crate) fn save(app: &tauri::AppHandle, config: &Value) -> Result<(), String>
 }
 fn public(config: &Value) -> Value {
     let accounts: Vec<Value> = audio_accounts(config).iter().map(|account| json!({"id":account["id"],"name":account["name"],"configured":!account["key"].as_str().unwrap_or("").is_empty(),"enabled":account["enabled"].as_bool().unwrap_or(true)})).collect();
-    json!({"storage":"file","cloudflare":{"configured":!config["cloudflare"]["accountId"].as_str().unwrap_or("").is_empty() && (!config["cloudflare"]["key"].as_str().unwrap_or("").is_empty() || !config["cloudflare"]["authToken"].as_str().unwrap_or("").is_empty()),"accountId":config["cloudflare"]["accountId"].as_str().unwrap_or(""),"gatewayId":config["cloudflare"]["gatewayId"].as_str().unwrap_or(""),"model":"@cf/openai/gpt-oss-120b"},"elevenlabs":{"configured":accounts.iter().any(|account| account["configured"] == true),"accounts":accounts},"buffer":{"configured":!config["buffer"]["key"].as_str().unwrap_or("").is_empty(),"organizationId":config["buffer"]["organizationId"].as_str().unwrap_or("")},"zernio":{"configured":!config["zernio"]["key"].as_str().unwrap_or("").is_empty(),"profileId":config["zernio"]["profileId"].as_str().unwrap_or("")}})
-}
-fn save_cloudflare(config: &mut Value, payload: &Value) -> Result<(), String> {
-    if payload["removeKey"].as_bool() == Some(true) {
-        config["cloudflare"]["key"] = json!("");
-        config["cloudflare"].as_object_mut().map(|c| c.remove("authToken"));
-    } else if let Some(value) = payload.get("key") {
-        let key = value.as_str().ok_or("Enter a valid Cloudflare API token.")?;
-        if key.trim().is_empty() || key.len() > 8192 || key.contains(['\n', '\r']) { return Err("Enter a valid Cloudflare API token.".into()); }
-        config["cloudflare"]["key"] = json!(key.trim());
-        config["cloudflare"].as_object_mut().map(|c| c.remove("authToken"));
-    }
-    if let Some(value) = payload.get("accountId") {
-        let id = value.as_str().ok_or("Enter a Cloudflare account ID.")?.trim();
-        if id.len() != 32 || !id.bytes().all(|c| c.is_ascii_hexdigit()) { return Err("Cloudflare account ID must contain 32 hexadecimal characters.".into()); }
-        config["cloudflare"]["accountId"] = json!(id);
-    }
-    if let Some(value) = payload.get("gatewayId") {
-        let id = value.as_str().ok_or("Enter a valid gateway ID.")?.trim();
-        if id.len() > 64 || !id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_') { return Err("Use a gateway ID containing up to 64 letters, numbers, hyphens or underscores.".into()); }
-        config["cloudflare"]["gatewayId"] = json!(id);
-    }
-    config["cloudflare"]["model"] = json!("@cf/openai/gpt-oss-120b");
-    Ok(())
+    json!({"storage":"file","elevenlabs":{"configured":accounts.iter().any(|account| account["configured"] == true),"accounts":accounts},"buffer":{"configured":!config["buffer"]["key"].as_str().unwrap_or("").is_empty(),"organizationId":config["buffer"]["organizationId"].as_str().unwrap_or("")},"zernio":{"configured":!config["zernio"]["key"].as_str().unwrap_or("").is_empty(),"profileId":config["zernio"]["profileId"].as_str().unwrap_or("")}})
 }
 fn audio_accounts(config: &Value) -> Vec<Value> {
     let mut accounts = config["elevenlabs"]["accounts"]
@@ -165,12 +142,10 @@ pub async fn social_settings(
         let mut config = load(&app)?;
         if let Some(payload) = payload.filter(|value| value.get("provider").is_some()) {
             let provider = payload["provider"].as_str().ok_or("Choose a provider.")?;
-            if !["buffer", "zernio", "elevenlabs", "cloudflare"].contains(&provider) {
+            if !["buffer", "zernio", "elevenlabs"].contains(&provider) {
                 return Err("Unknown social provider.".into());
             }
-            if provider == "cloudflare" {
-                save_cloudflare(&mut config, &payload)?;
-            } else if provider == "elevenlabs" {
+            if provider == "elevenlabs" {
                 save_audio_account(&mut config, &payload)?;
             } else {
                 if payload["removeKey"].as_bool() == Some(true) {
@@ -206,8 +181,6 @@ pub async fn social_request(
 ) -> Result<Value, String> {
     if ![
         "elevenlabs.usage",
-        "cloudflare.status",
-        "cloudflare.chat",
         "elevenlabs.cached",
         "elevenlabs.select",
         "elevenlabs.voices",

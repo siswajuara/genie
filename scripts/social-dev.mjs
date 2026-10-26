@@ -2,7 +2,6 @@ import { createSocialService, publicConfig } from "../sidecar/social-core.mjs";
 import path from "node:path";
 import { readConfig, jsonWriter } from "../sidecar/local-json.mjs";
 import { saveElevenLabsAccount } from "../sidecar/elevenlabs-config.mjs";
-import { saveCloudflare } from "../sidecar/cloudflare-ai.mjs";
 export function socialDevPlugin() {
   const service = createSocialService();
   let configPath, persistConfig;
@@ -50,14 +49,12 @@ export function socialDevPlugin() {
           if (req.url === "/settings") {
             if (body.provider) {
               if (
-                !["buffer", "zernio", "elevenlabs", "cloudflare"].includes(
+                !["buffer", "zernio", "elevenlabs"].includes(
                   body.provider,
                 )
               )
                 throw Error("Choose a provider.");
-              if (body.provider === "cloudflare") {
-                saveCloudflare(config, body);
-              } else if (body.provider === "elevenlabs") {
+              if (body.provider === "elevenlabs") {
                 saveElevenLabsAccount(config, body);
               } else {
                 const provider = config[body.provider];

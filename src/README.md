@@ -6,7 +6,7 @@ Preset social icons use per-icon imports from `thesvg`. `lib/brand.ts` embeds th
 
 ## Marketing modules
 
-The app opens in **Canvases**. The sidebar contains **Canvases, Publish, Schedule, and Setting**. Create a new canvas or open a saved design; the editor returns to the canvas gallery. Legacy Idea and Chat routes redirect to Canvases.
+The app opens in **Canvases**. The sidebar contains **Canvases, Publish, Schedule, and Setting**. Create a new canvas or open a saved design; the editor returns to the canvas gallery. Legacy Idea, Chat, and Story routes redirect to Canvases.
 
 A canvas has pages, and pages contain frames. The editor provides Elements, Templates, Assets, animation, export, and Debug tools. Canvases, pages, versions, drafts, plans, and delivery receipts stay local. Existing canvas backups remain readable; legacy conversation metadata is preserved for compatibility, without creating or running chats.
 
@@ -51,13 +51,13 @@ Workspace JSON is `{ version: 1, projects: [{ id, name, pages: [{ id, name, canv
 
 ## Controls and checks
 
-Shared controls live in `components/ui`: Hugeicons, keyboard-accessible selects and popovers, number fields with minus/plus buttons, react-colorful hex/alpha colors, and single-date/range calendars. Page settings saves optional `metadata.date` and `metadata.dateRange` values as local calendar dates in JSON.
+Shared controls live in `components/ui`: Lucide icons, keyboard-accessible selects and popovers, number fields with minus/plus buttons, react-colorful hex/alpha colors, and single-date/range calendars. Social platform logos use the existing per-brand SVG assets. Page settings saves optional `metadata.date` and `metadata.dateRange` values as local calendar dates in JSON.
 
 The searchable Google Fonts picker uses `react-fontpicker-ts` with bundled previews and no API key. Nunito and Baloo 2 are packaged locally. `lib/fonts.ts` caches font loading, loads selected Google Fonts before applying them, and loads imported document fonts before PNG export. Additional Google Fonts require a connection on first use. Inline text editing has a transparent background and preserves font family, weight, size, alignment, spacing, opacity, and inline word colors.
 
 Drag to move; use handles to resize and the upper dot to rotate. Shift constrains movement, proportions, and rotation; Alt resizes around the center. Ctrl/Cmd disables snapping while dragging. Shift-click selects multiple objects. Double-click edits text. Layers provides access to hidden and locked elements.
 
-Space-drag pans; Ctrl/Cmd-wheel zooms. Ctrl/Cmd-0 fits the frame; Ctrl/Cmd-1 sets 100%. Arrow keys nudge (Shift: 10px). Ctrl/Cmd-C/V/D copies/pastes/duplicates; G groups; Shift-G ungroups; brackets reorder (Shift: front/back); Z undoes; Shift-Z/Y redoes. Delete removes selections and frame children. PNG export excludes controls and image placeholders; remote images require CORS permission.
+Space-drag pans; Ctrl/Cmd-wheel zooms. Ctrl/Cmd-0 fits the frame; Ctrl/Cmd-1 sets 100%. Ctrl/Cmd-A selects all unlocked, visible elements including frames. Arrow keys nudge (Shift: 10px). Ctrl/Cmd-C/V/D copies/pastes/duplicates; G groups; Shift-G ungroups; brackets reorder (Shift: front/back); Z undoes; Shift-Z/Y redoes. Delete removes selections and frame children. PNG export excludes controls and image placeholders; remote images require CORS permission.
 
 Checks: `npm run build`, `cargo check --manifest-path src-tauri/Cargo.toml`, `bun test tests/editor.test.ts`.
 

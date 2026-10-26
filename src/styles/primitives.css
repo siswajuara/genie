@@ -1,0 +1,81 @@
+@layer components {
+button,
+input,
+select,
+textarea {
+  @apply [font:inherit];
+}
+button {
+  @apply cursor-pointer;
+}
+button:disabled {
+  @apply opacity-40 cursor-not-allowed;
+}
+button,
+input,
+select,
+textarea {
+  @apply text-foreground bg-card border border-solid border-border rounded-[6px] py-[7px] px-[10px] min-w-0;
+}
+button:hover:not(:disabled):not(.primary) {
+  @apply border-primary bg-secondary;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+canvas:focus-visible {
+  @apply outline-[2px] outline-solid outline-primary outline-offset-[2px];
+}
+textarea {
+  @apply resize-y;
+}
+button.primary {
+  @apply bg-primary border-primary text-white;
+}
+button.primary:hover:not(:disabled) {
+  @apply bg-[color-mix(in_srgb,_var(--primary)_88%,_#000)] border-[color-mix(in_srgb,_var(--primary)_88%,_#000)] text-white;
+}
+button.danger,
+.error {
+  @apply text-destructive;
+}
+  /* Shared shadcn controls inherit feature sizing without changing the design. */
+  .dialog-overlay {
+    @apply fixed inset-0 z-[100] bg-[#11162b66];
+  }
+  .ui-dialog-content {
+    @apply fixed left-1/2 top-1/2 z-[101] m-0 -translate-x-1/2 -translate-y-1/2 overflow-y-auto text-foreground;
+  }
+
+  button.ui-checkbox,
+  button.ui-checkbox:hover:not(:disabled) {
+    @apply inline-flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[2px] border border-solid border-muted-foreground bg-card p-0 align-middle;
+    margin: 3px;
+  }
+  button.ui-checkbox[data-state="checked"],
+  button.ui-checkbox[data-state="checked"]:hover:not(:disabled) {
+    @apply border-primary bg-primary text-white;
+  }
+  .ui-slider {
+    @apply relative flex h-[16px] w-[128px] touch-none select-none items-center;
+  }
+  .ui-slider[data-disabled] {
+    @apply opacity-40;
+  }
+  .ui-slider-track {
+    @apply relative h-[4px] w-full grow overflow-hidden rounded-full bg-secondary;
+  }
+  .ui-slider-range {
+    @apply absolute h-full bg-primary;
+  }
+  .ui-slider-thumb {
+    @apply block size-[13px] rounded-full bg-primary outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+  }
+  .ui-progress {
+    @apply relative h-[6px] w-full overflow-hidden rounded-full bg-secondary;
+  }
+  .ui-progress-indicator {
+    @apply h-full bg-primary;
+  }
+}

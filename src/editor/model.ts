@@ -12,7 +12,7 @@ import {
   type Animation,
   type SceneSettings,
 } from "./animation";
-import { withTemplateAnimation } from "./templateAnimation";
+import { withTemplateAnimation } from "./template-animation";
 
 export type Element = {
   id: string;

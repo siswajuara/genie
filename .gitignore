@@ -39,3 +39,7 @@ release-publish/
 # External asset packs are distributed separately from the app.
 asset-packs/*/pack/
 asset-packs/*.zip
+
+# Browser test artifacts
+/test-results/
+/playwright-report/

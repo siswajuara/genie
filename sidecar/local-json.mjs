@@ -36,7 +36,6 @@ export async function readConfig(filename) {
     "zernio",
     "elevenlabs",
     "soniox",
-    "cloudflare",
   ]) {
     config[provider] ??= {};
     if (typeof config[provider] !== "object" || Array.isArray(config[provider]))

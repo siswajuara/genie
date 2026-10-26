@@ -19,7 +19,7 @@ export const defaultChromaKey: ChromaKey = {
 };
 
 // Compare chrominance so shadows and highlights in the backdrop are keyed too.
-export function applyChromaKey(pixels: Uint8ClampedArray, key: ChromaKey) {
+function applyChromaKey(pixels: Uint8ClampedArray, key: ChromaKey) {
   if (!key.enabled) return;
   const rgb = [1, 3, 5].map((at) => parseInt(key.color.slice(at, at + 2), 16));
   const cb = (r: number, g: number, b: number) =>
@@ -51,7 +51,7 @@ export function applyChromaKey(pixels: Uint8ClampedArray, key: ChromaKey) {
     }
   }
 }
-export function videoTime(element: Element, time: number, duration: number) {
+function videoTime(element: Element, time: number, duration: number) {
   const local =
     Math.max(0, time - (element.animation?.start ?? 0)) +
     (element.videoStart ?? 0);

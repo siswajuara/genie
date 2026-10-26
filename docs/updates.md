@@ -143,7 +143,7 @@ macOS updates use signed `.app.tar.gz`; users download DMG for a fresh installat
 
 | File                                  | Purpose                                                            |
 | ------------------------------------- | ------------------------------------------------------------------ |
-| `src/components/AppUpdates.tsx`       | Persistent update state, preferences, progress, install/restart UI |
+| `src/components/app-updates.tsx`       | Persistent update state, preferences, progress, install/restart UI |
 | `src-tauri/src/lib.rs`                | Plugin initialization and build availability                       |
 | `scripts/version.mjs`                 | SemVer validation and synchronized manifest changes                |
 | `scripts/release.mjs`                 | Changelog, optional release commit/tag/push                        |

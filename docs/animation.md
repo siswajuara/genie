@@ -6,7 +6,7 @@ Select **Animation** in the inspector to edit scene duration, the camera, transi
 
 ## Timeline and inspector
 
-- Hugeicons transport controls play, pause, loop, step individual frames, and jump to either end. Choose 24/30/60 fps for stepping and snapping, and 0.25×–2× for preview speed. Playback pauses when the browser tab is hidden. **Edit canvas** returns to the editable layout; scrubbing or playing resumes the animation preview.
+- Lucide transport controls play, pause, loop, step individual frames, and jump to either end. Choose 24/30/60 fps for stepping and snapping, and 0.25×–2× for preview speed. Playback pauses when the browser tab is hidden. **Edit canvas** returns to the editable layout; scrubbing or playing resumes the animation preview.
 - Move a clip or trim either end. Snapping uses the chosen frame grid plus nearby clip/keyframe boundaries and the playhead. Toggle the magnet or hold Alt while dragging to move freely. The inspector accepts exact values. A drag is one undo step, and pointer cancellation restores the initial state.
 - Shift-click layer labels to select a range; Ctrl/Cmd-click toggles individual layers. Drag selected clips together while preserving relative offsets and respecting scene bounds. Locked layers remain protected.
 - Right-click a layer track to set its start/end at the playhead, fill the scene, add fades/keyframes, align selected starts, copy/paste animation, or remove animation. Pasting to non-text layers omits text-specific settings. Right-click empty track space to stagger unlocked layers.
@@ -31,7 +31,7 @@ Scene camera motion uses frame-centered pan/zoom and perspective dolly. Positive
 
 All 13 built-in templates are six seconds long. Headlines use character-rise reveals, longer content uses word-by-word reveals, content cards and their contents use shared entrance timing, supporting artwork enters next, and mascots have a restrained two-pixel float. Reveals finish before two seconds, leaving at least four seconds with all text visible. Text stays steady after its entrance. Footers enter together. Default scene transitions are cuts, so all 13 templates export as exactly 78 seconds.
 
-The motion definitions live in `src/editor/templateAnimation.ts`; the original artwork and copy remain in `src/editor/presets.json`. Applying or replacing a template copies its scene settings and per-element animation into the document. Saved frame presets retain customized scene settings. Legacy template presets receive six-second defaults when loaded; existing customized animation is preserved.
+The motion definitions live in `src/editor/template-animation.ts`; the original artwork and copy remain in `src/editor/presets.json`. Applying or replacing a template copies its scene settings and per-element animation into the document. Saved frame presets retain customized scene settings. Legacy template presets receive six-second defaults when loaded; existing customized animation is preserved.
 
 ## Export
 
@@ -123,7 +123,7 @@ Expanded Chromium verification passed frame stepping, speed, playback range/loop
 
 ## UI design review
 
-The editor keeps Genie's existing Nunito typography, navy text, blue accent, light/dark surfaces, and compact properties controls. ENERGY 1 / RHYTHM 1 / MOTION 1 applies to the editing UI: controls respond immediately, and motion occurs only in explicitly requested artwork previews. Timeline rows align labels, clips, and time in one scrollable grid; color distinguishes selected timing data. Hugeicons film, play/pause, step, repeat, keyframe, fit, and magnet icons identify their corresponding timeline actions; the layers icon explains the missing-frame state. The dialog uses a native modal for focus containment, custom dropdowns for settings, and Escape handling. No new visual assets are required.
+The editor keeps Genie's existing Nunito typography, navy text, blue accent, light/dark surfaces, and compact properties controls. ENERGY 1 / RHYTHM 1 / MOTION 1 applies to the editing UI: controls respond immediately, and motion occurs only in explicitly requested artwork previews. Timeline rows align labels, clips, and time in one scrollable grid; color distinguishes selected timing data. Lucide film, play/pause, step, repeat, keyframe, fit, and magnet icons identify their corresponding timeline actions; the layers icon explains the missing-frame state. The dialog uses a native modal for focus containment, custom dropdowns for settings, and Escape handling. No new visual assets are required.
 
 - R-02/R-15/R-16 PASS: interface labels name concrete editing/export actions and contain no promotional claims or decorative em dashes.
 - R-03/R-34 PASS: compact and dark screenshots were inspected; the 760-pixel layout had no horizontal overflow.

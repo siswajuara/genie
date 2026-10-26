@@ -4,13 +4,17 @@ import { socialDevPlugin } from "./scripts/social-dev.mjs";
 // @ts-expect-error the development plugin is a Node module
 import { assetDevPlugin } from "./scripts/asset-dev.mjs";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), socialDevPlugin(), assetDevPlugin()],
+  plugins: [tailwindcss(), react(), socialDevPlugin(), assetDevPlugin()],
+  resolve: {
+    alias: { "@": new URL("./src", import.meta.url).pathname },
+  },
   // The SDK's browser bundle reads NODE_ENV through `process`; Vite does not
   // provide Node globals in the webview, so replace that expression at build time.
   define: {

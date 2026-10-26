@@ -47,7 +47,6 @@ try {
     "elevenlabs.mjs",
     "elevenlabs-config.mjs",
     "voice-prototype.mjs",
-    "cloudflare-ai.mjs",
   ])
     run(node, ["--check", path.join(directory, name)]);
   for (const name of ["social-core.mjs", "social-usage.mjs", "elevenlabs.mjs"])

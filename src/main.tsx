@@ -1,10 +1,10 @@
+import "./styles.css";
+import { Button } from "@/components/ui/button";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./styles.css";
-import "./components/ui/controls.css";
-import App from "./App";
+import App from "./app";
 import { initializeAssetLibrary } from "./editor/assets";
-import { initializeLocalStore, prepareLocalSave } from "./lib/localStore";
+import { initializeLocalStore, prepareLocalSave } from "./lib/local-store";
 import { isTauri } from "@tauri-apps/api/core";
 
 const root = createRoot(document.getElementById("root")!);
@@ -33,14 +33,14 @@ async function start() {
     );
   } catch (error) {
     root.render(
-      <main style={{ padding: 32, maxWidth: 640 }}>
+      <main className="max-w-[640px] p-8">
         <h1>Your local library could not open</h1>
         <p>
           Your existing data has been kept. Check free disk space and folder
           permissions, then retry.
         </p>
         <p role="alert">{String(error)}</p>
-        <button onClick={() => void start()}>Retry opening library</button>
+        <Button onClick={() => void start()}>Retry opening library</Button>
       </main>,
     );
   }
