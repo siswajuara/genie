@@ -1,0 +1,1086 @@
+import { useEffect, useRef, useState } from "react";
+import type { Editor } from "./useEditor";
+import type { AnimationPlayback } from "./useAnimationPlayback";
+import { uid, type Element } from "./model";
+import { sceneDuration } from "./animation";
+import {
+  audioToWav,
+  extractVideoAudio,
+  mixAudio,
+  readAudio,
+  validateAudio,
+  type AudioTrack,
+} from "./sound";
+import {
+  alignmentToWords,
+  defaultSubtitleStyle,
+  parseSrt,
+  toSrt,
+  validateSubtitles,
+  wordsToCues,
+  type SubtitleCue,
+  type SubtitleStyle,
+  type TimedWord,
+} from "./subtitles";
+import { socialRequest, useSocial } from "../social/client";
+import { exportMessage, saveExport } from "../lib/export";
+import { Icon } from "../components/ui/Icon";
+import { Accordion } from "../components/ui/Accordion";
+import {
+  PROTOTYPE_VOICE_ID,
+  PROTOTYPE_VOICE_NAME,
+} from "../../sidecar/voice-prototype.mjs";
+import "./audio.css";
+
+/** Kept for compatibility; the panel is now a single Narration flow. */
+export type AudioTool = "audio" | "subtitles" | "voice";
+
+type Speech = {
+  src: string;
+  alignment: Parameters<typeof alignmentToWords>[0];
+  characterCost: number | null;
+};
+
+const CAPTION_PRESETS: { name: string; patch: Partial<SubtitleStyle> }[] = [
+  {
+    name: "Classic",
+    patch: {
+      color: "#ffffff",
+      background: "#000000cc",
+      size: 4.5,
+      position: "bottom",
+    },
+  },
+  {
+    name: "Bold yellow",
+    patch: {
+      color: "#ffe14d",
+      background: "#000000d9",
+      size: 5.5,
+      position: "bottom",
+    },
+  },
+  {
+    name: "Dark box",
+    patch: {
+      color: "#ffffff",
+      background: "#101828e6",
+      size: 4,
+      position: "bottom",
+    },
+  },
+];
+
+function sizeLabel(size: number) {
+  if (size < 3.75) return "Small";
+  if (size > 5.25) return "Large";
+  return "Medium";
+}
+
+function Seconds({
+  label,
+  value,
+  onChange,
+  max = 600,
+  min = 0,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  max?: number;
+  min?: number;
+}) {
+  return (
+    <label className="audio-field">
+      <span>{label}</span>
+      <input
+        type="number"
+        aria-label={label}
+        step={0.05}
+        min={min}
+        max={max}
+        value={Number(value.toFixed(3))}
+        onChange={(ev) => {
+          if (
+            ev.target.value !== "" &&
+            Number.isFinite(ev.target.valueAsNumber)
+          )
+            onChange(ev.target.valueAsNumber);
+        }}
+      />
+    </label>
+  );
+}
+
+export function AudioPanel({
+  editor: e,
+  playback: p,
+  onClose,
+  tab,
+  onTabChange: setTab,
+  trackId,
+}: {
+  editor: Editor;
+  playback: AnimationPlayback;
+  onClose: () => void;
+  tab: AudioTool;
+  onTabChange: (tab: AudioTool) => void;
+  trackId?: string;
+}) {
+  const frame = e.frame;
+  const social = useSocial();
+  const accounts = social.config.elevenlabs.accounts.filter(
+    (account) => account.enabled && account.configured,
+  );
+  const draft = frame?.voiceoverDraft ?? {
+    script: "",
+    voiceId: PROTOTYPE_VOICE_ID,
+    accountId: accounts[0]?.id ?? "",
+    language: "id",
+    subtitles: true,
+  };
+  const { script, language, subtitles: showCaptions } = draft;
+  const accountId = draft.accountId || accounts[0]?.id || "";
+  const [busy, setBusy] = useState(""),
+    [error, setError] = useState(""),
+    [message, setMessage] = useState("");
+  const [styleOpen, setStyleOpen] = useState(false);
+  const audioInput = useRef<HTMLInputElement>(null),
+    srtInput = useRef<HTMLInputElement>(null);
+  const running = useRef(false);
+  const live = useRef({ e, frame });
+  live.current = { e, frame };
+  useEffect(() => {
+    if (trackId)
+      document
+        .getElementById(`audio-track-${trackId}`)
+        ?.scrollIntoView({ block: "nearest" });
+  }, [trackId, tab]);
+  useEffect(() => {
+    setError("");
+    setMessage("");
+  }, [frame?.id]);
+  const tracks = frame?.audioTracks ?? [],
+    cues = frame?.subtitles ?? [];
+  const style = frame?.subtitleStyle ?? defaultSubtitleStyle;
+  if (!frame)
+    return (
+      <section className="audio-panel narration-panel">
+        <p>Add a frame to work with narration.</p>
+        <button onClick={onClose}>Close</button>
+      </section>
+    );
+  const duration = sceneDuration(frame);
+  const voiceTracks = tracks.filter((track) => track.role === "voiceover");
+  const musicTracks = tracks.filter((track) => track.role !== "voiceover");
+  function setDraft(patch: Partial<typeof draft>) {
+    p.edit();
+    update({
+      voiceoverDraft: {
+        ...draft,
+        accountId,
+        ...patch,
+        voiceId: PROTOTYPE_VOICE_ID,
+      },
+    });
+  }
+  function update(patch: Partial<Element>, targetId = frame!.id) {
+    const editor = live.current.e;
+    const target = editor
+      .getDocument()
+      .elements.find((o) => o.id === targetId && o.t === "frame");
+    if (!target) throw Error("The target frame no longer exists.");
+    const next = { ...target, ...patch };
+    validateAudio(next);
+    validateSubtitles(next);
+    editor.patch(patch, [targetId]);
+  }
+  async function run(label: string, action: () => Promise<void>) {
+    if (running.current) return;
+    running.current = true;
+    setBusy(label);
+    setError("");
+    setMessage("");
+    p.edit();
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      running.current = false;
+      setBusy("");
+    }
+  }
+  function patchTrack(id: string, patch: Partial<AudioTrack>) {
+    try {
+      update({
+        audioTracks: tracks.map((track) =>
+          track.id === id ? { ...track, ...patch } : track,
+        ),
+      });
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+  function addTrack(
+    src: string,
+    sourceDuration: number,
+    name: string,
+    role: AudioTrack["role"],
+    targetId: string,
+  ) {
+    const target = live.current.e
+      .getDocument()
+      .elements.find((o) => o.id === targetId);
+    if (!target) throw Error("The target frame no longer exists.");
+    const track: AudioTrack = {
+      id: uid(),
+      name,
+      src,
+      role,
+      start: 0,
+      end: Math.min(
+        600,
+        role === "music" ? sceneDuration(target) : sourceDuration,
+      ),
+      trimStart: 0,
+      sourceDuration,
+      volume: role === "music" ? 0.2 : 1,
+      loop: role === "music",
+      muted: false,
+      fadeIn: role === "music" ? 0.5 : 0,
+      fadeOut: role === "music" ? 0.5 : 0,
+    };
+    update(
+      {
+        audioTracks: [...(target.audioTracks ?? []), track],
+        scene: {
+          ...target.scene,
+          duration: Math.min(600, Math.max(sceneDuration(target), track.end)),
+        },
+      },
+      targetId,
+    );
+  }
+  function addCues(newCues: SubtitleCue[], targetId = frame!.id) {
+    if (!newCues.length)
+      throw Error(
+        "No speech timings were returned. Your existing subtitles were kept.",
+      );
+    const target = live.current.e
+      .getDocument()
+      .elements.find((o) => o.id === targetId);
+    if (!target) throw Error("The target frame no longer exists.");
+    const combined = [...(target.subtitles ?? []), ...newCues].sort(
+      (a, b) => a.start - b.start,
+    );
+    update(
+      {
+        subtitles: combined,
+        scene: {
+          ...target.scene,
+          duration: Math.min(
+            600,
+            Math.max(sceneDuration(target), ...newCues.map((cue) => cue.end)),
+          ),
+        },
+      },
+      targetId,
+    );
+    setMessage(`Added ${newCues.length} editable subtitle cues.`);
+  }
+  function patchCue(id: string, patch: Partial<SubtitleCue>) {
+    try {
+      update({
+        subtitles: cues.map((cue) =>
+          cue.id === id ? { ...cue, ...patch } : cue,
+        ),
+        ...(patch.end && patch.end > duration
+          ? { scene: { ...frame!.scene, duration: patch.end } }
+          : {}),
+      });
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+  function seek(time: number) {
+    e.select([frame!.id]);
+    p.setOpen(true);
+    p.seek(time);
+  }
+  async function transcribe(track: AudioTrack) {
+    const targetId = frame!.id;
+    if (track.loop)
+      throw Error("Turn off looping before transcribing a speech track.");
+    const result = await socialRequest<{ words: TimedWord[] }>(
+      "elevenlabs.transcribe",
+      { accountId, src: track.src, language, confirmed: true },
+    );
+    const mapped = result.words
+      .filter(
+        (word) =>
+          word.end > track.trimStart &&
+          word.start < track.trimStart + track.end - track.start,
+      )
+      .map((word) => ({
+        ...word,
+        start: Math.max(
+          track.start,
+          word.start - track.trimStart + track.start,
+        ),
+        end: Math.min(track.end, word.end - track.trimStart + track.start),
+      }));
+    addCues(wordsToCues(mapped), targetId);
+    setTab("subtitles");
+  }
+  async function generate() {
+    const targetId = frame!.id;
+    await run("Generating narration…", async () => {
+      const result = await socialRequest<Speech>("elevenlabs.speech", {
+        accountId,
+        voiceId: PROTOTYPE_VOICE_ID,
+        text: script,
+        confirmed: true,
+      });
+      const blob = await (await fetch(result.src)).blob();
+      const audio = await readAudio(
+        new File([blob], "Voiceover.mp3", {
+          type: "audio/mpeg",
+        }),
+      );
+      addTrack(audio.src, audio.duration, "Voiceover", "voiceover", targetId);
+      if (showCaptions)
+        addCues(
+          wordsToCues(alignmentToWords(result.alignment, true)),
+          targetId,
+        );
+      setMessage(
+        `Narration added.${result.characterCost !== null ? ` ElevenLabs reported ${result.characterCost} characters billed.` : " Refresh credits in Settings for actual usage."}`,
+      );
+    });
+  }
+  const canGenerate = !!accountId && !!script.trim() && !busy;
+  return (
+    <section
+      className="audio-panel narration-panel"
+      aria-label="Narration"
+      onKeyDown={(ev) => ev.stopPropagation()}
+    >
+      <header className="audio-panel-header narration-head">
+        <div>
+          <strong>Narration</strong>
+          <span>
+            {frame.n} · {duration.toFixed(1)} s
+            {voiceTracks.length > 0 &&
+              ` · ${voiceTracks.length} voice track${voiceTracks.length > 1 ? "s" : ""}`}
+            {cues.length > 0 && ` · ${cues.length} captions`}
+          </span>
+        </div>
+        <button
+          disabled={!!busy}
+          aria-label="Close narration"
+          title="Close narration"
+          onClick={onClose}
+        >
+          <Icon name="close" size={16} />
+        </button>
+      </header>
+      <div className="audio-panel-body narration-body" aria-busy={!!busy}>
+        <fieldset disabled={!!busy}>
+          {!accounts.length && (
+            <p className="hint narration-warning" role="note">
+              Add your ElevenLabs API key in Settings → Audio accounts first.
+            </p>
+          )}
+          <section className="narration-step" aria-label="Script">
+            <h3>
+              <span className="narration-num" aria-hidden="true">1</span> What
+              should the narrator say?
+            </h3>
+            <label className="audio-field">
+              <span className="narration-count">
+                Script · {script.length.toLocaleString()} / 5,000 characters
+              </span>
+              <textarea
+                aria-label="Narration script"
+                rows={4}
+                maxLength={5000}
+                value={script}
+                onChange={(ev) => setDraft({ script: ev.target.value })}
+                placeholder="Write the narration for this frame…"
+              />
+            </label>
+            <p className="hint">
+              Eleven v4 follows directions such as [excited] and [softly].
+            </p>
+          </section>
+          <section className="narration-step" aria-label="Voice">
+            <h3>
+              <span className="narration-num" aria-hidden="true">2</span> Voice
+            </h3>
+            <div className="narration-voice-row">
+              <label className="audio-field narration-account">
+                <span>Voice account</span>
+                <select
+                  aria-label="Voice account"
+                  value={accountId}
+                  onChange={(ev) => setDraft({ accountId: ev.target.value })}
+                >
+                  <option value="">Choose an account</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="narration-voice-name" title="Prototype voice">
+                {PROTOTYPE_VOICE_NAME}
+                <small>expressive narration</small>
+              </p>
+            </div>
+          </section>
+          <section className="narration-step" aria-label="Captions">
+            <h3>
+              <span className="narration-num" aria-hidden="true">3</span>{" "}
+              Captions
+            </h3>
+            <label className="audio-check narration-toggle">
+              <input
+                type="checkbox"
+                checked={showCaptions}
+                onChange={(ev) => setDraft({ subtitles: ev.target.checked })}
+              />
+              Show captions that match the voice
+            </label>
+            <button
+              type="button"
+              className="narration-style-toggle"
+              aria-expanded={styleOpen}
+              onClick={() => setStyleOpen((value) => !value)}
+            >
+              <Icon name={styleOpen ? "up" : "down"} size={14} />
+              Caption style
+            </button>
+            {styleOpen && (
+              <div className="narration-style">
+                <div
+                  className="narration-presets"
+                  role="group"
+                  aria-label="Caption presets"
+                >
+                  {CAPTION_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      className="narration-preset"
+                      style={{
+                        color: preset.patch.color,
+                        background: preset.patch.background,
+                      }}
+                      title={`Apply the ${preset.name} caption style`}
+                      onClick={() =>
+                        update({
+                          subtitleStyle: { ...style, ...preset.patch },
+                        })
+                      }
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  className="narration-segment"
+                  role="group"
+                  aria-label="Caption position"
+                >
+                  {(
+                    [
+                      ["top", "Top"],
+                      ["center", "Middle"],
+                      ["bottom", "Bottom"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={style.position === value}
+                      title={`Show captions at the ${label.toLowerCase()}`}
+                      onClick={() =>
+                        update({ subtitleStyle: { ...style, position: value } })
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <label className="audio-field">
+                  <span>Caption size · {sizeLabel(style.size)}</span>
+                  <input
+                    type="range"
+                    aria-label="Caption size"
+                    min={1}
+                    max={15}
+                    step={0.5}
+                    value={style.size}
+                    onChange={(ev) =>
+                      update({
+                        subtitleStyle: {
+                          ...style,
+                          size: Number(ev.target.value),
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <div className="narration-colors">
+                  <label className="audio-field">
+                    <span>Text</span>
+                    <input
+                      type="color"
+                      aria-label="Caption text color"
+                      value={style.color.slice(0, 7)}
+                      onChange={(ev) =>
+                        update({
+                          subtitleStyle: { ...style, color: ev.target.value },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="audio-field">
+                    <span>Background</span>
+                    <input
+                      type="color"
+                      aria-label="Caption background color"
+                      value={style.background.slice(0, 7)}
+                      onChange={(ev) =>
+                        update({
+                          subtitleStyle: {
+                            ...style,
+                            background: `${ev.target.value}cc`,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <p className="narration-preview" aria-hidden="true">
+                    <span
+                      style={{
+                        color: style.color,
+                        background: style.background,
+                      }}
+                    >
+                      Captions look like this
+                    </span>
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+          {voiceTracks.length > 0 && (
+            <section className="narration-step" aria-label="Voice tracks">
+              <h3>Voice in this frame</h3>
+              {voiceTracks.map((track) => (
+                <article
+                  className={`audio-track-card${trackId === track.id ? " is-selected" : ""}`}
+                  id={`audio-track-${track.id}`}
+                  key={track.id}
+                  aria-label={track.name}
+                >
+                  <div className="audio-actions">
+                    <strong className="narration-track-name">
+                      {track.muted ? "Muted · " : ""}
+                      {track.name} · {track.start.toFixed(1)}–
+                      {track.end.toFixed(1)} s
+                    </strong>
+                    <button onClick={() => seek(track.start)}>
+                      Show in timeline
+                    </button>
+                    <button
+                      aria-label={`Delete ${track.name}`}
+                      onClick={() =>
+                        update({
+                          audioTracks: tracks.filter((t) => t.id !== track.id),
+                        })
+                      }
+                    >
+                      <Icon name="delete" size={15} />
+                    </button>
+                  </div>
+                  <div className="audio-fields">
+                    <label className="audio-field">
+                      <span>Volume · {Math.round(track.volume * 100)}%</span>
+                      <input
+                        aria-label={`Volume for ${track.name}`}
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={track.volume}
+                        onChange={(ev) =>
+                          patchTrack(track.id, {
+                            volume: Number(ev.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="audio-check">
+                      <input
+                        type="checkbox"
+                        checked={track.muted}
+                        onChange={(ev) =>
+                          patchTrack(track.id, { muted: ev.target.checked })
+                        }
+                      />
+                      Mute
+                    </label>
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+          <Accordion
+            className="narration-more"
+            title={`Music & sound effects${musicTracks.length ? ` · ${musicTracks.length}` : ""}`}
+          >
+            <div className="audio-actions">
+              <button onClick={() => audioInput.current?.click()}>
+                <Icon name="upload" size={15} /> Import audio
+              </button>
+              <button
+                disabled={
+                  !tracks.some((track) => !track.muted && track.volume > 0)
+                }
+                onClick={() =>
+                  void run("Mixing audio…", async () => {
+                    const buffer = await mixAudio(
+                      [frame],
+                      new AbortController().signal,
+                    );
+                    if (!buffer)
+                      throw Error("No audible tracks within this frame.");
+                    setMessage(
+                      exportMessage(
+                        await saveExport(audioToWav(buffer), `${frame.n}.wav`),
+                      ),
+                    );
+                  })
+                }
+              >
+                Export audio mix
+              </button>
+              <span className="hint">
+                MP3, WAV, M4A, OGG, FLAC · up to 25 MB. Music starts at 20%
+                volume.
+              </span>
+            </div>
+            <input
+              hidden
+              ref={audioInput}
+              type="file"
+              accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
+              aria-label="Import audio file"
+              onChange={(ev) => {
+                const file = ev.target.files?.[0],
+                  targetId = frame.id;
+                ev.target.value = "";
+                if (file)
+                  void run("Importing audio…", async () => {
+                    const result = await readAudio(file);
+                    addTrack(
+                      result.src,
+                      result.duration,
+                      file.name.slice(0, 200),
+                      "music",
+                      targetId,
+                    );
+                  });
+              }}
+            />
+            {e.doc.elements
+              .filter((o) => o.t === "video" && o.fid === frame.id && o.src)
+              .map((video) => (
+                <button
+                  key={video.id}
+                  onClick={() => {
+                    const targetId = frame.id;
+                    void run("Extracting video audio…", async () => {
+                      const start = video.animation?.start ?? 0,
+                        end = Math.min(
+                          duration,
+                          video.animation?.end ?? duration,
+                        );
+                      if (start >= end)
+                        throw Error(
+                          "Move the video clip inside the frame duration first.",
+                        );
+                      const result = await extractVideoAudio(
+                        video.src!,
+                        video.videoStart ?? 0,
+                        end - start,
+                      );
+                      const target = live.current.e
+                        .getDocument()
+                        .elements.find((o) => o.id === targetId);
+                      if (!target)
+                        throw Error("The target frame no longer exists.");
+                      update(
+                        {
+                          audioTracks: [
+                            ...(target.audioTracks ?? []),
+                            {
+                              id: uid(),
+                              name: `${video.n} audio`.slice(0, 200),
+                              src: result.src,
+                              role: "voiceover",
+                              start,
+                              end: Math.min(end, start + result.duration),
+                              trimStart: 0,
+                              sourceDuration: result.duration,
+                              volume: 1,
+                              loop: false,
+                              muted: false,
+                              fadeIn: 0,
+                              fadeOut: 0,
+                            },
+                          ],
+                        },
+                        targetId,
+                      );
+                      setMessage(
+                        "Video audio added as a voice track. Transcribe it under More options if you need captions.",
+                      );
+                    });
+                  }}
+                >
+                  Extract audio from {video.n}
+                </button>
+              ))}
+            {!tracks.length && (
+              <p className="audio-empty">
+                Add background music or sound effects. Tracks play with the
+                timeline and are included in MP4 exports.
+              </p>
+            )}
+            {tracks.map((track) => (
+              <article
+                className={`audio-track-card${trackId === track.id ? " is-selected" : ""}`}
+                id={`audio-track-${track.id}`}
+                key={track.id}
+                aria-label={track.name}
+              >
+                <div className="audio-actions">
+                  <input
+                    className="audio-track-name"
+                    aria-label="Track name"
+                    maxLength={200}
+                    value={track.name}
+                    onChange={(ev) =>
+                      patchTrack(track.id, { name: ev.target.value })
+                    }
+                  />
+                  <select
+                    aria-label={`Role for ${track.name}`}
+                    value={track.role}
+                    onChange={(ev) =>
+                      patchTrack(track.id, {
+                        role: ev.target.value as AudioTrack["role"],
+                        loop: ev.target.value === "music",
+                      })
+                    }
+                  >
+                    <option value="music">Background music</option>
+                    <option value="voiceover">Voiceover</option>
+                    <option value="sound">Sound effect</option>
+                  </select>
+                  <button
+                    aria-label={`Delete ${track.name}`}
+                    onClick={() =>
+                      update({
+                        audioTracks: tracks.filter((t) => t.id !== track.id),
+                      })
+                    }
+                  >
+                    <Icon name="delete" size={15} />
+                  </button>
+                </div>
+                <div className="audio-fields">
+                  <Seconds
+                    label="Start (s)"
+                    value={track.start}
+                    max={track.end - 0.05}
+                    onChange={(start) => patchTrack(track.id, { start })}
+                  />
+                  <Seconds
+                    label="End (s)"
+                    value={track.end}
+                    min={track.start + 0.05}
+                    onChange={(end) => patchTrack(track.id, { end })}
+                  />
+                  <label className="audio-field">
+                    <span>Volume · {Math.round(track.volume * 100)}%</span>
+                    <input
+                      aria-label={`Volume for ${track.name}`}
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={track.volume}
+                      onChange={(ev) =>
+                        patchTrack(track.id, {
+                          volume: Number(ev.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="audio-check">
+                    <input
+                      type="checkbox"
+                      checked={track.muted}
+                      onChange={(ev) =>
+                        patchTrack(track.id, { muted: ev.target.checked })
+                      }
+                    />
+                    Mute
+                  </label>
+                </div>
+                <details className="narration-details">
+                  <summary>Timing details</summary>
+                  <div className="audio-fields">
+                    <Seconds
+                      label="Trim source (s)"
+                      value={track.trimStart}
+                      max={track.sourceDuration - 0.05}
+                      onChange={(trimStart) =>
+                        patchTrack(track.id, { trimStart })
+                      }
+                    />
+                    <Seconds
+                      label="Fade in (s)"
+                      value={track.fadeIn}
+                      onChange={(fadeIn) => patchTrack(track.id, { fadeIn })}
+                    />
+                    <Seconds
+                      label="Fade out (s)"
+                      value={track.fadeOut}
+                      onChange={(fadeOut) => patchTrack(track.id, { fadeOut })}
+                    />
+                    <label className="audio-check">
+                      <input
+                        type="checkbox"
+                        checked={track.loop}
+                        onChange={(ev) =>
+                          patchTrack(track.id, { loop: ev.target.checked })
+                        }
+                      />
+                      Loop
+                    </label>
+                  </div>
+                </details>
+                {track.end > duration && (
+                  <p className="hint">
+                    This track extends beyond the frame.{" "}
+                    <button
+                      onClick={() =>
+                        update({
+                          scene: { ...frame.scene, duration: track.end },
+                        })
+                      }
+                    >
+                      Extend frame to {track.end.toFixed(1)} s
+                    </button>
+                  </p>
+                )}
+              </article>
+            ))}
+          </Accordion>
+          <Accordion
+            className="narration-more"
+            title={`Captions · ${cues.length}`}
+          >
+            <div className="audio-actions">
+              <button
+                onClick={() => {
+                  const start = Math.min(p.time, duration - 0.1);
+                  addCues([
+                    {
+                      id: uid(),
+                      start,
+                      end: Math.min(duration, start + 2),
+                      text: "Your subtitle",
+                    },
+                  ]);
+                }}
+              >
+                Add caption at playhead
+              </button>
+              {cues.length > 0 && (
+                <span className="hint">
+                  New captions are added after the existing ones.
+                </span>
+              )}
+            </div>
+            {!cues.length && (
+              <p className="audio-empty">
+                Captions appear when you generate narration, or add one
+                manually. They preview on the canvas and are burned into video
+                exports.
+              </p>
+            )}
+            <div className="subtitle-cues">
+              {cues.map((cue, i) => (
+                <div className="subtitle-cue" key={cue.id}>
+                  <button
+                    aria-label={`Preview subtitle ${i + 1}`}
+                    onClick={() => seek(cue.start)}
+                  >
+                    {i + 1}
+                  </button>
+                  <Seconds
+                    label={`Cue ${i + 1} start`}
+                    value={cue.start}
+                    max={cue.end - 0.001}
+                    onChange={(start) => patchCue(cue.id, { start })}
+                  />
+                  <Seconds
+                    label={`Cue ${i + 1} end`}
+                    value={cue.end}
+                    min={cue.start + 0.001}
+                    onChange={(end) => patchCue(cue.id, { end })}
+                  />
+                  <textarea
+                    rows={2}
+                    aria-label={`Subtitle ${i + 1} text`}
+                    maxLength={2000}
+                    value={cue.text}
+                    onChange={(ev) =>
+                      patchCue(cue.id, { text: ev.target.value })
+                    }
+                  />
+                  <button
+                    aria-label={`Delete subtitle ${i + 1}`}
+                    onClick={() =>
+                      update({
+                        subtitles: cues.filter((c) => c.id !== cue.id),
+                      })
+                    }
+                  >
+                    <Icon name="delete" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Accordion>
+          <Accordion className="narration-more" title="More options">
+            <div className="audio-actions">
+              <button onClick={() => srtInput.current?.click()}>
+                Import SRT
+              </button>
+              <button
+                disabled={!cues.length}
+                onClick={() =>
+                  void run("Exporting SRT…", async () => {
+                    setMessage(
+                      exportMessage(
+                        await saveExport(
+                          new Blob([toSrt(cues)], {
+                            type: "application/x-subrip;charset=utf-8",
+                          }),
+                          `${frame.n}.srt`,
+                        ),
+                      ),
+                    );
+                  })
+                }
+              >
+                Export SRT
+              </button>
+            </div>
+            <input
+              hidden
+              ref={srtInput}
+              type="file"
+              accept=".srt,application/x-subrip"
+              aria-label="Import SRT file"
+              onChange={(ev) => {
+                const file = ev.target.files?.[0],
+                  targetId = frame.id;
+                ev.target.value = "";
+                if (file)
+                  void run("Importing subtitles…", async () => {
+                    if (file.size > 2_000_000)
+                      throw Error("Choose an SRT file under 2 MB.");
+                    addCues(parseSrt(await file.text()), targetId);
+                  });
+              }}
+            />
+            <div className="narration-transcribe">
+              <label className="audio-field">
+                <span>Transcription language</span>
+                <input
+                  aria-label="Subtitle language"
+                  maxLength={3}
+                  value={language}
+                  placeholder="Auto"
+                  onChange={(ev) =>
+                    setDraft({ language: ev.target.value.toLowerCase() })
+                  }
+                />
+              </label>
+              <span className="hint">
+                Transcription sends audio to ElevenLabs and uses credits.
+              </span>
+              {tracks
+                .filter((track) => !track.loop)
+                .map((track) => (
+                  <button
+                    key={track.id}
+                    disabled={!accountId}
+                    onClick={() =>
+                      void run("Transcribing audio…", () => transcribe(track))
+                    }
+                  >
+                    Transcribe {track.name} · uses credits
+                  </button>
+                ))}
+              {!tracks.some((track) => !track.loop) && (
+                <p className="hint">
+                  Import a voice recording and turn Loop off, or generate a
+                  voiceover with captions.
+                </p>
+              )}
+            </div>
+          </Accordion>
+        </fieldset>
+        {busy && (
+          <p role="status">{busy} Keep this page open until it finishes.</p>
+        )}
+        {error && (
+          <p className="audio-error" role="alert">
+            {error}
+          </p>
+        )}
+        {message && <p role="status">{message}</p>}
+      </div>
+      <footer className="narration-foot">
+        <button
+          type="button"
+          className="primary narration-generate"
+          disabled={!canGenerate}
+          title={
+            !accountId
+              ? "Choose a voice account first"
+              : !script.trim()
+                ? "Write a script first"
+                : "Generate narration with ElevenLabs (uses credits)"
+          }
+          onClick={() => void generate()}
+        >
+          {busy ? busy : "Generate narration · uses credits"}
+        </button>
+      </footer>
+    </section>
+  );
+}

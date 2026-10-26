@@ -1,0 +1,41 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+asset-packs
+src/assets/generated/
+*.local
+/config.json
+/config.json.*.tmp
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+src-tauri/resources/sidecar/*
+!src-tauri/resources/sidecar/.gitkeep
+
+# Private updater signing material and generated CI override
+.keys/
+src-tauri/tauri.release.conf.json
+release-assets/
+release-publish/
+
+# External asset packs are distributed separately from the app.
+asset-packs/*/pack/
+asset-packs/*.zip

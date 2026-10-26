@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip/schema.json",
+  "ignoreBinaries": ["dpkg-deb", "ffmpeg", "ffprobe"],
+  "workspaces": {
+    ".": {
+      "entry": ["tests/**/*.test.{ts,mjs}"],
+      "project": [
+        "src/**/*.{ts,tsx,js}",
+        "scripts/**/*.mjs",
+        "tests/**/*.{ts,mjs}"
+      ]
+    },
+    "sidecar": {
+      "entry": ["social-bridge.mjs"]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "buffer": { "key": "", "organizationId": "" },
+  "zernio": { "key": "", "profileId": "" },
+  "elevenlabs": {
+    "accounts": [
+      { "id": "studio", "name": "Studio account", "key": "", "enabled": true },
+      { "id": "team", "name": "Team account", "key": "", "enabled": true }
+    ]
+  },
+  "soniox": { "key": "" },
+  "cloudflare": {
+    "key": "",
+    "accountId": "",
+    "gatewayId": "",
+    "model": "@cf/openai/gpt-oss-120b"
+  }
+}
