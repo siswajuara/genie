@@ -17,6 +17,8 @@ import { slugify } from "./identifiers";
 import { loadAsset, matchLibraryAsset } from "./assets";
 import { resolvePresetAssets, unresolvedAssetSlots } from "./resolve-assets";
 import { brandImageSource } from "../lib/brand";
+import { loadPreset, type PresetSummary } from "./preset-catalog";
+import { resizeFrameTiming, syncNarrationTiming } from "./animation";
 
 export function useEditor(
   initial?: CanvasDocument,
@@ -68,7 +70,8 @@ export function useEditor(
       commit &&
       (previous.elements.length !== value.elements.length ||
         previous.elements.some((o, i) => o !== value.elements[i]) ||
-        previous.metadata.name !== value.metadata.name)
+        previous.metadata.name !== value.metadata.name ||
+        previous.metadata.post !== value.metadata.post)
     ) {
       history.current = history.current.slice(0, cursor.current + 1);
       history.current.push(value);
@@ -147,21 +150,55 @@ export function useEditor(
           { x: (patch.x ?? o.x) - o.x, y: (patch.y ?? o.y) - o.y },
         ]),
     );
+    let elements = live.elements.map((o) => {
+      if (chosen.has(o.id)) {
+        const nextPatch =
+          patch.src !== undefined &&
+          patch.src !== o.src &&
+          !o.latex &&
+          !o.physics &&
+          !o.learning &&
+          patch.aiDescription === undefined
+            ? { ...patch, aiDescription: "" }
+            : patch;
+        return Object.entries(nextPatch).every(
+          ([key, value]) =>
+            (o as unknown as Record<string, unknown>)[key] === value,
+        )
+          ? o
+          : { ...o, ...nextPatch };
+      }
+      const offset = o.fid ? offsets.get(o.fid) : undefined;
+      return offset && (offset.x || offset.y)
+        ? { ...o, x: o.x + offset.x, y: o.y + offset.y }
+        : o;
+    });
+    if (patch.scene?.duration !== undefined)
+      for (const frame of live.elements.filter(
+        (o) => o.t === "frame" && chosen.has(o.id),
+      )) {
+        // Resize against the original duration before applying the frame patch.
+        elements = resizeFrameTiming(
+          elements.map((o) =>
+            o.id === frame.id ? { ...o, scene: frame.scene } : o,
+          ),
+          frame.id,
+          patch.scene.duration,
+        );
+        elements = elements.map((o) =>
+          o.id === frame.id
+            ? {
+                ...o,
+                scene: { ...patch.scene, duration: patch.scene!.duration! },
+              }
+            : o,
+        );
+      }
+    if (patch.audioTracks || patch.scene?.duration !== undefined)
+      elements = syncNarrationTiming(elements);
     change({
       ...live,
-      elements: live.elements.map((o) => {
-        if (chosen.has(o.id))
-          return Object.entries(patch).every(
-            ([key, value]) =>
-              (o as unknown as Record<string, unknown>)[key] === value,
-          )
-            ? o
-            : { ...o, ...patch };
-        const offset = o.fid ? offsets.get(o.fid) : undefined;
-        return offset && (offset.x || offset.y)
-          ? { ...o, x: o.x + offset.x, y: o.y + offset.y }
-          : o;
-      }),
+      elements,
     });
   };
   function undo() {
@@ -324,12 +361,13 @@ export function useEditor(
     change({ ...doc, elements: [...doc.elements, ...objects] });
     select([idMap.get(frame.id)!]);
   }
-  async function template(p: Preset, replace = false) {
+  async function template(p: Preset | PresetSummary, replace = false) {
     const request = ++presetRequest.current,
       targetId = frame?.id;
     try {
       notify("Loading preset assets…");
-      const resolved = await resolvePresetAssets(p);
+      const preset = await loadPreset(p);
+      const resolved = await resolvePresetAssets(preset);
       if (!mounted.current || (replace && request !== presetRequest.current))
         return;
       const live = current.current;
@@ -342,7 +380,7 @@ export function useEditor(
         return;
       }
       const next = applyPreset(live, resolved, targetId, replace);
-      change(next);
+      change({ ...next, elements: syncNarrationTiming(next.elements) });
       select([
         (replace || p.kind === "object") && targetId
           ? targetId
@@ -353,8 +391,10 @@ export function useEditor(
       notify(
         `${p.name} loaded. ${filled} image slots filled${images.length > filled ? `; ${images.length - filled} remain available for your own images` : ""}.`,
       );
+      return true;
     } catch (e) {
       notify(String(e));
+      return false;
     }
   }
   async function setIdentifier(value: string, ids = selection) {
@@ -368,7 +408,13 @@ export function useEditor(
     const brand = brandImageSource(identifier);
     const initialScene = buildScene(current.current.elements);
     const targets = current.current.elements.filter(
-      (o) => ids.includes(o.id) && o.t === "img" && !initialScene.isLocked(o),
+      (o) =>
+        ids.includes(o.id) &&
+        o.t === "img" &&
+        !o.latex &&
+        !o.physics &&
+        !o.learning &&
+        !initialScene.isLocked(o),
     );
     if (!targets.length) return;
     if (!asset && !brand) {
@@ -385,7 +431,12 @@ export function useEditor(
         scene = buildScene(live.elements);
       const elements = live.elements.map((o) =>
         targetIds.has(o.id) && o.identifier === identifier && !scene.isLocked(o)
-          ? { ...o, src, fit: o.fit || "contain" }
+          ? {
+              ...o,
+              src,
+              fit: o.fit || "contain",
+              aiDescription: src === o.src ? o.aiDescription : "",
+            }
           : o,
       );
       if (elements.some((o, i) => o !== live.elements[i]))
@@ -517,12 +568,22 @@ export function useEditor(
     if (!objects.length) throw new Error("Select elements first.");
     return {
       name,
+      schemaVersion: 2,
       identifier: slugify(name),
       kind,
+      collection: "My templates",
+      useCases: ["content"],
+      tags: [],
+      motion: "none",
+      ...(kind === "template" &&
+      objects.some((o) => o.brandRole === "logo" || o.brandRole === "footer")
+        ? { branding: "siswa-juara" as const }
+        : {}),
       ...(kind === "template"
         ? {
             W: frame.w,
             H: frame.h,
+            background: frame.fill || "#ffffff",
             scene: frame.scene ? copy(frame.scene) : undefined,
           }
         : {}),
@@ -531,7 +592,6 @@ export function useEditor(
         x: o.x - (frame?.x || 0),
         y: o.y - (frame?.y || 0),
         fid: undefined,
-        gid: undefined,
       })),
     };
   }

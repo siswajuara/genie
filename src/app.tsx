@@ -17,7 +17,6 @@ import {
   makeElement,
   parseDocument,
   parsePresets,
-  presets,
   uid,
   type Element,
   type Preset,
@@ -25,6 +24,8 @@ import {
 import { saveExport, exportMessage } from "./lib/export";
 import { Icon, type IconName } from "./components/ui/icon";
 import { ExportDialog } from "./editor/export-dialog";
+import { GenerateDialog } from "./editor/generate-dialog";
+import { Sparkles } from "lucide-react";
 import { useAnimationPlayback } from "./editor/use-animation-playback";
 import {
   MarketingWorkspace,
@@ -37,9 +38,10 @@ import {
   assetElement,
 } from "./editor/canvas-assets";
 import { AssetBrowser, personalLibraryAsset } from "./editor/asset-browser";
-import { TemplateCard } from "./editor/template-card";
+import { TemplateLibrary } from "./editor/template-library";
 import { DebugPanel } from "./components/debug-panel";
 import { loadAsset, type LibraryAsset } from "./editor/assets";
+import { prepareScienceElement } from "./editor/science";
 
 const elementIcons: Record<string, IconName> = {
   Text: "text",
@@ -52,6 +54,9 @@ const elementIcons: Record<string, IconName> = {
   Line: "line",
   Curve: "curve",
   "Image slot": "image",
+  "LaTeX equation": "text",
+  "Physics diagram": "circle",
+  "Learning diagram": "box",
 };
 const modules: Module[] = [
   "Canvases",
@@ -292,11 +297,11 @@ function WorkspacePage({
   );
   const playback = useAnimationPlayback(e);
   const [zen, setZen] = useState(false),
-    [json, setJson] = useState(""),
-    [search, setSearch] = useState("");
+    [json, setJson] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<"project" | "page">();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
   const [saved, setSaved] = useState<Preset[]>(() => {
     try {
@@ -310,8 +315,7 @@ function WorkspacePage({
   const [theme] = useState(() => localStore.getItem("genie.theme") || "light");
   const videoInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
-  const all = [...presets, ...saved],
-    artboards = frames(e.doc);
+  const artboards = frames(e.doc);
   function savePresets(next: Preset[]) {
     setSaved(next);
     try {
@@ -374,7 +378,40 @@ function WorkspacePage({
   }
 
   return (
-    <div className="studio" data-theme={theme}>
+    <div
+      className="studio"
+      data-theme={theme}
+      onKeyDownCapture={(event) => {
+        const target = event.target as HTMLElement;
+        if (
+          event.defaultPrevented ||
+          target.closest(
+            "input,textarea,select,[contenteditable='true'],[role='dialog'],[role='combobox'],[role='listbox'],[role='menu'],[role='slider'],[role='switch'],[role='checkbox'],[role='radio']",
+          )
+        )
+          return;
+        if (
+          event.code === "Space" &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          !event.shiftKey
+        ) {
+          // Capture keeps Space consistent even when a timeline clip/button has focus.
+          event.preventDefault();
+          event.stopPropagation();
+          if (!event.repeat) playback.toggle();
+        }
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          event.key.toLowerCase() === "e"
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (artboards.length) openExport();
+        }
+      }}
+    >
       <header className="studio-header">
         <div className="header-left">
           <Button
@@ -414,6 +451,17 @@ function WorkspacePage({
             onClick={() => setSettingsOpen(true)}
           >
             <Icon name="settings" size={16} />
+          </Button>
+          <Button
+            className="generate-btn"
+            aria-haspopup="dialog"
+            onClick={() => {
+              playback.edit();
+              setGenerateOpen(true);
+            }}
+          >
+            <Sparkles size={16} />
+            <span>Generate</span>
           </Button>
           <Button
             className="primary export-btn"
@@ -527,7 +575,14 @@ function WorkspacePage({
                         onDragStart={(ev) =>
                           ev.dataTransfer.setData("genie/element", kind)
                         }
-                        onClick={() => e.add(makeElement(kind))}
+                        onClick={() => {
+                          const element = makeElement(kind);
+                          if (element.latex)
+                            void prepareScienceElement(element)
+                              .then((ready) => e.add(ready))
+                              .catch((error) => e.notify(String(error)));
+                          else e.add(element);
+                        }}
                       >
                         <span aria-hidden="true" className="element-symbol">
                           <Icon name={elementIcons[kind]} size={25} />
@@ -558,40 +613,12 @@ function WorkspacePage({
                   pendingId={pendingAsset?.id}
                 />
               ) : (
-                <>
-                  <Input
-                    className="full"
-                    placeholder="Search templates"
-                    aria-label="Search templates"
-                    value={search}
-                    onChange={(ev) => setSearch(ev.target.value)}
-                  />
-                  <div className="template-list">
-                    {all
-                      .filter((preset) =>
-                        preset.name
-                          .toLowerCase()
-                          .includes(search.toLowerCase()),
-                      )
-                      .map((preset, i) => (
-                        <TemplateCard
-                          key={preset.name + i}
-                          preset={preset}
-                          canReplace={!!e.frame}
-                          onApply={(replace) => e.template(preset, replace)}
-                          onDelete={
-                            preset.b
-                              ? undefined
-                              : () =>
-                                  savePresets(saved.filter((s) => s !== preset))
-                          }
-                        />
-                      ))}
-                  </div>
-                  {!all.some((preset) =>
-                    preset.name.toLowerCase().includes(search.toLowerCase()),
-                  ) && <p className="hint">No templates match your search.</p>}
-                </>
+                <TemplateLibrary
+                  editor={e}
+                  saved={saved}
+                  onSave={savePresets}
+                  onImport={importJSON}
+                />
               )}
             </div>
           </aside>
@@ -641,10 +668,17 @@ function WorkspacePage({
         </span>
       </footer>
       {settingsOpen && (
-        <Dialog open onOpenChange={(open) => { if (!open) setSettingsOpen(false); }}>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setSettingsOpen(false);
+          }}
+        >
           <DialogContent className="modal-dialog" aria-describedby={undefined}>
             <header className="modal-head">
-              <DialogTitle asChild><h2>Canvas settings</h2></DialogTitle>
+              <DialogTitle asChild>
+                <h2>Canvas settings</h2>
+              </DialogTitle>
               <Button
                 className="icon-btn"
                 aria-label="Close settings"
@@ -712,6 +746,9 @@ function WorkspacePage({
           </DialogContent>
         </Dialog>
       )}
+      {generateOpen && (
+        <GenerateDialog editor={e} onClose={() => setGenerateOpen(false)} />
+      )}
       {exportOpen && (
         <ExportDialog
           editor={e}
@@ -720,10 +757,20 @@ function WorkspacePage({
         />
       )}
       {debugOpen && (
-        <Dialog open onOpenChange={(open) => { if (!open) setDebugOpen(false); }}>
-          <DialogContent className="modal-dialog debug-dialog" aria-describedby={undefined}>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setDebugOpen(false);
+          }}
+        >
+          <DialogContent
+            className="modal-dialog debug-dialog"
+            aria-describedby={undefined}
+          >
             <header className="modal-head">
-              <DialogTitle asChild><h2>Debug</h2></DialogTitle>
+              <DialogTitle asChild>
+                <h2>Debug</h2>
+              </DialogTitle>
               <Button
                 className="icon-btn"
                 aria-label="Close debug tools"
@@ -747,12 +794,22 @@ function WorkspacePage({
         </Dialog>
       )}
       {confirmDelete && (
-        <Dialog open onOpenChange={(open) => { if (!open) setConfirmDelete(undefined); }}>
-          <DialogContent className="confirm-dialog" aria-describedby="delete-description">
-            <DialogTitle asChild><h2>
-              Delete{" "}
-              {confirmDelete === "project" ? p.project.name : p.page.name}?
-            </h2></DialogTitle>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setConfirmDelete(undefined);
+          }}
+        >
+          <DialogContent
+            className="confirm-dialog"
+            aria-describedby="delete-description"
+          >
+            <DialogTitle asChild>
+              <h2>
+                Delete{" "}
+                {confirmDelete === "project" ? p.project.name : p.page.name}?
+              </h2>
+            </DialogTitle>
             <p id="delete-description">
               {confirmDelete === "project"
                 ? "This removes the project and all its pages."

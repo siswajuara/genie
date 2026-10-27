@@ -262,6 +262,7 @@ export function Publish({
           ],
     });
   }
+  const generatedPost = p.page.canvas.metadata.post;
   return (
     <>
       <PageIntro
@@ -373,6 +374,18 @@ export function Publish({
                 </>
               )}
             </div>
+            {generatedPost && (
+              <Button
+                onClick={() =>
+                  patch({
+                    title: generatedPost.name,
+                    caption: generatedPost.caption,
+                  })
+                }
+              >
+                Use generated post details
+              </Button>
+            )}
             <Label className="marketing-field">
               Post name{" "}
               <span className="field-optional">

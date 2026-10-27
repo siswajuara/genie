@@ -13,6 +13,7 @@ const manifest = JSON.parse(
 const files = {};
 for (const file of new Set([
   "manifest.json",
+  ...(manifest.presets || []).map((file) => file.path),
   ...manifest.assets.flatMap((asset) => [asset.path, asset.thumbnail]),
 ]))
   files[`siswa-juara/${file}`] = new Uint8Array(

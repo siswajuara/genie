@@ -25,14 +25,15 @@ pub(crate) fn load(app: &tauri::AppHandle) -> Result<Value, String> {
     if !config.is_object() {
         return Err("config.json must contain an object.".into());
     }
-    for provider in ["buffer", "zernio", "elevenlabs", "soniox"] {
+    for provider in ["buffer", "zernio", "elevenlabs", "soniox", "opencode"] {
         if config.get(provider).is_none() {
-            config[provider] = json!({"key":""});
+            config[provider] = if provider == "opencode" { json!({"url":"","token":"","model":""}) } else { json!({"key":""}) };
         }
         if !config[provider].is_object() {
             return Err(format!("Invalid {provider} configuration in config.json."));
         }
     }
+    save_opencode(&mut config, &json!({}))?;
     Ok(config)
 }
 pub(crate) fn save(app: &tauri::AppHandle, config: &Value) -> Result<(), String> {
@@ -49,7 +50,7 @@ pub(crate) fn save(app: &tauri::AppHandle, config: &Value) -> Result<(), String>
 }
 fn public(config: &Value) -> Value {
     let accounts: Vec<Value> = audio_accounts(config).iter().map(|account| json!({"id":account["id"],"name":account["name"],"configured":!account["key"].as_str().unwrap_or("").is_empty(),"enabled":account["enabled"].as_bool().unwrap_or(true)})).collect();
-    json!({"storage":"file","elevenlabs":{"configured":accounts.iter().any(|account| account["configured"] == true),"accounts":accounts},"buffer":{"configured":!config["buffer"]["key"].as_str().unwrap_or("").is_empty(),"organizationId":config["buffer"]["organizationId"].as_str().unwrap_or("")},"zernio":{"configured":!config["zernio"]["key"].as_str().unwrap_or("").is_empty(),"profileId":config["zernio"]["profileId"].as_str().unwrap_or("")}})
+    json!({"storage":"file","opencode":{"url":config["opencode"]["url"].as_str().unwrap_or(""),"model":config["opencode"]["model"].as_str().unwrap_or(""),"tokenConfigured":!config["opencode"]["token"].as_str().unwrap_or("").is_empty(),"mode":if config["opencode"]["url"].as_str().unwrap_or("").is_empty() {"local"} else {"url"}},"elevenlabs":{"configured":accounts.iter().any(|account| account["configured"] == true),"accounts":accounts},"buffer":{"configured":!config["buffer"]["key"].as_str().unwrap_or("").is_empty(),"organizationId":config["buffer"]["organizationId"].as_str().unwrap_or("")},"zernio":{"configured":!config["zernio"]["key"].as_str().unwrap_or("").is_empty(),"profileId":config["zernio"]["profileId"].as_str().unwrap_or("")}})
 }
 fn audio_accounts(config: &Value) -> Vec<Value> {
     let mut accounts = config["elevenlabs"]["accounts"]
@@ -130,6 +131,78 @@ fn save_audio_account(config: &mut Value, payload: &Value) -> Result<(), String>
     config["elevenlabs"]["key"] = json!("");
     Ok(())
 }
+fn save_opencode(config: &mut Value, payload: &Value) -> Result<(), String> {
+    let mut settings = json!({});
+    for field in ["url", "model", "token"] {
+        let current = &config["opencode"][field];
+        settings[field] = if current.is_null() {
+            json!("")
+        } else {
+            json!(current.as_str().ok_or("Invalid OpenCode settings.")?)
+        };
+    }
+    for field in ["url", "model", "token"] {
+        if let Some(value) = payload.get(field) {
+            let text = value.as_str().ok_or("Invalid OpenCode settings.")?;
+            if field == "token" && text.contains(['\r', '\n', '\0']) {
+                return Err("Enter a valid OpenCode service token.".into());
+            }
+            settings[field] = json!(text.trim());
+        }
+    }
+    if payload["removeToken"].as_bool() == Some(true) {
+        settings["token"] = json!("");
+    }
+    let raw_url = settings["url"].as_str().unwrap_or("");
+    if raw_url.len() > 2048 {
+        return Err("Enter a valid OpenCode service URL.".into());
+    }
+    if !raw_url.is_empty() {
+        let url = tauri::Url::parse(raw_url).map_err(|_| "Enter a valid OpenCode service URL.")?;
+        if !["http", "https"].contains(&url.scheme())
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.query().is_some()
+            || url.fragment().is_some()
+        {
+            return Err(
+                "Use an HTTP(S) service URL without embedded credentials, a query, or a fragment."
+                    .into(),
+            );
+        }
+        settings["url"] = json!(url.as_str().trim_end_matches('/'));
+    }
+    let token = settings["token"].as_str().unwrap_or("");
+    if token.len() > 8192 || token.contains(['\r', '\n', '\0']) {
+        return Err("Enter a valid OpenCode service token.".into());
+    }
+    let model = settings["model"].as_str().unwrap_or("");
+    if model.len() > 300
+        || (!model.is_empty()
+            && !model.split_once('/').is_some_and(|(provider, id)| {
+                !provider.is_empty()
+                    && provider
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || ['_', '.', '-'].contains(&c))
+                    && !id.is_empty()
+                    && !id.chars().any(|c| c.is_whitespace() || c == '\0')
+            }))
+    {
+        return Err("Use provider/model for the OpenCode model.".into());
+    }
+    let lowered = model.to_lowercase();
+    if ["codex", "cloudflare", "gpt-oss-120b"]
+        .iter()
+        .any(|name| lowered.contains(name))
+    {
+        return Err(
+            "Choose an OpenCode model; Codex and Cloudflare generation are disabled.".into(),
+        );
+    }
+    config["opencode"] = settings;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn social_settings(
     app: tauri::AppHandle,
@@ -142,11 +215,13 @@ pub async fn social_settings(
         let mut config = load(&app)?;
         if let Some(payload) = payload.filter(|value| value.get("provider").is_some()) {
             let provider = payload["provider"].as_str().ok_or("Choose a provider.")?;
-            if !["buffer", "zernio", "elevenlabs"].contains(&provider) {
+            if !["buffer", "zernio", "elevenlabs", "opencode"].contains(&provider) {
                 return Err("Unknown social provider.".into());
             }
             if provider == "elevenlabs" {
                 save_audio_account(&mut config, &payload)?;
+            } else if provider == "opencode" {
+                save_opencode(&mut config, &payload)?;
             } else {
                 if payload["removeKey"].as_bool() == Some(true) {
                     config[provider]["key"] = json!("");
@@ -180,6 +255,9 @@ pub async fn social_request(
     payload: Option<Value>,
 ) -> Result<Value, String> {
     if ![
+        "ai.generate",
+        "ai.narration",
+        "ai.models",
         "elevenlabs.usage",
         "elevenlabs.cached",
         "elevenlabs.select",
@@ -222,4 +300,47 @@ pub async fn social_request(
         if let Some(error) = body["error"].as_str() { return Err(error.into()); }
         Ok(body["data"].clone())
     }).await.map_err(|_| "The social integration stopped.".to_string())?
+}
+
+#[cfg(test)]
+mod opencode_tests {
+    use super::*;
+
+    #[test]
+    fn opencode_settings_keep_tokens_local_and_support_local_mode() {
+        let mut config = json!({"opencode": {}, "elevenlabs": {}, "buffer": {}, "zernio": {}});
+        save_opencode(&mut config, &json!({"url":"http://localhost:4096/", "token":"private-service-token", "model":"opencode-go/beam-free"})).unwrap();
+        assert_eq!(config["opencode"]["url"], "http://localhost:4096");
+        assert_eq!(public(&config)["opencode"]["tokenConfigured"], true);
+        assert!(
+            !public(&config)
+                .to_string()
+                .contains("private-service-token")
+        );
+        save_opencode(
+            &mut config,
+            &json!({"url":"", "model":"", "removeToken":true}),
+        )
+        .unwrap();
+        assert_eq!(public(&config)["opencode"]["mode"], "local");
+        assert_eq!(config["opencode"]["token"], "");
+    }
+
+    #[test]
+    fn opencode_settings_reject_disabled_models_and_invalid_connections() {
+        for payload in [
+            json!({"model":"codex/model"}),
+            json!({"model":"cloudflare/model"}),
+            json!({"model":"provider/gpt-oss-120b"}),
+            json!({"model":"missing-provider"}),
+            json!({"url":"file:///tmp/service"}),
+            json!({"url":"https://user:secret@example.test"}),
+            json!({"url":"https://example.test?token=secret"}),
+            json!({"token":"secret\r\nheader"}),
+        ] {
+            let mut config = json!({"opencode":{}});
+            assert!(save_opencode(&mut config, &payload).is_err());
+            assert_eq!(config, json!({"opencode":{}}));
+        }
+    }
 }

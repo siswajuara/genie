@@ -9,20 +9,27 @@ import { variants as x } from "thesvg/x";
 
 export const projectLogo = logo;
 const social = Object.fromEntries(
-  Object.entries({ tiktok, instagram, facebook, youtube, threads, linkedin, x }).map(
-    ([name, variants]) => {
-      const svg = (variants.mono ?? variants.default).replace(
-        /<svg\b[^>]*>/,
-        (tag) => tag
+  Object.entries({
+    tiktok,
+    instagram,
+    facebook,
+    youtube,
+    threads,
+    linkedin,
+    x,
+  }).map(([name, variants]) => {
+    const svg = (variants.mono ?? variants.default).replace(
+      /<svg\b[^>]*>/,
+      (tag) =>
+        tag
           .replace(/\s(?:width|height|fill)="[^"]*"/g, "")
           .replace("<svg ", '<svg width="256" height="256" fill="#0a367b" '),
-      );
-      return [
-        name,
-        `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
-      ];
-    },
-  ),
+    );
+    return [
+      name,
+      `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+    ];
+  }),
 );
 export function brandImageSource(identifier: string) {
   if (/^siswa-juara-logo-/.test(identifier)) return projectLogo;

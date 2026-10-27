@@ -27,24 +27,25 @@
   --radius-xl: 14px;
 }
 @layer base {
-  :root, .studio {
-  --background: #f4f5f9;
-  --card: #fff;
-  --foreground: #1b2a7a;
-  --muted-foreground: #626987;
-  --border: #d9dcea;
-  --primary: #2f4bd8;
-  --secondary: #edf0fc;
-  --destructive: #b52b3c
+  :root,
+  .studio {
+    --background: #f4f5f9;
+    --card: #fff;
+    --foreground: #1b2a7a;
+    --muted-foreground: #626987;
+    --border: #d9dcea;
+    --primary: #2f4bd8;
+    --secondary: #edf0fc;
+    --destructive: #b52b3c;
   }
   .studio[data-theme="dark"] {
-  --background: #12141f;
-  --card: #1c1f2e;
-  --foreground: #e6e9ff;
-  --muted-foreground: #aeb5d6;
-  --border: #383f5e;
-  --primary: #536de8;
-  --secondary: #2b304a;
-  --destructive: #ff9d9d
+    --background: #12141f;
+    --card: #1c1f2e;
+    --foreground: #e6e9ff;
+    --muted-foreground: #aeb5d6;
+    --border: #383f5e;
+    --primary: #536de8;
+    --secondary: #2b304a;
+    --destructive: #ff9d9d;
   }
 }

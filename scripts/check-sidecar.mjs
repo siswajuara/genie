@@ -41,6 +41,16 @@ try {
   assert.equal(run(node, ["--version"]), "v" + manifest.nodeVersion);
   for (const name of [
     "social-core.mjs",
+    "generate.mjs",
+    "opencode.mjs",
+    "opencode-config.mjs",
+    "opencode-generation.mjs",
+    "opencode-narration.mjs",
+    "science.mjs",
+    "learning.mjs",
+    "learning-extra.mjs",
+    "physics-extra.mjs",
+    "frame-context.mjs",
     "social-usage.mjs",
     "social-bridge.mjs",
     "local-json.mjs",
@@ -55,6 +65,28 @@ try {
       "-e",
       `await import(${JSON.stringify(pathToFileURL(path.join(directory, name)).href)});`,
     ]);
+  // Exercise the shipped SDK from a temp cwd with only a mocked HTTP service.
+  run(node, [
+    "--input-type=module",
+    "-e",
+    `
+    import assert from 'node:assert/strict';
+    const { connectOpenCode } = await import(${JSON.stringify(pathToFileURL(path.join(directory, "opencode.mjs")).href)});
+    let calls = 0;
+    const { client } = await connectOpenCode({opencode:{url:'http://mock.test'}}, async (input, init) => {
+      const request = new Request(input, init);
+      calls++;
+      if (new URL(request.url).pathname === '/openapi.json') return Response.json({paths:{'/api/experimental/generate':{post:{}}}});
+      if (request.method === 'POST') assert.equal(new URL(request.url).pathname, '/api/experimental/generate');
+      return Response.json(new URL(request.url).pathname === '/api/model' ? {data:[{providerID:'opencode-go',id:'beam-free'}]} : {data:{text:'{}'}});
+    }, {environment:{}});
+    assert.equal((await client.model.list()).data[0].id, 'beam-free');
+    assert.equal((await client.generate.text({prompt:'mock',model:{providerID:'opencode-go',id:'beam-free'}})).text, '{}');
+    assert.equal(calls, 3);
+    const { Service } = await import(${JSON.stringify(pathToFileURL(path.join(directory, "node_modules/@opencode/client/dist/promise/service.js")).href)});
+    assert.equal(typeof Service.ensure, 'function');
+  `,
+  ]);
   const digest = async (file) =>
     createHash("sha256")
       .update(await fs.readFile(file))

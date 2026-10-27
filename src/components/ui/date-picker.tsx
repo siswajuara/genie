@@ -10,7 +10,8 @@ const dateLabel = (d: Date) =>
     day: "numeric",
     year: "numeric",
   });
-export function DatePicker({  value,
+export function DatePicker({
+  value,
   onChange,
   label = "Date",
 }: {

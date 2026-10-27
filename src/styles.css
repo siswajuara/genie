@@ -13,4 +13,5 @@
 @import "./styles/marketing.css";
 @import "./styles/social.css";
 @import "./styles/updates.css";
+@import "./styles/generate.css";
 @source "./**/*.{ts,tsx}";

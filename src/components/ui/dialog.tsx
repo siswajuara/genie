@@ -9,7 +9,12 @@ export const DialogClose = DialogPrimitive.Close;
 export const DialogTitle = DialogPrimitive.Title;
 export const DialogDescription = DialogPrimitive.Description;
 
-export function DialogContent({ className, children, onCloseAutoFocus, ...props }: ComponentProps<typeof DialogPrimitive.Content>) {
+export function DialogContent({
+  className,
+  children,
+  onCloseAutoFocus,
+  ...props
+}: ComponentProps<typeof DialogPrimitive.Content>) {
   const [opener] = useState(() => document.activeElement as HTMLElement | null);
   return (
     <DialogPrimitive.Portal container={portalContainer()}>

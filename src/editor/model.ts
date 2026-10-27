@@ -5,14 +5,26 @@ import {
   type SubtitleCue,
   type SubtitleStyle,
 } from "./subtitles";
-import builtins from "./presets.json";
 import { slugify } from "./identifiers";
 import {
   validateAnimationData,
+  syncNarrationTiming,
   type Animation,
   type SceneSettings,
 } from "./animation";
 import { withTemplateAnimation } from "./template-animation";
+import {
+  normalizeLatex,
+  normalizePhysics,
+  type LatexSpec,
+  type PhysicsSpec,
+} from "../../sidecar/science.mjs";
+import {
+  normalizeLearning,
+  type LearningSpec,
+} from "../../sidecar/learning.mjs";
+import { learningSvg } from "./learning-drawing.mjs";
+import { physicsSvg } from "./physics-drawing.mjs";
 
 export type Element = {
   id: string;
@@ -25,14 +37,21 @@ export type Element = {
   h: number;
   fid?: string;
   gid?: string;
+  brandRole?: "logo" | "footer" | "content";
+  generationRole?: "editable" | "fixed" | "page-number";
+  generationGroup?: string;
   hide?: boolean;
   lock?: boolean;
   text?: string;
   src?: string;
+  latex?: LatexSpec;
+  physics?: PhysicsSpec;
+  learning?: LearningSpec;
   chromaKey?: ChromaKey;
   videoStart?: number;
   videoLoop?: boolean;
   label?: string;
+  aiDescription?: string;
   font?: string;
   align?: string;
   fit?: string;
@@ -65,14 +84,25 @@ export type Element = {
   subtitleStyle?: SubtitleStyle;
 };
 export type Preset = {
+  schemaVersion?: 2;
   name: string;
   identifier?: string;
   kind: "template" | "object";
   W?: number;
   H?: number;
+  background?: string;
   objects: Element[];
   b?: number;
   scene?: SceneSettings;
+  description?: string;
+  useCases?: string[];
+  tags?: string[];
+  collection?: string;
+  motion?: "none" | "auto";
+  requiredAssets?: string[];
+  reference?: { file: string; assetIdentifier: string };
+  branding?: "siswa-juara";
+  teachingArea?: { x: number; y: number; w: number; h: number };
 };
 export type CanvasDocument = {
   version: 1;
@@ -81,13 +111,11 @@ export type CanvasDocument = {
     updatedAt: string;
     date?: string;
     dateRange?: { from: string; to?: string };
+    post?: { name: string; caption: string; frameIds: string[] };
   };
   elements: Element[];
 };
 export const uid = () => crypto.randomUUID();
-export const presets = (builtins as unknown as Preset[]).map(
-  withTemplateAnimation,
-);
 export const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const frames = (doc: CanvasDocument) =>
   doc.elements.filter((o) => o.t === "frame");
@@ -109,6 +137,7 @@ export function applyPreset(
       Object.assign(frame, {
         w: preset.W || 1122,
         h: preset.H || 1402,
+        fill: preset.background || "#ffffff",
         n: preset.name,
         identifier: preset.identifier || slugify(preset.name) || undefined,
         ...(preset.scene ? { scene: copy(preset.scene) } : {}),
@@ -123,18 +152,22 @@ export function applyPreset(
         y: 80,
         w: preset.W || 1122,
         h: preset.H || 1402,
-        fill: "#ffffff",
+        fill: preset.background || "#ffffff",
         scene: preset.scene ? copy(preset.scene) : undefined,
       };
       next.elements.push(frame);
     }
   }
   if (!frame) throw new Error("Add or select a frame first.");
+  const groups = new Map<string, string>();
+  for (const o of preset.objects)
+    if (o.gid && !groups.has(o.gid)) groups.set(o.gid, uid());
   next.elements.push(
     ...preset.objects.map((o) => ({
       ...copy(o),
       identifier: o.identifier || slugify(o.n) || undefined,
       id: uid(),
+      gid: o.gid ? groups.get(o.gid) : undefined,
       x: o.x + frame.x,
       y: o.y + frame.y,
       fid: frame.id,
@@ -142,18 +175,14 @@ export function applyPreset(
   );
   return stamp(next);
 }
-export const initialDocument = () =>
-  applyPreset(
-    {
-      version: 1,
-      metadata: {
-        name: "Siswa Juara design",
-        updatedAt: new Date().toISOString(),
-      },
-      elements: [],
-    },
-    presets[0],
-  );
+export const initialDocument = (): CanvasDocument => ({
+  version: 1,
+  metadata: {
+    name: "Siswa Juara design",
+    updatedAt: new Date().toISOString(),
+  },
+  elements: [],
+});
 
 const types = new Set([
   "frame",
@@ -203,18 +232,47 @@ export function validateElements(value: unknown): Element[] {
       "src",
       "font",
       "label",
+      "aiDescription",
       "text",
+      "generationGroup",
     ]) {
       const v = (o as unknown as Record<string, unknown>)[key];
       if (v !== undefined && typeof v !== "string")
         throw new Error(`Invalid ${key} on ${o.n}.`);
     }
+    if (o.aiDescription !== undefined && o.aiDescription.length > 4000)
+      throw Error("Use an AI description of at most 4,000 characters.");
     if (o.identifier !== undefined) {
       o.identifier = slugify(o.identifier);
       if (!o.identifier)
         throw new Error(
           `Identifier on ${o.n} must contain letters or numbers.`,
         );
+    }
+    if (
+      o.brandRole !== undefined &&
+      !["logo", "footer", "content"].includes(o.brandRole)
+    )
+      throw new Error("Invalid branding role.");
+    if (
+      o.generationRole !== undefined &&
+      !["editable", "fixed", "page-number"].includes(o.generationRole)
+    )
+      throw new Error("Invalid generation role.");
+    if (o.latex !== undefined) {
+      if (o.t !== "img" || o.physics || o.learning)
+        throw Error("LaTeX requires an equation image layer.");
+      o.latex = normalizeLatex(o.latex);
+    }
+    if (o.physics !== undefined) {
+      if (o.t !== "img" || o.latex || o.learning)
+        throw Error("Physics requires a diagram image layer.");
+      o.physics = normalizePhysics(o.physics);
+    }
+    if (o.learning !== undefined) {
+      if (o.t !== "img" || o.latex || o.physics)
+        throw Error("Learning requires a teaching diagram image layer.");
+      o.learning = normalizeLearning(o.learning);
     }
     for (const key of numbers) {
       const v = (o as unknown as Record<string, unknown>)[key];
@@ -304,10 +362,23 @@ export function parseDocument(value: unknown): CanvasDocument {
   const v = value as CanvasDocument;
   if (!v || v.version !== 1 || typeof v.metadata?.name !== "string")
     throw new Error("Expected version: 1 and metadata.name.");
+  const post = v.metadata.post;
+  if (
+    post !== undefined &&
+    (!post ||
+      typeof post.name !== "string" ||
+      post.name.length > 100 ||
+      typeof post.caption !== "string" ||
+      post.caption.length > 5000 ||
+      !Array.isArray(post.frameIds) ||
+      post.frameIds.length > 10 ||
+      !post.frameIds.every((id) => typeof id === "string"))
+  )
+    throw Error("Invalid generated post metadata.");
   return stamp({
     version: 1,
     metadata: v.metadata,
-    elements: validateElements(v.elements),
+    elements: syncNarrationTiming(validateElements(v.elements)),
   });
 }
 export function parsePresets(value: unknown): Preset[] {
@@ -330,6 +401,21 @@ export function parsePresets(value: unknown): Preset[] {
       (!(p.W! > 0) || !(p.H! > 0) || p.W! > 16000 || p.H! > 16000)
     )
       throw new Error("Template dimensions must be between 1 and 16,000.");
+    if (p.teachingArea !== undefined) {
+      const a = p.teachingArea;
+      if (
+        !a ||
+        typeof a !== "object" ||
+        ![a.x, a.y, a.w, a.h].every(Number.isFinite) ||
+        a.x < 0 ||
+        a.y < 0 ||
+        a.w < 100 ||
+        a.h < 100 ||
+        a.x + a.w > (p.W || 0) ||
+        a.y + a.h > (p.H || 0)
+      )
+        throw Error("Teaching visual area must fit inside the template.");
+    }
     if (p.scene !== undefined)
       validateAnimationData({
         id: "preset",
@@ -341,6 +427,36 @@ export function parsePresets(value: unknown): Preset[] {
         h: p.H || 1,
         scene: p.scene,
       });
+    if (p.schemaVersion !== undefined && p.schemaVersion !== 2)
+      throw new Error("Unsupported preset schema version.");
+    if (
+      p.background !== undefined &&
+      (typeof p.background !== "string" ||
+        !/^(#[\da-f]{3}|#[\da-f]{4}|#[\da-f]{6}|#[\da-f]{8}|transparent)$/i.test(
+          p.background,
+        ))
+    )
+      throw new Error("Invalid preset background.");
+    for (const key of ["useCases", "tags", "requiredAssets"] as const)
+      if (
+        p[key] !== undefined &&
+        (!Array.isArray(p[key]) || !p[key]!.every((v) => typeof v === "string"))
+      )
+        throw new Error(`Invalid preset ${key}.`);
+    for (const key of ["description", "collection"] as const)
+      if (p[key] !== undefined && typeof p[key] !== "string")
+        throw new Error(`Invalid preset ${key}.`);
+    if (p.motion !== undefined && !["none", "auto"].includes(p.motion))
+      throw new Error("Invalid preset motion.");
+    if (p.branding !== undefined && p.branding !== "siswa-juara")
+      throw new Error("Invalid preset branding.");
+    if (
+      p.reference !== undefined &&
+      (!p.reference ||
+        typeof p.reference.file !== "string" ||
+        typeof p.reference.assetIdentifier !== "string")
+    )
+      throw new Error("Invalid preset reference.");
     return withTemplateAnimation({
       ...p,
       identifier: p.identifier ? slugify(p.identifier) : slugify(p.name),
@@ -360,6 +476,9 @@ export const elementKinds = [
   "Line",
   "Curve",
   "Image slot",
+  "LaTeX equation",
+  "Physics diagram",
+  "Learning diagram",
 ] as const;
 export function makeElement(kind: string): Element {
   const base: Element = {
@@ -402,6 +521,56 @@ export function makeElement(kind: string): Element {
     };
   if (kind === "Circle")
     return { ...base, t: "ellipse", w: 200, h: 200, fill: "#2f4bd8" };
+  if (kind === "LaTeX equation")
+    return {
+      ...base,
+      t: "img",
+      w: 800,
+      h: 240,
+      color: "#112866",
+      latex: {
+        source: "\\frac{1}{2}+\\frac{1}{4}=\\frac{3}{4}",
+        displayMode: true,
+      },
+      fit: "contain",
+      animation: {
+        start: 0,
+        enter: {
+          preset: "reveal-left",
+          duration: 1.4,
+          easing: "ease-in-out",
+          amount: 0,
+        },
+      },
+    };
+  if (kind === "Learning diagram") {
+    const learning = normalizeLearning({ kind: "cube" });
+    return {
+      ...base,
+      t: "img",
+      w: 900,
+      h: 500,
+      color: "#0757ec",
+      learning,
+      src: learningSvg(learning),
+      fit: "contain",
+      animation: { start: 0 },
+    };
+  }
+  if (kind === "Physics diagram") {
+    const physics = normalizePhysics({ kind: "pendulum" });
+    return {
+      ...base,
+      t: "img",
+      w: 900,
+      h: 500,
+      color: "#0757ec",
+      physics,
+      src: physicsSvg(physics),
+      fit: "contain",
+      animation: { start: 0 },
+    };
+  }
   if (kind === "Line" || kind === "Curve")
     return { ...base, t: "line", h: 0, lw: 8, bend: kind === "Curve" ? 70 : 0 };
   if (kind === "Image slot")

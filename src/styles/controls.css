@@ -1,260 +1,278 @@
-@layer components {.ui-icon {
-  @apply inline-block align-middle shrink-0 pointer-events-none;
-}
-.ui-accordion {
-  @apply my-[16px] mx-0 min-w-0;
-}
-.ui-accordion > .accordion-heading {
-  @apply m-0 [font:inherit] text-inherit normal-case tracking-[normal];
-}
-.accordion-trigger {
-  @apply flex items-center justify-between gap-[10px] w-full text-[12px] text-left;
-}
-.accordion-trigger:not(.pill-btn) {
-  @apply py-[4px] px-0 border-transparent bg-transparent;
-}
-.accordion-label {
-  @apply inline-flex items-center gap-[6px] min-w-0;
-}
-.accordion-chevron {
-  @apply inline-flex shrink-0 text-muted-foreground;
-  transition: transform 0.15s ease;
-}
-.accordion-trigger[data-state="open"] > .accordion-chevron {
-  transform: rotate(180deg);
-}
-.accordion-content[data-state="closed"] {
-  @apply hidden;
-}
-@media (prefers-reduced-motion: reduce) {
+@layer components {
+  .ui-icon {
+    @apply inline-block align-middle shrink-0 pointer-events-none;
+  }
+  .ui-accordion {
+    @apply my-[16px] mx-0 min-w-0;
+  }
+  .ui-accordion > .accordion-heading {
+    @apply m-0 [font:inherit] text-inherit normal-case tracking-[normal];
+  }
+  .accordion-trigger {
+    @apply flex items-center justify-between gap-[10px] w-full text-[12px] text-left;
+  }
+  .accordion-trigger:not(.pill-btn) {
+    @apply py-[4px] px-0 border-transparent bg-transparent;
+  }
+  .accordion-label {
+    @apply inline-flex items-center gap-[6px] min-w-0;
+  }
   .accordion-chevron {
-    transition: none;
+    @apply inline-flex shrink-0 text-muted-foreground;
+    transition: transform 0.15s ease;
   }
-}
-button:has(> .ui-icon) {
-  @apply inline-flex items-center justify-center gap-[5px];
-}
-.property > .select-trigger,
-.property > .number-field,
-.property > .color-trigger {
-  @apply flex-[1] min-w-0 w-0;
-}
-.select-trigger {
-  @apply flex items-center justify-between gap-[8px] text-left min-h-[34px];
-}
-.select-trigger > span:first-child {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
-}
-.select-menu,
-.picker-popover {
-  @apply z-[1000] bg-card text-foreground border border-solid border-border rounded-[8px] shadow-[0_8px_28px_#0002];
-  font:
-    13px/1.5 Nunito,
-    system-ui,
-    sans-serif;
-}
-.select-menu {
-  @apply min-w-[var(--radix-select-trigger-width)] max-w-[min(380px,_90vw)] max-h-[min(320px,_var(--radix-select-content-available-height))] overflow-hidden p-[4px];
-}
-.select-option {
-  @apply flex items-center justify-between gap-[18px] py-[8px] px-[10px] rounded-[4px] cursor-pointer [outline:none] wrap-anywhere;
-}
-.select-option[data-highlighted] {
-  @apply bg-secondary text-primary;
-}
-.select-option[data-state="checked"] {
-  @apply font-extrabold;
-}
-.select-scroll {
-  @apply flex justify-center bg-card;
-}
-.picker-popover {
-  @apply p-[12px] max-w-[calc(100vw_-_24px)] max-h-[var(--radix-popover-content-available-height)] overflow-auto;
-}
-.number-field {
-  @apply flex items-stretch border border-solid border-border rounded-[6px] overflow-hidden bg-card min-h-[33px];
-}
-.number-field:focus-within {
-  @apply outline-[2px] outline-solid outline-primary outline-offset-[1px];
-}
-.number-field input {
-  @apply w-full min-w-[20px] border-0 rounded-none py-[5px] px-[1px] text-center [outline:none]! tabular-nums;
-}
-.number-field button {
-  @apply border-0 rounded-none min-w-[23px] p-[3px] flex justify-center items-center text-muted-foreground;
-}
-.color-trigger {
-  @apply flex items-center gap-[7px] py-[5px] px-[7px] text-left min-h-[34px] text-[11px];
-}
-.color-trigger > span:nth-child(2) {
-  @apply flex-[1] overflow-hidden text-ellipsis;
-}
-.color-swatch {
-  @apply block w-[22px] h-[22px] shrink-0 p-0 border border-solid border-border rounded-[4px] overflow-hidden;
-  background: conic-gradient(#c0c0c0 25%, white 0 50%, #c0c0c0 0 75%, white 0) 0
-    0/8px 8px;
-}
-.color-swatch > span {
-  @apply block w-full h-full;
-}
-.color-picker .react-colorful {
-  @apply w-[220px] h-[180px];
-}
-.color-picker .react-colorful__pointer {
-  @apply w-[18px] h-[18px];
-}
-.color-hex {
-  @apply flex items-center gap-[10px] mt-[12px];
-}
-.color-hex input {
-  @apply w-[170px];
-}
-.color-presets {
-  @apply flex gap-[10px] mt-[12px];
-}
-.date-trigger {
-  @apply flex items-center gap-[7px] text-left w-full text-[11px];
-}
-.date-trigger > span {
-  @apply flex-[1];
-}
-.picker-popover .rdp-root {
-  --rdp-accent-color: var(--primary);
-  --rdp-accent-background-color: var(--secondary);
-  --rdp-day-width: 36px;
-  --rdp-day-height: 36px;
-  --rdp-day_button-width: 34px;
-  --rdp-day_button-height: 34px;
-  --rdp-range_middle-background-color: var(--secondary);
-  --rdp-range_middle-color: var(--foreground);
-  --rdp-range_start-color: white;
-  --rdp-range_end-color: white;
-}
-.picker-popover .rdp-button_previous,
-.picker-popover .rdp-button_next {
-  @apply text-foreground;
-}
-.picker-popover .rdp-day_button {
-  @apply p-0 text-inherit bg-transparent;
-}
-.picker-popover .rdp-weekday {
-  @apply text-muted-foreground opacity-100 text-[11px];
-}
-.picker-actions {
-  @apply flex justify-between border-t border-solid border-t-border pt-[10px] mt-[10px];
-}
-.font-picker-panel {
-  @apply w-[300px] min-h-[335px];
-}
-.font-picker-panel > label {
-  @apply block font-extrabold mb-[8px];
-}
-.font-picker-panel .fontpicker {
-  @apply bg-card border-border rounded-[6px] min-h-[38px];
-}
-.font-picker-panel .fontpicker__search {
-  @apply opacity-100 bg-card text-foreground text-[13px] rounded-[6px]!;
-}
-.font-picker-panel .fontpicker__search:focus {
-  @apply outline-[2px]! outline-solid! outline-primary!;
-}
-.font-picker-panel .fontpicker__popout {
-  @apply relative top-[auto] border-0 max-h-[215px] bg-card mt-[38px];
-  transform: none;
-  @apply opacity-100;
-}
-.font-picker-panel .fontpicker__preview {
-  @apply hidden;
-}
-.font-picker-panel .fontpicker__option {
-  @apply rounded-[3px] cursor-pointer;
-  filter: none;
-}
-.font-picker-panel .fontpicker__option.current,
-.font-picker-panel .fontpicker__option.selected {
-  @apply bg-[#e0e6fa];
-}
-.studio[data-theme="dark"] .font-picker-panel .fontpicker__option {
-  filter: invert(1);
-}
-.font-local-options {
-  @apply flex flex-wrap gap-[5px] mt-[10px];
-}
-.font-local-options button {
-  @apply py-[4px] px-[7px] text-[11px];
-}
-.canvas-stage .inline-text {
-  @apply bg-transparent border-0 outline-[1px] outline-solid outline-primary outline-offset-[2px] rounded-none pr-0 pb-0 pl-0 resize-none shadow-none box-border overflow-visible whitespace-pre wrap-normal break-normal;
-  transform-origin: center center;
-  @apply cursor-text;
-}
-.canvas-stage .inline-text:focus-visible {
-  @apply outline-[1px] outline-solid outline-primary outline-offset-[2px];
-}
-.canvas-stage .inline-text {
-  font-kerning: none;
-  font-variant-ligatures: none;
-  text-rendering: geometricPrecision;
-}
-.element-symbol {
-  @apply flex items-center justify-center;
-}
-.geometry {
-  @apply grid-cols-[1fr_1fr];
-}
-.geometry .property {
-  @apply flex flex-col items-stretch gap-[3px];
-}
-.geometry .property > span {
-  @apply w-auto text-[10px];
-}
-.geometry .property > .number-field {
-  @apply w-auto flex-auto;
-}
-.project-switcher > .select-trigger {
-  @apply max-w-[240px] min-w-[130px];
-}
-.toggle-field {
-  @apply flex items-center justify-between gap-[12px] min-h-[34px];
-}
-.toggle-text {
-  @apply grid gap-[2px] text-[12px] font-semibold;
-}
-.toggle-text > small {
-  @apply text-[11px] font-normal text-muted-foreground;
-}
-.toggle-switch {
-  @apply relative flex-none w-[42px] h-[24px] p-0 border border-solid border-border rounded-full bg-background cursor-pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.toggle-switch[data-state="checked"] {
-  @apply bg-primary border-primary;
-}
-.toggle-switch:disabled {
-  @apply opacity-50 cursor-not-allowed;
-}
-.toggle-switch:focus-visible {
-  @apply outline-[2px] outline-solid outline-primary outline-offset-[2px];
-}
-.toggle-knob {
-  @apply absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-[50%] bg-[#fff] shadow-[0_1px_3px_#0004];
-  transition: transform 0.15s ease;
-}
-.toggle-switch[data-state="checked"] .toggle-knob {
-  transform: translateX(18px);
-}
-@media (prefers-reduced-motion: reduce) {
-  .toggle-switch,
-  .toggle-knob {
-    transition: none;
+  .accordion-trigger[data-state="open"] > .accordion-chevron {
+    transform: rotate(180deg);
   }
-}
-@media (max-width: 1150px) {
+  .accordion-content[data-state="closed"] {
+    @apply hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .accordion-chevron {
+      transition: none;
+    }
+  }
+  button:has(> .ui-icon) {
+    @apply inline-flex items-center justify-center gap-[5px];
+  }
+  .property > .select-trigger,
+  .property > .number-field,
+  .property > .color-trigger {
+    @apply flex-[1] min-w-0 w-0;
+  }
+  .select-trigger {
+    @apply flex items-center justify-between gap-[8px] text-left min-h-[34px];
+  }
+  .select-trigger > span:first-child {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+  .select-menu,
+  .picker-popover {
+    @apply z-[1000] bg-card text-foreground border border-solid border-border rounded-[8px] shadow-[0_8px_28px_#0002];
+    font:
+      13px/1.5 Nunito,
+      system-ui,
+      sans-serif;
+  }
+  .select-menu {
+    @apply min-w-[var(--radix-select-trigger-width)] max-w-[min(380px,_90vw)] max-h-[min(320px,_var(--radix-select-content-available-height))] overflow-hidden p-[4px];
+  }
+  .select-option {
+    @apply flex items-center justify-between gap-[18px] py-[8px] px-[10px] rounded-[4px] cursor-pointer [outline:none] wrap-anywhere;
+  }
+  .select-option[data-highlighted] {
+    @apply bg-secondary text-primary;
+  }
+  .select-option[data-state="checked"] {
+    @apply font-extrabold;
+  }
+  .select-scroll {
+    @apply flex justify-center bg-card;
+  }
+  .picker-popover {
+    @apply p-[12px] max-w-[calc(100vw_-_24px)] max-h-[var(--radix-popover-content-available-height)] overflow-auto;
+  }
+  .number-field {
+    @apply flex items-stretch border border-solid border-border rounded-[8px] overflow-hidden bg-card min-h-[36px];
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+  .number-field:hover {
+    @apply border-muted-foreground;
+  }
+  .number-field:focus-within {
+    @apply outline-[2px] outline-solid outline-primary outline-offset-[1px] border-primary;
+  }
+  .number-field input {
+    @apply w-full min-w-[20px] border-0 rounded-none py-[6px] px-[4px] text-center [outline:none]! tabular-nums text-[13px] font-bold;
+  }
+  .number-field button {
+    @apply border-0 rounded-none min-w-[30px] p-[3px] flex justify-center items-center text-muted-foreground shrink-0;
+    transition:
+      background 120ms ease,
+      color 120ms ease;
+  }
+  .number-field button:hover:not(:disabled) {
+    @apply bg-secondary text-foreground;
+  }
+  .number-field button:disabled {
+    @apply opacity-30 cursor-not-allowed;
+  }
+  .color-trigger {
+    @apply flex items-center gap-[7px] py-[5px] px-[7px] text-left min-h-[34px] text-[11px];
+  }
+  .color-trigger > span:nth-child(2) {
+    @apply flex-[1] overflow-hidden text-ellipsis;
+  }
+  .color-swatch {
+    @apply block w-[22px] h-[22px] shrink-0 p-0 border border-solid border-border rounded-[4px] overflow-hidden;
+    background: conic-gradient(#c0c0c0 25%, white 0 50%, #c0c0c0 0 75%, white 0)
+      0 0/8px 8px;
+  }
+  .color-swatch > span {
+    @apply block w-full h-full;
+  }
+  .color-picker .react-colorful {
+    @apply w-[220px] h-[180px];
+  }
+  .color-picker .react-colorful__pointer {
+    @apply w-[18px] h-[18px];
+  }
+  .color-hex {
+    @apply flex items-center gap-[10px] mt-[12px];
+  }
+  .color-hex input {
+    @apply w-[170px];
+  }
+  .color-presets {
+    @apply flex gap-[10px] mt-[12px];
+  }
+  .date-trigger {
+    @apply flex items-center gap-[7px] text-left w-full text-[11px];
+  }
+  .date-trigger > span {
+    @apply flex-[1];
+  }
+  .picker-popover .rdp-root {
+    --rdp-accent-color: var(--primary);
+    --rdp-accent-background-color: var(--secondary);
+    --rdp-day-width: 36px;
+    --rdp-day-height: 36px;
+    --rdp-day_button-width: 34px;
+    --rdp-day_button-height: 34px;
+    --rdp-range_middle-background-color: var(--secondary);
+    --rdp-range_middle-color: var(--foreground);
+    --rdp-range_start-color: white;
+    --rdp-range_end-color: white;
+  }
+  .picker-popover .rdp-button_previous,
+  .picker-popover .rdp-button_next {
+    @apply text-foreground;
+  }
+  .picker-popover .rdp-day_button {
+    @apply p-0 text-inherit bg-transparent;
+  }
+  .picker-popover .rdp-weekday {
+    @apply text-muted-foreground opacity-100 text-[11px];
+  }
+  .picker-actions {
+    @apply flex justify-between border-t border-solid border-t-border pt-[10px] mt-[10px];
+  }
+  .font-picker-panel {
+    @apply w-[300px] min-h-[335px];
+  }
+  .font-picker-panel > label {
+    @apply block font-extrabold mb-[8px];
+  }
+  .font-picker-panel .fontpicker {
+    @apply bg-card border-border rounded-[6px] min-h-[38px];
+  }
+  .font-picker-panel .fontpicker__search {
+    @apply opacity-100 bg-card text-foreground text-[13px] rounded-[6px]!;
+  }
+  .font-picker-panel .fontpicker__search:focus {
+    @apply outline-[2px]! outline-solid! outline-primary!;
+  }
+  .font-picker-panel .fontpicker__popout {
+    @apply relative top-[auto] border-0 max-h-[215px] bg-card mt-[38px];
+    transform: none;
+    @apply opacity-100;
+  }
+  .font-picker-panel .fontpicker__preview {
+    @apply hidden;
+  }
+  .font-picker-panel .fontpicker__option {
+    @apply rounded-[3px] cursor-pointer;
+    filter: none;
+  }
+  .font-picker-panel .fontpicker__option.current,
+  .font-picker-panel .fontpicker__option.selected {
+    @apply bg-[#e0e6fa];
+  }
+  .studio[data-theme="dark"] .font-picker-panel .fontpicker__option {
+    filter: invert(1);
+  }
+  .font-local-options {
+    @apply flex flex-wrap gap-[5px] mt-[10px];
+  }
+  .font-local-options button {
+    @apply py-[4px] px-[7px] text-[11px];
+  }
+  .canvas-stage .inline-text {
+    @apply bg-transparent border-0 outline-[1px] outline-solid outline-primary outline-offset-[2px] rounded-none pr-0 pb-0 pl-0 resize-none shadow-none box-border overflow-visible whitespace-pre wrap-normal break-normal;
+    transform-origin: center center;
+    @apply cursor-text;
+  }
+  .canvas-stage .inline-text:focus-visible {
+    @apply outline-[1px] outline-solid outline-primary outline-offset-[2px];
+  }
+  .canvas-stage .inline-text {
+    font-kerning: none;
+    font-variant-ligatures: none;
+    text-rendering: geometricPrecision;
+  }
+  .element-symbol {
+    @apply flex items-center justify-center;
+  }
   .geometry {
-    @apply grid-cols-[1fr_1fr];
+    @apply grid-cols-[1fr_1fr] gap-[8px];
+  }
+  .geometry .property {
+    @apply flex flex-col items-stretch gap-[4px] m-0;
   }
   .geometry .property > span {
-    @apply w-auto;
+    @apply w-auto text-[10px] font-extrabold uppercase tracking-[0.04em];
   }
-}
+  .geometry .property > .number-field {
+    @apply w-auto flex-auto;
+  }
+  .project-switcher > .select-trigger {
+    @apply max-w-[240px] min-w-[130px];
+  }
+  .toggle-field {
+    @apply flex items-center justify-between gap-[12px] min-h-[34px];
+  }
+  .toggle-text {
+    @apply grid gap-[2px] text-[12px] font-semibold;
+  }
+  .toggle-text > small {
+    @apply text-[11px] font-normal text-muted-foreground;
+  }
+  .toggle-switch {
+    @apply relative flex-none w-[42px] h-[24px] p-0 border border-solid border-border rounded-full bg-background cursor-pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .toggle-switch[data-state="checked"] {
+    @apply bg-primary border-primary;
+  }
+  .toggle-switch:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .toggle-switch:focus-visible {
+    @apply outline-[2px] outline-solid outline-primary outline-offset-[2px];
+  }
+  .toggle-knob {
+    @apply absolute top-[2px] left-[2px] w-[18px] h-[18px] rounded-[50%] bg-[#fff] shadow-[0_1px_3px_#0004];
+    transition: transform 0.15s ease;
+  }
+  .toggle-switch[data-state="checked"] .toggle-knob {
+    transform: translateX(18px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toggle-switch,
+    .toggle-knob {
+      transition: none;
+    }
+  }
+  @media (max-width: 1150px) {
+    .geometry {
+      @apply grid-cols-[1fr_1fr];
+    }
+    .geometry .property > span {
+      @apply w-auto;
+    }
+  }
 }

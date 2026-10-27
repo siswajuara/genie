@@ -2,9 +2,16 @@ import type { ComponentProps } from "react";
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 import { cn } from "@/lib/utils";
 
-export function Switch({ className, ...props }: ComponentProps<typeof SwitchPrimitive.Root>) {
+export function Switch({
+  className,
+  ...props
+}: ComponentProps<typeof SwitchPrimitive.Root>) {
   return (
-    <SwitchPrimitive.Root data-slot="switch" className={cn("toggle-switch", className)} {...props}>
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn("toggle-switch", className)}
+      {...props}
+    >
       <SwitchPrimitive.Thumb data-slot="switch-thumb" className="toggle-knob" />
     </SwitchPrimitive.Root>
   );

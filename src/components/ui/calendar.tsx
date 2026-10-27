@@ -20,6 +20,17 @@ const calendarComponents = {
   ),
 };
 
-export function Calendar({ className, components, ...props }: ComponentProps<typeof DayPicker>) {
-  return <DayPicker data-slot="calendar" className={cn("ui-calendar", className)} components={{ ...calendarComponents, ...components }} {...props} />;
+export function Calendar({
+  className,
+  components,
+  ...props
+}: ComponentProps<typeof DayPicker>) {
+  return (
+    <DayPicker
+      data-slot="calendar"
+      className={cn("ui-calendar", className)}
+      components={{ ...calendarComponents, ...components }}
+      {...props}
+    />
+  );
 }

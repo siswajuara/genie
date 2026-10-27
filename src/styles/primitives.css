@@ -1,45 +1,45 @@
 @layer components {
-button,
-input,
-select,
-textarea {
-  @apply [font:inherit];
-}
-button {
-  @apply cursor-pointer;
-}
-button:disabled {
-  @apply opacity-40 cursor-not-allowed;
-}
-button,
-input,
-select,
-textarea {
-  @apply text-foreground bg-card border border-solid border-border rounded-[6px] py-[7px] px-[10px] min-w-0;
-}
-button:hover:not(:disabled):not(.primary) {
-  @apply border-primary bg-secondary;
-}
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-canvas:focus-visible {
-  @apply outline-[2px] outline-solid outline-primary outline-offset-[2px];
-}
-textarea {
-  @apply resize-y;
-}
-button.primary {
-  @apply bg-primary border-primary text-white;
-}
-button.primary:hover:not(:disabled) {
-  @apply bg-[color-mix(in_srgb,_var(--primary)_88%,_#000)] border-[color-mix(in_srgb,_var(--primary)_88%,_#000)] text-white;
-}
-button.danger,
-.error {
-  @apply text-destructive;
-}
+  button,
+  input,
+  select,
+  textarea {
+    @apply [font:inherit];
+  }
+  button {
+    @apply cursor-pointer;
+  }
+  button:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    @apply text-foreground bg-card border border-solid border-border rounded-[6px] py-[7px] px-[10px] min-w-0;
+  }
+  button:hover:not(:disabled):not(.primary) {
+    @apply border-primary bg-secondary;
+  }
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  canvas:focus-visible {
+    @apply outline-[2px] outline-solid outline-primary outline-offset-[2px];
+  }
+  textarea {
+    @apply resize-y;
+  }
+  button.primary {
+    @apply bg-primary border-primary text-white;
+  }
+  button.primary:hover:not(:disabled) {
+    @apply bg-[color-mix(in_srgb,_var(--primary)_88%,_#000)] border-[color-mix(in_srgb,_var(--primary)_88%,_#000)] text-white;
+  }
+  button.danger,
+  .error {
+    @apply text-destructive;
+  }
   /* Shared shadcn controls inherit feature sizing without changing the design. */
   .dialog-overlay {
     @apply fixed inset-0 z-[100] bg-[#11162b66];

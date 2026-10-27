@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Connections } from "../social/connections";
 import { AudioConnections } from "../social/audio-connections";
+import { AIConnection } from "../social/ai-connection";
 import { UpdateSettings } from "../components/app-updates";
 import { StorageSettings } from "../components/storage-settings";
 import { AssetPackSettings } from "../editor/asset-pack-settings";
@@ -14,12 +15,7 @@ import { Icon } from "../components/ui/icon";
 import { DatePicker } from "../components/ui/date-picker";
 import { SelectField } from "../components/ui/select";
 import { dateISO } from "../components/ui/date";
-import {
-  Dialog,
-  EmptyState,
-  PageIntro,
-  PlatformIcon,
-} from "./shared";
+import { Dialog, EmptyState, PageIntro, PlatformIcon } from "./shared";
 import { MediaPreview } from "./frame-preview";
 import { platforms, type BrandSettings, type Post } from "./store";
 
@@ -283,7 +279,9 @@ export function Setting({
   useEffect(() => {
     const openAssets = (event: Event) => {
       if (
-        ["Assets", "Audio"].includes((event as CustomEvent).detail)
+        ["Assets", "Audio", "AI generation"].includes(
+          (event as CustomEvent).detail,
+        )
       )
         setSection((event as CustomEvent).detail);
     };
@@ -322,6 +320,11 @@ export function Setting({
             },
             { name: "Brand", icon: "heading" as const, hint: "Name & voice" },
             {
+              name: "AI generation",
+              icon: "settings" as const,
+              hint: "OpenCode & writing",
+            },
+            {
               name: "Assets",
               icon: "image" as const,
               hint: "Library folder",
@@ -352,6 +355,7 @@ export function Setting({
         <section className="settings-content">
           {section === "Social accounts" && <Connections />}
           {section === "Audio" && <AudioConnections />}
+          {section === "AI generation" && <AIConnection />}
           {section === "Assets" && <AssetPackSettings />}
           {section === "Storage" && <StorageSettings />}
           {section === "Brand" && (

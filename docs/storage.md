@@ -1,6 +1,8 @@
 # Local storage and recovery
 
-Canvases, pages, versions, personal templates, saved social drafts, and content plans stay on the device. Delivery receipts and request history stay local too. Provider keys and settings use local `config.json` outside the library database and project exports; no website social API is used.
+Canvases, pages, versions, personal templates, saved social drafts, and content plans stay on the device. Delivery receipts and request history stay local too. Frame narration drafts, embedded audio tracks, subtitle cues, and caption style belong to canvas documents and their versions.
+
+Provider keys and settings use local `config.json` outside the library database and project exports; no website social API is used.
 
 ## Why the old warning appeared
 
@@ -30,7 +32,9 @@ On first launch the app imports existing large Genie storage records. Existing d
 - **Create library backup** saves a complete SQLite snapshot under `library/backups/`.
 - **Reclaim unused space** removes image blobs that are no longer referenced by either current or previous records and compacts SQLite. It preserves conversations, canvases, versions, and backups.
 - **Open storage folder** opens the location containing the database and backups. Remove old backup files here only when you no longer need them. No automatic backup deletion is performed.
-- **Canvases** supports JSON export and deletion of individual designs. JSON exports are useful for moving designs; database backups also include chat history and personal templates.
+- **Canvases → Backup** exports all canvases, pages, and versions as JSON. Canvases also supports deleting individual designs. Workspace exports are useful for moving designs; database backups also include personal templates, local publishing records, and retained legacy records.
+
+Workspace JSON backups include canvas pages, versions, and embedded media, including audio and captions. The separate personal-template library is not part of that workspace JSON: export its templates individually or preserve it with a database backup. Provider keys and the external pack catalog are outside both the workspace export and the library database. A saved frame template carries layout and scene/layer animation settings but omits frame narration/audio/caption fields. See the [canvas guide](canvas.md#save-recover-and-move-your-work).
 
 Usage shows the library, backups, archived working files, and free space on its disk. Archived working files are not removed by library optimization.
 

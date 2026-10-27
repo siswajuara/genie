@@ -102,6 +102,7 @@ pub fn run() {
             asset_pack::asset_pack_status,
             asset_pack::asset_pack_choose,
             asset_pack::asset_pack_read,
+            asset_pack::asset_pack_read_preset,
             asset_pack::asset_pack_disconnect,
             disk::disk_load,
             disk::disk_write,

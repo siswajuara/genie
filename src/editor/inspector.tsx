@@ -20,6 +20,7 @@ import { matchLibraryAsset, useAssetLibrary } from "./assets";
 import { AnimationInspector } from "./animation-inspector";
 import type { AnimationPlayback } from "./use-animation-playback";
 import { AudioPanel } from "./audio-panel";
+import { ScienceInspector } from "./science-inspector";
 
 function openAssetBrowser() {
   window.dispatchEvent(new CustomEvent("genie:open-assets"));
@@ -80,7 +81,12 @@ function IdentifierField({
   const value = element.identifier || slugify(element.n),
     [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value, element.id]);
-  const match = element.t === "img" ? matchLibraryAsset(value) : undefined;
+  const imageSlot =
+    element.t === "img" &&
+    !element.latex &&
+    !element.physics &&
+    !element.learning;
+  const match = imageSlot ? matchLibraryAsset(value) : undefined;
   function commit() {
     const next = slugify(draft);
     setDraft(next || value);
@@ -107,14 +113,14 @@ function IdentifierField({
             }
           }}
         />
-        {element.t === "img" && (
+        {imageSlot && (
           <span
             className={`match-dot${match ? " is-match" : ""}`}
             title={match ? `Matches: ${match.name}` : "No library match"}
           />
         )}
       </div>
-      {element.t === "img" && match && (
+      {imageSlot && match && (
         <div className="asset-match">
           <img src={match.thumbnail} alt="" width={32} height={32} />
           <span>{match.name}</span>
@@ -132,9 +138,9 @@ const labels: Record<string, string> = {
   n: "Name",
   x: "X",
   y: "Y",
-  w: "W",
-  h: "H",
-  rot: "Rotate",
+  w: "Width",
+  h: "Height",
+  rot: "Rotation",
   op: "Opacity",
   lw: "Stroke",
   r: "Radius",
@@ -245,7 +251,11 @@ export function Inspector({
           (key === "op" && (v < 0 || v > 1)))
       )
         return;
-      if (typeof v === "number" && aspectLocked && (key === "w" || key === "h")) {
+      if (
+        typeof v === "number" &&
+        aspectLocked &&
+        (key === "w" || key === "h")
+      ) {
         const w = Number(o!.w) || 0,
           h = Number(o!.h) || 0;
         if (w > 0 && h > 0 && o!.t !== "line") {
@@ -432,11 +442,17 @@ export function Inspector({
                     ? "Frame"
                     : o.t === "video"
                       ? "Video"
-                      : o.t === "img"
-                        ? "Image"
-                        : o.t === "text"
-                          ? "Text"
-                          : "Shape"}
+                      : o.latex
+                        ? "LaTeX equation"
+                        : o.physics
+                          ? "Physics diagram"
+                          : o.learning
+                            ? "Learning diagram"
+                            : o.t === "img"
+                              ? "Image"
+                              : o.t === "text"
+                                ? "Text"
+                                : "Shape"}
                 </h2>
                 <span>
                   {e.selected.length > 1
@@ -445,42 +461,116 @@ export function Inspector({
                 </span>
               </div>
               <Section title="Position & size">
-                <div className="geometry">
+                <p className="pos-label" id="pos-position">
+                  Position
+                </p>
+                <div
+                  className="geometry"
+                  role="group"
+                  aria-labelledby="pos-position"
+                >
                   {["x", "y"].map(field)}
                 </div>
-                <div className="transform-wh">
-                  {field("w")}
+                <div className="pos-label-row">
+                  <p className="pos-label" id="pos-size">
+                    Size
+                  </p>
                   <Button
                     type="button"
-                    className={`tool-btn aspect-lock${aspectLocked ? " is-active" : ""}`}
-                    title={aspectLocked ? "Unlock aspect ratio" : "Lock aspect ratio"}
-                    aria-label={aspectLocked ? "Unlock aspect ratio" : "Lock aspect ratio"}
+                    className={`tool-btn aspect-lock-inline${aspectLocked ? " is-active" : ""}`}
+                    title={
+                      aspectLocked ? "Unlock aspect ratio" : "Lock aspect ratio"
+                    }
+                    aria-label={
+                      aspectLocked ? "Unlock aspect ratio" : "Lock aspect ratio"
+                    }
                     aria-pressed={aspectLocked}
                     onClick={() => setAspectLocked((v) => !v)}
                   >
-                    <Icon name={aspectLocked ? "lock" : "unlock"} size={13} />
+                    <Icon name={aspectLocked ? "lock" : "unlock"} size={12} />
                   </Button>
-                  {field("h")}
                 </div>
-                <div className="geometry">
+                <div
+                  className="geometry"
+                  role="group"
+                  aria-labelledby="pos-size"
+                >
+                  {["w", "h"].map(field)}
+                </div>
+                <p className="pos-label" id="pos-transform">
+                  Transform
+                </p>
+                <div
+                  className="geometry"
+                  role="group"
+                  aria-labelledby="pos-transform"
+                >
                   {(o.t === "frame" ? ["op"] : ["rot", "op"]).map(field)}
                 </div>
               </Section>
-              <Section title={o.t === "text" ? "Text" : o.t === "frame" ? "Frame" : "Appearance"}>
-                {main[o.t].map(field)}
+              <Section
+                title={
+                  o.t === "text"
+                    ? "Text"
+                    : o.t === "frame"
+                      ? "Frame"
+                      : "Appearance"
+                }
+              >
+                {main[o.t].filter((key) => key !== "label").map(field)}
                 {o.t === "text" && (
                   <>
-                    <div className="style-presets" role="group" aria-label="Text style presets">
+                    <div
+                      className="style-presets"
+                      role="group"
+                      aria-label="Text style presets"
+                    >
                       {(
                         [
-                          ["Classic", "Remove outline and shadow", () => e.patch({ tsw: 0, sh: 0 })],
-                          ["Outline", "Bold outline, no shadow", () => e.patch({ tstroke: o.tstroke ?? "#000000", tsw: 3, sh: 0 })],
-                          ["Shadow", "Soft drop shadow", () => e.patch({ tsw: 0, sh: 8, shc: o.shc ?? "#00000066", shx: 2, shy: 2 })],
-                          ["Highlight", "Outline highlight", () => e.patch({ tstroke: "#f7c600", tsw: 4, sh: 0 })],
+                          [
+                            "Classic",
+                            "Remove outline and shadow",
+                            () => e.patch({ tsw: 0, sh: 0 }),
+                          ],
+                          [
+                            "Outline",
+                            "Bold outline, no shadow",
+                            () =>
+                              e.patch({
+                                tstroke: o.tstroke ?? "#000000",
+                                tsw: 3,
+                                sh: 0,
+                              }),
+                          ],
+                          [
+                            "Shadow",
+                            "Soft drop shadow",
+                            () =>
+                              e.patch({
+                                tsw: 0,
+                                sh: 8,
+                                shc: o.shc ?? "#00000066",
+                                shx: 2,
+                                shy: 2,
+                              }),
+                          ],
+                          [
+                            "Highlight",
+                            "Outline highlight",
+                            () =>
+                              e.patch({ tstroke: "#f7c600", tsw: 4, sh: 0 }),
+                          ],
                         ] as const
                       ).map(([name, hint, apply]) => (
-                        <Button key={name} type="button" title={hint} onClick={apply}>
-                          <span aria-hidden="true" className="style-aa">Aa</span>
+                        <Button
+                          key={name}
+                          type="button"
+                          title={hint}
+                          onClick={apply}
+                        >
+                          <span aria-hidden="true" className="style-aa">
+                            Aa
+                          </span>
                           <span>{name}</span>
                         </Button>
                       ))}
@@ -626,7 +716,29 @@ export function Inspector({
                   </Button>
                 </Section>
               )}
-              {o.t === "img" && (
+              <Section title="AI context">
+                <Label htmlFor={`ai-description-${o.id}`}>AI description</Label>
+                <Textarea
+                  id={`ai-description-${o.id}`}
+                  aria-label="AI description"
+                  rows={3}
+                  maxLength={4000}
+                  value={o.aiDescription || ""}
+                  placeholder="Jelaskan isi, makna, atau teks penting pada elemen ini."
+                  onChange={(event) =>
+                    e.patch({ aiDescription: event.target.value }, [o.id])
+                  }
+                />
+                <p className="science-hint">
+                  Terbaca saat Generate dan penulisan narasi. Foto/video
+                  membutuhkan deskripsi isi; nama file saja tidak menjelaskan
+                  gambarnya.
+                </p>
+              </Section>
+              {(o.latex || o.physics || o.learning) && (
+                <ScienceInspector key={o.id} element={o} editor={e} />
+              )}
+              {o.t === "img" && !o.latex && !o.physics && !o.learning && (
                 <Section title="Image">
                   <Input
                     hidden
@@ -766,25 +878,14 @@ export function Inspector({
                 )
               )}
               <Section title="Arrange">
-                {o.t !== "frame" && (
-                  <div className="property">
-                    <span>Move to frame</span>
-                    <SelectField
-                      label="Move to frame"
-                      value={o.fid || ""}
-                      onChange={e.moveToFrame}
-                      options={[
-                        { value: "", label: "Canvas" },
-                        ...e.scene.frames.map((f) => ({
-                          value: f.id,
-                          label: f.n,
-                        })),
-                      ]}
-                    />
-                  </div>
-                )}
-                <p className="arrange-label" id="arrange-align">Align</p>
-                <div className="tool-row" role="group" aria-labelledby="arrange-align">
+                <p className="arrange-label" id="arrange-align">
+                  Align
+                </p>
+                <div
+                  className="tool-row"
+                  role="group"
+                  aria-labelledby="arrange-align"
+                >
                   {alignTools.map((a) => (
                     <ToolButton
                       key={a.key}
@@ -794,8 +895,14 @@ export function Inspector({
                     />
                   ))}
                 </div>
-                <p className="arrange-label" id="arrange-order">Order</p>
-                <div className="tool-row" role="group" aria-labelledby="arrange-order">
+                <p className="arrange-label" id="arrange-order">
+                  Order
+                </p>
+                <div
+                  className="tool-row"
+                  role="group"
+                  aria-labelledby="arrange-order"
+                >
                   <ToolButton
                     title="Forward: move layer up one step"
                     icon="forward"
@@ -817,8 +924,14 @@ export function Inspector({
                     onClick={() => e.order(-1, true)}
                   />
                 </div>
-                <p className="arrange-label" id="arrange-actions">Actions</p>
-                <div className="tool-row" role="group" aria-labelledby="arrange-actions">
+                <p className="arrange-label" id="arrange-actions">
+                  Actions
+                </p>
+                <div
+                  className="tool-row"
+                  role="group"
+                  aria-labelledby="arrange-actions"
+                >
                   <ToolButton
                     title="Duplicate layer"
                     icon="copy"
@@ -855,6 +968,20 @@ export function Inspector({
                 triggerTitle="Advanced: asset identifier"
               >
                 <IdentifierField key={o.id} element={o} editor={e} />
+                {o.t !== "frame" && (
+                  <SelectField
+                    label="Standard frame role"
+                    value={o.brandRole || "content"}
+                    onChange={(value) =>
+                      e.patch({ brandRole: value as Element["brandRole"] })
+                    }
+                    options={[
+                      { value: "content", label: "Design content" },
+                      { value: "logo", label: "Standard logo" },
+                      { value: "footer", label: "Standard footer" },
+                    ]}
+                  />
+                )}
               </Accordion>
             </>
           ) : (

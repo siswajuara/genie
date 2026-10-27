@@ -1,336 +1,340 @@
-@layer components {.audio-panel {
-  @apply flex-[0_0_auto] min-w-0 bg-card border-b border-solid border-b-border;
-}
-.audio-panel-header {
-  @apply flex gap-[12px] items-center py-[9px] px-[12px] border-b border-solid border-b-border;
-}
-.audio-panel-header > div {
-  @apply grid gap-[2px] min-w-0;
-}
-.audio-panel-header > div span {
-  @apply text-[11px] opacity-70 overflow-hidden text-ellipsis whitespace-nowrap max-w-[210px];
-}
-.audio-panel-header nav {
-  @apply flex gap-[4px] flex-[1];
-}
-.audio-panel button {
-  @apply text-[11px] py-[6px] px-[9px];
-}
-.audio-panel button[aria-pressed="true"] {
-  @apply bg-primary text-white;
-}
-.audio-panel-body {
-  @apply p-[12px] max-h-[min(360px,_40dvh)] overflow-auto;
-}
-.audio-panel fieldset {
-  @apply border-0 p-0 m-0 min-w-0;
-}
-.audio-actions {
-  @apply flex flex-wrap gap-[8px] items-center;
-}
-.audio-field {
-  @apply flex flex-col gap-[4px] text-[10px] min-w-0;
-}
-.audio-field input,
-.audio-field select,
-.audio-field textarea,
-.subtitle-cue textarea,
-.audio-track-name {
-  @apply border border-solid border-border rounded-[5px] bg-background text-foreground py-[5px] px-[7px] [font:inherit] text-[12px] min-w-0;
-}
-.audio-field input[type="number"] {
-  @apply w-[85px];
-}
-.audio-field input[type="color"] {
-  @apply w-[52px] h-[30px] p-[2px];
-}
-.audio-field [data-slot="slider"] {
-  @apply w-[130px];
-}
-.audio-field textarea {
-  @apply resize-y w-full box-border;
-}
-.audio-track-card {
-  @apply mt-[10px] p-[10px] border border-solid border-border rounded-[8px];
-}
-.audio-track-name {
-  @apply flex-[1] w-[160px];
-}
-.audio-fields {
-  @apply flex gap-[10px];
-  align-items: end;
-  @apply flex-wrap mt-[10px];
-}
-.audio-check {
-  @apply flex items-center gap-[4px] text-[11px] pb-[5px];
-}
-.audio-panel .hint,
-.audio-empty {
-  @apply text-[11px] opacity-75 leading-[1.6];
-}
-.voiceover-editor {
-  @apply grid gap-[12px];
-}
-.audio-error {
-  @apply text-[#e85555];
-  @apply text-[12px];
-}
-.audio-panel [role="status"] {
-  @apply text-[12px] mt-[8px] mr-0 mb-0 ml-0;
-}
-.auto-subtitle {
-  @apply my-[12px] mx-0 p-[10px] border border-solid border-border rounded-[6px] text-[12px];
-}
-.auto-subtitle .accordion-trigger[data-state="open"] {
-  @apply mb-[10px];
-}
-.auto-subtitle > .accordion-content > button {
-  @apply mt-[8px] mr-[6px];
-}
-.subtitle-style {
-  @apply mb-[12px];
-}
-.subtitle-cues {
-  @apply grid gap-[7px];
-}
-.subtitle-cue {
-  @apply grid grid-cols-[30px_90px_90px_minmax(110px,_1fr)_30px] items-center gap-[6px];
-}
-.subtitle-cue .audio-field input {
-  @apply w-full box-border;
-}
-.subtitle-cue textarea {
-  @apply resize-y;
-}
-.timeline-sound-track {
-  @apply bg-[color-mix(in_srgb,_var(--primary)_6%,_transparent)];
-}
-.timeline-media-clip {
-  @apply absolute top-[5px] bottom-[5px] overflow-hidden text-ellipsis whitespace-nowrap text-left text-[10px] border border-solid border-[#46978e] bg-[#276f6540] rounded-[4px] py-0 px-[5px];
-}
-.timeline-media-clip.subtitle {
-  @apply bg-[#85762a40] border-[#ad9d46];
-}
-.timeline-audio-error {
-  @apply my-[4px] mx-[10px] text-[#e85555];
-  @apply text-[11px];
-}
-.timeline-content {
-  @apply flex flex-[0_1_auto] min-h-0 overflow-hidden;
-}
-.timeline-content > .timeline-scroll {
-  @apply flex-[1] min-w-0;
-}
-.timeline-content > .audio-panel {
-  @apply w-[clamp(340px,_42%,_520px)] max-w-[60%] flex flex-col min-h-0 border-l border-solid border-l-border;
-}
-.timeline-content .audio-panel-header {
-  @apply flex-wrap gap-[6px];
-}
-.timeline-content .audio-panel-header > div {
-  @apply flex-[1];
-}
-.timeline-content .audio-panel-header nav {
-  @apply order-[3] basis-full;
-}
-.timeline-content .audio-panel-body {
-  @apply max-h-none min-h-0 flex-[1];
-}
-.audio-track-card.is-selected {
-  @apply border-primary;
-}
-.timeline-content .subtitle-cue {
-  @apply grid-cols-[24px_minmax(0,_1fr)_minmax(0,_1fr)_28px];
-}
-.timeline-content .subtitle-cue > button:first-child {
-  @apply col-[1] row-[1_/_3];
-}
-.timeline-content .subtitle-cue > textarea {
-  @apply col-[2_/_4] row-[2];
-}
-.timeline-content .subtitle-cue > button:last-child {
-  @apply col-[4] row-[1_/_3];
-}
-/* Unified Narration panel: vertical flow with a pinned primary action. */
-.narration-panel {
-  @apply flex flex-col min-h-0;
-}
-.narration-panel.in-inspector {
-  @apply border-0 bg-transparent min-h-0;
-}
-.narration-panel.in-inspector .audio-panel-header {
-  @apply pt-0 pr-0 pb-[8px] pl-0 border-b-0;
-}
-.narration-panel.in-inspector .audio-panel-body {
-  @apply p-0 overflow-visible max-h-none;
-}
-.narration-panel.in-inspector .narration-foot {
-  @apply sticky bottom-[-18px] mt-[4px] mr-[-16px] mb-[-18px] ml-[-16px] py-[12px] px-[16px];
-}
-.narration-head > div {
-  @apply flex-[1];
-}
-.sr-only {
-  @apply absolute w-[1px] h-[1px] overflow-hidden;
-  clip: rect(0 0 0 0);
-  @apply whitespace-nowrap;
-}
-.narration-body {
-  @apply grid gap-[10px] content-start min-h-0 flex-[1] overflow-auto;
-}
-.narration-body fieldset {
-  @apply grid gap-0;
-}
-.narration-step {
-  @apply grid gap-[6px] m-0;
-}
-/* Flat groups separated by dividers instead of nested cards. */
-.narration-group {
-  @apply py-[10px] px-0 border-t border-solid border-t-border;
-}
-.narration-group:first-child {
-  @apply border-t-0 pt-[2px];
-}
-.narration-label-row {
-  @apply flex items-baseline justify-between gap-[8px];
-}
-.narration-label {
-  @apply text-[12px] font-bold;
-}
-.narration-label-row .narration-step-hint {
-  @apply text-[11px] font-normal text-muted-foreground whitespace-nowrap;
-}
-/* Readable support text: solid muted color instead of translucent ink. */
-.narration-panel .hint,
-.narration-panel .audio-empty {
-  @apply text-muted-foreground opacity-100;
-}
-.narration-tip {
-  @apply m-0;
-}
-.narration-captions-row {
-  @apply flex items-center justify-between gap-[8px];
-}
-.narration-group .audio-field textarea {
-  @apply min-h-[64px];
-}
-.narration-account select {
-  @apply w-full;
-}
-.narration-warning {
-  @apply border border-solid border-border rounded-[6px] py-[8px] px-[10px] bg-background m-0;
-}
-.narration-account {
-  @apply flex-[1] min-w-[160px];
-}
-.narration-toggle {
-  @apply text-[12px] p-0;
-}
-.narration-style-toggle {
-  @apply justify-self-start inline-flex items-center gap-[6px];
-}
-.narration-style {
-  @apply grid gap-[8px] pt-[2px];
-}
-.narration-presets {
-  @apply flex gap-[6px] flex-wrap;
-}
-.narration-preset {
-  @apply rounded-[6px] font-extrabold text-[11px];
-}
-.narration-segment {
-  @apply flex gap-[4px];
-}
-.narration-segment button {
-  @apply flex-[1];
-}
-.narration-segment button[aria-pressed="true"] {
-  @apply bg-primary text-white;
-}
-.narration-colors {
-  @apply flex gap-[10px];
-  align-items: end;
-  @apply flex-wrap;
-}
-.narration-preview {
-  @apply m-0 flex-[1] min-w-[140px] text-center;
-}
-.narration-preview span {
-  @apply inline-block py-[5px] px-[10px] rounded-[4px] text-[12px] font-extrabold;
-}
-/* Track editors are divider rows, not boxes-in-boxes. */
-.narration-panel .audio-track-card {
-  @apply mt-[6px] py-[8px] px-0 border-0 border-t border-solid border-t-border rounded-none;
-}
-.narration-panel .audio-track-card.is-selected {
-  @apply border-border bg-[color-mix(in_srgb,_var(--primary)_6%,_transparent)];
-}
-.narration-track-name {
-  @apply flex-[1] text-[11px] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-}
-/* Quiet [data-slot="progress"]ive disclosures: dividers, not boxes. */
-.narration-more {
-  @apply m-0 border-t border-solid border-t-border pt-[2px] pr-0 pb-[8px] pl-0 text-[12px];
-}
-.narration-more .accordion-trigger {
-  @apply py-[8px] px-0 font-bold;
-}
-.narration-more .accordion-trigger[data-state="open"] {
-  @apply mb-[6px];
-}
-.narration-details {
-  @apply mt-[8px] text-[11px];
-}
-.narration-details summary {
-  @apply cursor-pointer py-[4px] px-0;
-}
-.narration-transcribe {
-  @apply grid gap-[8px] mt-[10px];
-}
-.narration-transcribe > button {
-  @apply justify-self-start;
-}
-/* Caption cues stack in the narrow inspector instead of overflowing. */
-.narration-panel .subtitle-cue {
-  @apply grid-cols-[24px_minmax(0,_1fr)_minmax(0,_1fr)_28px];
-}
-.narration-panel .subtitle-cue > button:first-child {
-  @apply col-[1] row-[1_/_3];
-}
-.narration-panel .subtitle-cue > textarea {
-  @apply col-[2_/_4] row-[2];
-}
-.narration-panel .subtitle-cue > button:last-child {
-  @apply col-[4] row-[1_/_3];
-}
-.narration-foot {
-  @apply sticky bottom-0 py-[8px] px-[12px] border-t border-solid border-t-border bg-card;
-}
-.narration-generate {
-  @apply w-full text-[13px] p-[8px];
-}
-.narration-generate.primary {
-  @apply bg-primary text-white;
-}
-.narration-credit-note {
-  @apply mt-[6px] mr-0 mb-0 ml-0 text-center text-[11px] text-muted-foreground;
-}
-/* Empty-state placeholder rows in the track list. */
-.timeline-sound-track.is-placeholder .timeline-track {
-  @apply bg-transparent cursor-pointer;
-}
-.timeline-placeholder-clip {
-  @apply absolute inset-[5px_8px] border border-dashed border-border rounded-[4px] bg-transparent text-muted-foreground text-[10px] text-left py-0 px-[8px] cursor-pointer;
-}
-.timeline-placeholder-hint {
-  @apply absolute inset-[5px_8px] flex items-center text-muted-foreground text-[10px] pointer-events-none;
-}
-@media (max-width: 700px) {
-  .timeline-content:has(.audio-panel) > .timeline-scroll {
-    @apply hidden;
+@layer components {
+  .audio-panel {
+    @apply flex-[0_0_auto] min-w-0 bg-card border-b border-solid border-b-border;
+  }
+  .audio-panel-header {
+    @apply flex gap-[12px] items-center py-[9px] px-[12px] border-b border-solid border-b-border;
+  }
+  .audio-panel-header > div {
+    @apply grid gap-[2px] min-w-0;
+  }
+  .audio-panel-header > div span {
+    @apply text-[11px] opacity-70 overflow-hidden text-ellipsis whitespace-nowrap max-w-[210px];
+  }
+  .audio-panel-header nav {
+    @apply flex gap-[4px] flex-[1];
+  }
+  .audio-panel button {
+    @apply text-[11px] py-[6px] px-[9px];
+  }
+  .audio-panel button[aria-pressed="true"] {
+    @apply bg-primary text-white;
+  }
+  .audio-panel-body {
+    @apply p-[12px] max-h-[min(360px,_40dvh)] overflow-auto;
+  }
+  .audio-panel fieldset {
+    @apply border-0 p-0 m-0 min-w-0;
+  }
+  .audio-actions {
+    @apply flex flex-wrap gap-[8px] items-center;
+  }
+  .audio-field {
+    @apply flex flex-col gap-[4px] text-[10px] min-w-0;
+  }
+  .audio-field input,
+  .audio-field select,
+  .audio-field textarea,
+  .subtitle-cue textarea,
+  .audio-track-name {
+    @apply border border-solid border-border rounded-[5px] bg-background text-foreground py-[5px] px-[7px] [font:inherit] text-[12px] min-w-0;
+  }
+  .audio-field input[type="number"] {
+    @apply w-[85px];
+  }
+  .audio-field input[type="color"] {
+    @apply w-[52px] h-[30px] p-[2px];
+  }
+  .audio-field [data-slot="slider"] {
+    @apply w-[130px];
+  }
+  .audio-field textarea {
+    @apply resize-y w-full box-border;
+  }
+  .audio-track-card {
+    @apply mt-[10px] p-[10px] border border-solid border-border rounded-[8px];
+  }
+  .audio-track-name {
+    @apply flex-[1] w-[160px];
+  }
+  .audio-fields {
+    @apply flex gap-[10px];
+    align-items: end;
+    @apply flex-wrap mt-[10px];
+  }
+  .audio-check {
+    @apply flex items-center gap-[4px] text-[11px] pb-[5px];
+  }
+  .audio-panel .hint,
+  .audio-empty {
+    @apply text-[11px] opacity-75 leading-[1.6];
+  }
+  .voiceover-editor {
+    @apply grid gap-[12px];
+  }
+  .audio-error {
+    @apply text-[#e85555];
+    @apply text-[12px];
+  }
+  .audio-panel [role="status"] {
+    @apply text-[12px] mt-[8px] mr-0 mb-0 ml-0;
+  }
+  .auto-subtitle {
+    @apply my-[12px] mx-0 p-[10px] border border-solid border-border rounded-[6px] text-[12px];
+  }
+  .auto-subtitle .accordion-trigger[data-state="open"] {
+    @apply mb-[10px];
+  }
+  .auto-subtitle > .accordion-content > button {
+    @apply mt-[8px] mr-[6px];
+  }
+  .subtitle-style {
+    @apply mb-[12px];
+  }
+  .subtitle-cues {
+    @apply grid gap-[7px];
+  }
+  .subtitle-cue {
+    @apply grid grid-cols-[30px_90px_90px_minmax(110px,_1fr)_30px] items-center gap-[6px];
+  }
+  .subtitle-cue .audio-field input {
+    @apply w-full box-border;
+  }
+  .subtitle-cue textarea {
+    @apply resize-y;
+  }
+  .timeline-sound-track {
+    @apply bg-[color-mix(in_srgb,_var(--primary)_6%,_transparent)];
+  }
+  .timeline-media-clip {
+    @apply absolute top-[5px] bottom-[5px] overflow-hidden text-ellipsis whitespace-nowrap text-left text-[10px] border border-solid border-[#46978e] bg-[#276f6540] rounded-[4px] py-0 px-[5px];
+  }
+  .timeline-media-clip.subtitle {
+    @apply bg-[#85762a40] border-[#ad9d46];
+  }
+  .timeline-audio-error {
+    @apply my-[4px] mx-[10px] text-[#e85555];
+    @apply text-[11px];
+  }
+  .timeline-content {
+    @apply flex flex-[0_1_auto] min-h-0 overflow-hidden;
+  }
+  .timeline-content > .timeline-scroll {
+    @apply flex-[1] min-w-0;
   }
   .timeline-content > .audio-panel {
-    @apply w-full max-w-full;
+    @apply w-[clamp(340px,_42%,_520px)] max-w-[60%] flex flex-col min-h-0 border-l border-solid border-l-border;
   }
-}
+  .timeline-content .audio-panel-header {
+    @apply flex-wrap gap-[6px];
+  }
+  .timeline-content .audio-panel-header > div {
+    @apply flex-[1];
+  }
+  .timeline-content .audio-panel-header nav {
+    @apply order-[3] basis-full;
+  }
+  .timeline-content .audio-panel-body {
+    @apply max-h-none min-h-0 flex-[1];
+  }
+  .audio-track-card.is-selected {
+    @apply border-primary;
+  }
+  .timeline-content .subtitle-cue {
+    @apply grid-cols-[24px_minmax(0,_1fr)_minmax(0,_1fr)_28px];
+  }
+  .timeline-content .subtitle-cue > button:first-child {
+    @apply col-[1] row-[1_/_3];
+  }
+  .timeline-content .subtitle-cue > textarea {
+    @apply col-[2_/_4] row-[2];
+  }
+  .timeline-content .subtitle-cue > button:last-child {
+    @apply col-[4] row-[1_/_3];
+  }
+  /* Unified Narration panel: vertical flow with a pinned primary action. */
+  .narration-panel {
+    @apply flex flex-col min-h-0;
+  }
+  .narration-panel.in-inspector {
+    @apply border-0 bg-transparent min-h-0;
+  }
+  .narration-panel.in-inspector .audio-panel-header {
+    @apply pt-0 pr-0 pb-[8px] pl-0 border-b-0;
+  }
+  .narration-panel.in-inspector .audio-panel-body {
+    @apply p-0 overflow-visible max-h-none;
+  }
+  .narration-panel.in-inspector .narration-foot {
+    @apply sticky bottom-[-18px] mt-[4px] mr-[-16px] mb-[-18px] ml-[-16px] py-[12px] px-[16px];
+  }
+  .narration-head > div {
+    @apply flex-[1];
+  }
+  .narration-head-actions {
+    @apply flex items-center gap-[4px] shrink-0;
+  }
+  .sr-only {
+    @apply absolute w-[1px] h-[1px] overflow-hidden;
+    clip: rect(0 0 0 0);
+    @apply whitespace-nowrap;
+  }
+  .narration-body {
+    @apply grid gap-[10px] content-start min-h-0 flex-[1] overflow-auto;
+  }
+  .narration-body fieldset {
+    @apply grid gap-0;
+  }
+  .narration-step {
+    @apply grid gap-[6px] m-0;
+  }
+  /* Flat groups separated by dividers instead of nested cards. */
+  .narration-group {
+    @apply py-[10px] px-0 border-t border-solid border-t-border;
+  }
+  .narration-group:first-child {
+    @apply border-t-0 pt-[2px];
+  }
+  .narration-label-row {
+    @apply flex items-baseline justify-between gap-[8px];
+  }
+  .narration-label {
+    @apply text-[12px] font-bold;
+  }
+  .narration-label-row .narration-step-hint {
+    @apply text-[11px] font-normal text-muted-foreground whitespace-nowrap;
+  }
+  /* Readable support text: solid muted color instead of translucent ink. */
+  .narration-panel .hint,
+  .narration-panel .audio-empty {
+    @apply text-muted-foreground opacity-100;
+  }
+  .narration-tip {
+    @apply m-0;
+  }
+  .narration-captions-row {
+    @apply flex items-center justify-between gap-[8px];
+  }
+  .narration-group .audio-field textarea {
+    @apply min-h-[64px];
+  }
+  .narration-account select {
+    @apply w-full;
+  }
+  .narration-warning {
+    @apply border border-solid border-border rounded-[6px] py-[8px] px-[10px] bg-background m-0;
+  }
+  .narration-account {
+    @apply flex-[1] min-w-[160px];
+  }
+  .narration-toggle {
+    @apply text-[12px] p-0;
+  }
+  .narration-style-toggle {
+    @apply justify-self-start inline-flex items-center gap-[6px];
+  }
+  .narration-style {
+    @apply grid gap-[8px] pt-[2px];
+  }
+  .narration-presets {
+    @apply flex gap-[6px] flex-wrap;
+  }
+  .narration-preset {
+    @apply rounded-[6px] font-extrabold text-[11px];
+  }
+  .narration-segment {
+    @apply flex gap-[4px];
+  }
+  .narration-segment button {
+    @apply flex-[1];
+  }
+  .narration-segment button[aria-pressed="true"] {
+    @apply bg-primary text-white;
+  }
+  .narration-colors {
+    @apply flex gap-[10px];
+    align-items: end;
+    @apply flex-wrap;
+  }
+  .narration-preview {
+    @apply m-0 flex-[1] min-w-[140px] text-center;
+  }
+  .narration-preview span {
+    @apply inline-block py-[5px] px-[10px] rounded-[4px] text-[12px] font-extrabold;
+  }
+  /* Track editors are divider rows, not boxes-in-boxes. */
+  .narration-panel .audio-track-card {
+    @apply mt-[6px] py-[8px] px-0 border-0 border-t border-solid border-t-border rounded-none;
+  }
+  .narration-panel .audio-track-card.is-selected {
+    @apply border-border bg-[color-mix(in_srgb,_var(--primary)_6%,_transparent)];
+  }
+  .narration-track-name {
+    @apply flex-[1] text-[11px] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+  /* Quiet [data-slot="progress"]ive disclosures: dividers, not boxes. */
+  .narration-more {
+    @apply m-0 border-t border-solid border-t-border pt-[2px] pr-0 pb-[8px] pl-0 text-[12px];
+  }
+  .narration-more .accordion-trigger {
+    @apply py-[8px] px-0 font-bold;
+  }
+  .narration-more .accordion-trigger[data-state="open"] {
+    @apply mb-[6px];
+  }
+  .narration-details {
+    @apply mt-[8px] text-[11px];
+  }
+  .narration-details summary {
+    @apply cursor-pointer py-[4px] px-0;
+  }
+  .narration-transcribe {
+    @apply grid gap-[8px] mt-[10px];
+  }
+  .narration-transcribe > button {
+    @apply justify-self-start;
+  }
+  /* Caption cues stack in the narrow inspector instead of overflowing. */
+  .narration-panel .subtitle-cue {
+    @apply grid-cols-[24px_minmax(0,_1fr)_minmax(0,_1fr)_28px];
+  }
+  .narration-panel .subtitle-cue > button:first-child {
+    @apply col-[1] row-[1_/_3];
+  }
+  .narration-panel .subtitle-cue > textarea {
+    @apply col-[2_/_4] row-[2];
+  }
+  .narration-panel .subtitle-cue > button:last-child {
+    @apply col-[4] row-[1_/_3];
+  }
+  .narration-foot {
+    @apply sticky bottom-0 py-[8px] px-[12px] border-t border-solid border-t-border bg-card;
+  }
+  .narration-generate {
+    @apply w-full text-[13px] p-[8px];
+  }
+  .narration-generate.primary {
+    @apply bg-primary text-white;
+  }
+  .narration-credit-note {
+    @apply mt-[6px] mr-0 mb-0 ml-0 text-center text-[11px] text-muted-foreground;
+  }
+  /* Empty-state placeholder rows in the track list. */
+  .timeline-sound-track.is-placeholder .timeline-track {
+    @apply bg-transparent cursor-pointer;
+  }
+  .timeline-placeholder-clip {
+    @apply absolute inset-[5px_8px] border border-dashed border-border rounded-[4px] bg-transparent text-muted-foreground text-[10px] text-left py-0 px-[8px] cursor-pointer;
+  }
+  .timeline-placeholder-hint {
+    @apply absolute inset-[5px_8px] flex items-center text-muted-foreground text-[10px] pointer-events-none;
+  }
+  @media (max-width: 700px) {
+    .timeline-content:has(.audio-panel) > .timeline-scroll {
+      @apply hidden;
+    }
+    .timeline-content > .audio-panel {
+      @apply w-full max-w-full;
+    }
+  }
 }

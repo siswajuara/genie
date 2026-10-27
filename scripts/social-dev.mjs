@@ -2,6 +2,7 @@ import { createSocialService, publicConfig } from "../sidecar/social-core.mjs";
 import path from "node:path";
 import { readConfig, jsonWriter } from "../sidecar/local-json.mjs";
 import { saveElevenLabsAccount } from "../sidecar/elevenlabs-config.mjs";
+import { saveOpenCodeConfig } from "../sidecar/opencode-config.mjs";
 export function socialDevPlugin() {
   const service = createSocialService();
   let configPath, persistConfig;
@@ -49,13 +50,15 @@ export function socialDevPlugin() {
           if (req.url === "/settings") {
             if (body.provider) {
               if (
-                !["buffer", "zernio", "elevenlabs"].includes(
+                !["buffer", "zernio", "elevenlabs", "opencode"].includes(
                   body.provider,
                 )
               )
                 throw Error("Choose a provider.");
               if (body.provider === "elevenlabs") {
                 saveElevenLabsAccount(config, body);
+              } else if (body.provider === "opencode") {
+                saveOpenCodeConfig(config, body);
               } else {
                 const provider = config[body.provider];
                 if (body.removeKey) provider.key = "";

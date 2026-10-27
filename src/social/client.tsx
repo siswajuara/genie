@@ -23,6 +23,12 @@ type Account = {
 export type Issue = { provider: Provider; message: string };
 export type Config = {
   storage: "file";
+  opencode?: {
+    url: string;
+    model: string;
+    tokenConfigured: boolean;
+    mode: "url" | "local";
+  };
   elevenlabs: { configured: boolean; accounts: AudioAccount[] };
   buffer: { configured: boolean; organizationId: string };
   zernio: { configured: boolean; profileId: string };
@@ -41,6 +47,10 @@ export type AudioAccount = {
 };
 type SaveValues = {
   key?: string;
+  url?: string;
+  model?: string;
+  token?: string;
+  removeToken?: boolean;
   organizationId?: string;
   profileId?: string;
   removeKey?: boolean;
@@ -97,7 +107,7 @@ type SocialContextValue = {
   revision: number;
   refresh: () => Promise<void>;
   save: (
-    provider: Provider | "elevenlabs",
+    provider: Provider | "elevenlabs" | "opencode",
     values: SaveValues,
   ) => Promise<void>;
   test: (provider: Provider) => Promise<AccountsResult>;
@@ -106,6 +116,7 @@ type SocialContextValue = {
 const Context = createContext<SocialContextValue | null>(null);
 const initial: Config = {
   storage: "file",
+  opencode: { url: "", model: "", tokenConfigured: false, mode: "local" },
   elevenlabs: { configured: false, accounts: [] },
   buffer: { configured: false, organizationId: "" },
   zernio: { configured: false, profileId: "" },
@@ -141,7 +152,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
   const save = useCallback(
     async (
-      provider: Provider | "elevenlabs",
+      provider: Provider | "elevenlabs" | "opencode",
       values: SaveValues,
     ) => {
       setConfig(await transport<Config>("settings", { provider, ...values }));

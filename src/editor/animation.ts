@@ -134,6 +134,81 @@ export const clamp = (n: number, lo = 0, hi = 1) =>
   Math.min(hi, Math.max(lo, n));
 export const sceneDuration = (frame: Element) =>
   frame.scene?.duration ?? DEFAULT_DURATION;
+
+/** Keep scene-spanning content visible when speech extends a scene. */
+export function resizeFrameTiming(
+  elements: Element[],
+  frameId: string,
+  duration: number,
+  repairNarration = false,
+): Element[] {
+  const frame = elements.find((o) => o.id === frameId && o.t === "frame");
+  if (!frame) return elements;
+  const previous = sceneDuration(frame);
+  const children = elements.filter(
+    (o) =>
+      o.fid === frameId &&
+      !o.hide &&
+      o.animation &&
+      o.brandRole !== "logo" &&
+      o.brandRole !== "footer",
+  );
+  const content = children.some((o) => o.t === "text")
+    ? children.filter((o) => o.t === "text")
+    : children;
+  const lastEnd = Math.max(
+    0,
+    ...content.map((o) => o.animation?.end ?? previous),
+  );
+  const boundary =
+    repairNarration && lastEnd < duration
+      ? Math.min(previous, lastEnd)
+      : previous;
+  return elements.map((o) => {
+    if (o.id === frameId)
+      return previous === duration
+        ? o
+        : { ...o, scene: { ...o.scene, duration } };
+    if (o.fid !== frameId || !o.animation) return o;
+    const animation = o.animation;
+    if (
+      duration >= previous &&
+      animation.end !== duration &&
+      (animation.end === undefined || animation.end >= boundary - 0.05)
+    )
+      return { ...o, animation: { ...animation, end: duration } };
+    if (duration < previous)
+      return {
+        ...o,
+        animation: {
+          ...animation,
+          start: Math.min(animation.start ?? 0, duration - 0.05),
+          end: Math.min(animation.end ?? duration, duration),
+        },
+      };
+    return o;
+  });
+}
+
+export function syncNarrationTiming(elements: Element[]) {
+  let next = elements;
+  for (const frame of elements.filter((o) => o.t === "frame")) {
+    const end = Math.max(
+      0,
+      ...(frame.audioTracks || [])
+        .filter((track) => track.role === "voiceover" && !track.muted)
+        .map((track) => track.end),
+    );
+    if (!end) continue;
+    next = resizeFrameTiming(
+      next,
+      frame.id,
+      Math.max(sceneDuration(frame), end),
+      true,
+    );
+  }
+  return next;
+}
 export const effectLabel = (value: string) =>
   value
     .split("-")

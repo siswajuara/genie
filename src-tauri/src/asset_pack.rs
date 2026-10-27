@@ -15,6 +15,7 @@ struct ConnectedPack {
     token: String,
     manifest: Value,
     files: HashMap<String, (String, String, u64)>,
+    presets: HashMap<String, u64>,
 }
 #[derive(Default)]
 pub struct AssetPackState(Mutex<Option<ConnectedPack>>);
@@ -163,6 +164,41 @@ fn load_pack(directory: &Path) -> Result<ConnectedPack, String> {
             (media.to_string(), thumbnail.to_string(), bytes),
         );
     }
+    let mut presets = HashMap::new();
+    if let Some(list) = manifest.get("presets") {
+        let list = list
+            .as_array()
+            .filter(|list| list.len() <= 20000)
+            .ok_or("Invalid template file listing.")?;
+        for file in list {
+            let path = file["path"].as_str().ok_or("Missing template path.")?;
+            let bytes = file["bytes"]
+                .as_u64()
+                .filter(|bytes| *bytes > 0)
+                .ok_or("Missing template size.")?;
+            let limit = if path.ends_with(".json") { 4 } else { 1 } * 1024 * 1024;
+            if !relative(path)
+                || !path.starts_with("presets/")
+                || !(path.ends_with(".json") || path.ends_with(".webp") || path.ends_with(".png"))
+                || bytes > limit
+                || presets.insert(path.to_owned(), bytes).is_some()
+            {
+                return Err("Invalid template file metadata.".into());
+            }
+            if fs::metadata(contained(&root, path)?)
+                .map_err(|_| "Could not inspect the template file.")?
+                .len()
+                != bytes
+            {
+                return Err(format!("Template size does not match manifest: {path}."));
+            }
+        }
+        if !presets.contains_key("presets/catalog.json")
+            || !presets.contains_key("presets/shared/branding.json")
+        {
+            return Err("The template pack needs its catalog and standard branding.".into());
+        }
+    }
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     root.hash(&mut hasher);
     bytes.hash(&mut hasher);
@@ -171,6 +207,7 @@ fn load_pack(directory: &Path) -> Result<ConnectedPack, String> {
         token: format!("{:x}", hasher.finish()),
         manifest,
         files,
+        presets,
     })
 }
 fn summary(pack: &ConnectedPack) -> Value {
@@ -275,6 +312,36 @@ pub async fn asset_pack_read(
     .await
     .map_err(|e| e.to_string())?
 }
+#[tauri::command]
+pub async fn asset_pack_read_preset(
+    state: State<'_, AssetPackState>,
+    token: String,
+    path: String,
+) -> Result<tauri::ipc::Response, String> {
+    let (root, bytes) = {
+        let guard = state.0.lock().map_err(|_| "Asset library is busy.")?;
+        let pack = guard.as_ref().ok_or("Connect an asset folder first.")?;
+        if pack.token != token {
+            return Err("The asset folder changed. Select the template again.".into());
+        }
+        (
+            pack.root.clone(),
+            *pack
+                .presets
+                .get(&path)
+                .ok_or("Template file is not listed in manifest.json.")?,
+        )
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let data = read_limited(&contained(&root, &path)?, bytes)?;
+        if data.len() as u64 != bytes {
+            return Err("Template size does not match manifest.".into());
+        }
+        Ok(tauri::ipc::Response::new(data))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -323,6 +390,43 @@ mod tests {
             serde_json::to_vec(&manifest).unwrap(),
         )
         .unwrap();
+        assert!(load_pack(&root).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn template_files_require_contained_unique_paths_and_exact_sizes() {
+        let root = std::env::temp_dir().join(format!("genie-template-test-{}", std::process::id()));
+        fs::create_dir_all(root.join("presets/shared")).unwrap();
+        fs::write(root.join("presets/catalog.json"), b"{}").unwrap();
+        fs::write(root.join("presets/shared/branding.json"), b"{}").unwrap();
+        let valid = json!({"version":1, "id":"templates", "name":"Templates", "assets":[],
+            "presets":[{"path":"presets/catalog.json","bytes":2},
+                       {"path":"presets/shared/branding.json","bytes":2}]});
+        let write = |value: &Value| {
+            fs::write(
+                root.join("manifest.json"),
+                serde_json::to_vec(value).unwrap(),
+            )
+            .unwrap()
+        };
+        write(&valid);
+        let pack = load_pack(&root).unwrap();
+        assert_eq!(pack.presets.len(), 2);
+        assert!(!pack.presets.contains_key("manifest.json"));
+        for entry in [
+            json!({"path":"presets/catalog.json","bytes":2}),
+            json!({"path":"presets/../manifest.json","bytes":2}),
+            json!({"path":"presets/missing.json","bytes":2}),
+            json!({"path":"presets/catalog.json","bytes":1}),
+        ] {
+            let mut invalid = valid.clone();
+            invalid["presets"].as_array_mut().unwrap().push(entry);
+            write(&invalid);
+            assert!(load_pack(&root).is_err());
+        }
+        let mut invalid = valid.clone();
+        invalid["presets"][0]["bytes"] = json!(1);
+        write(&invalid);
         assert!(load_pack(&root).is_err());
         fs::remove_dir_all(root).unwrap();
     }

@@ -74,7 +74,7 @@ const templateScene = (): SceneSettings => ({
 
 /** Cards and their contents share a cue, so text never drifts away from its background. */
 export function withTemplateAnimation(preset: Preset): Preset {
-  if (preset.kind !== "template") return preset;
+  if (preset.kind !== "template" || preset.motion === "none") return preset;
   const width = preset.W ?? 1122,
     height = preset.H ?? 1402;
   const duration = preset.scene?.duration ?? TEMPLATE_DURATION;

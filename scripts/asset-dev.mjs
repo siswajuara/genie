@@ -32,9 +32,12 @@ export function assetDevPlugin() {
           const asset = manifest.assets.find(
             (asset) => asset.path === relative || asset.thumbnail === relative,
           );
+          const preset = manifest.presets?.find(
+            (file) => file.path === relative,
+          );
           if (
             url.pathname !== "/file" ||
-            !asset ||
+            (!asset && !preset) ||
             !relative ||
             /[\\\x00-\x1f:?#%]/.test(relative) ||
             relative
@@ -46,20 +49,37 @@ export function assetDevPlugin() {
             file = await fs.realpath(path.join(base, relative));
           if (!file.startsWith(base + path.sep))
             throw Error("Invalid asset path");
-          const limit =
-            relative === asset.thumbnail ? 1024 * 1024 : asset.bytes;
+          const limit = preset
+            ? preset.bytes
+            : relative === asset.thumbnail
+              ? 1024 * 1024
+              : asset.bytes;
           const stat = await fs.stat(file);
           if (!stat.isFile() || stat.size > limit || limit > 64 * 1024 * 1024)
             throw Error("Invalid asset size");
+          if (
+            preset &&
+            (!relative.startsWith("presets/") ||
+              !/\.(json|webp|png)$/.test(relative) ||
+              stat.size !== preset.bytes ||
+              limit > (relative.endsWith(".json") ? 4 : 1) * 1024 * 1024)
+          )
+            throw Error("Invalid template file");
           res.setHeader(
             "Content-Type",
-            relative === asset.thumbnail
-              ? relative.endsWith(".png")
-                ? "image/png"
-                : /\.jpe?g$/i.test(relative)
-                  ? "image/jpeg"
+            preset
+              ? relative.endsWith(".json")
+                ? "application/json"
+                : relative.endsWith(".png")
+                  ? "image/png"
                   : "image/webp"
-              : asset.mime,
+              : relative === asset.thumbnail
+                ? relative.endsWith(".png")
+                  ? "image/png"
+                  : /\.jpe?g$/i.test(relative)
+                    ? "image/jpeg"
+                    : "image/webp"
+                : asset.mime,
           );
           res.setHeader("Content-Length", stat.size);
           res.end(await fs.readFile(file));

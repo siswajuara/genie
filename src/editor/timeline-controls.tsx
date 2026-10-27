@@ -118,7 +118,9 @@ export function TimelineControls({
             onClick={() => p.seek(p.time - 1 / p.fps)}
           />
           <TimelineButton
-            label={p.playing ? "Pause animation (Space)" : "Play animation (Space)"}
+            label={
+              p.playing ? "Pause animation (Space)" : "Play animation (Space)"
+            }
             icon={p.playing ? "pause" : "play"}
             onClick={p.toggle}
             primary
@@ -152,7 +154,11 @@ export function TimelineControls({
             onClick={() => p.setSnapping(!p.snapping)}
           />
         </div>
-        <div className="row timeline-tools" role="group" aria-label="Timeline view">
+        <div
+          className="row timeline-tools"
+          role="group"
+          aria-label="Timeline view"
+        >
           <TimelineButton
             label="Previous keyframe (,)"
             icon="previousKeyframe"
@@ -181,19 +187,42 @@ export function TimelineControls({
               <span>{p.range ? "Range" : "Set range"}</span>
             </Button>
             {rangeOpen && (
-              <div className="timeline-menu" role="menu" aria-label="Preview range">
-                <Button role="menuitem" onClick={() => { setRangeEdge("start"); setRangeOpen(false); }}>
+              <div
+                className="timeline-menu"
+                role="menu"
+                aria-label="Preview range"
+              >
+                <Button
+                  role="menuitem"
+                  onClick={() => {
+                    setRangeEdge("start");
+                    setRangeOpen(false);
+                  }}
+                >
                   Set start to playhead (I)
                 </Button>
-                <Button role="menuitem" onClick={() => { setRangeEdge("end"); setRangeOpen(false); }}>
+                <Button
+                  role="menuitem"
+                  onClick={() => {
+                    setRangeEdge("end");
+                    setRangeOpen(false);
+                  }}
+                >
                   Set end to playhead (O)
                 </Button>
                 {p.range && (
                   <>
                     <span className="timeline-range-readout" role="status">
-                      {formatTimelineTime(p.range.start)}–{formatTimelineTime(p.range.end)}
+                      {formatTimelineTime(p.range.start)}–
+                      {formatTimelineTime(p.range.end)}
                     </span>
-                    <Button role="menuitem" onClick={() => { p.setRange(undefined); setRangeOpen(false); }}>
+                    <Button
+                      role="menuitem"
+                      onClick={() => {
+                        p.setRange(undefined);
+                        setRangeOpen(false);
+                      }}
+                    >
                       Clear range
                     </Button>
                   </>
@@ -254,7 +283,9 @@ export function TimelineControls({
               <Label className="check">
                 <Checkbox
                   checked={p.reducedMotion}
-                  onCheckedChange={(checked) => p.setReducedMotion(checked === true)}
+                  onCheckedChange={(checked) =>
+                    p.setReducedMotion(checked === true)
+                  }
                 />
                 Reduce animations in preview
               </Label>

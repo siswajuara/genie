@@ -4,9 +4,14 @@ import { createHash } from "node:crypto";
 import { captureUsage, assertRequestBudget } from "./social-usage.mjs";
 import { createElevenLabsPool, elevenLabsMedia } from "./elevenlabs.mjs";
 import { publicElevenLabs } from "./elevenlabs-config.mjs";
+import { generateScript } from "./opencode-generation.mjs";
+import { generateNarration } from "./opencode-narration.mjs";
+import { listOpenCodeModels } from "./opencode.mjs";
+import { publicOpenCode } from "./opencode-config.mjs";
 const providers = ["buffer", "zernio"];
 export const publicConfig = (config, storage) => ({
   storage,
+  opencode: publicOpenCode(config.opencode),
   elevenlabs: publicElevenLabs(config),
   buffer: {
     configured: !!config.buffer.key,
@@ -37,6 +42,7 @@ function https(value) {
 }
 export function createSocialService({
   fetchImpl = fetch,
+  opencodeRuntime = {},
   state = { receipts: {}, bufferCalls: [], blockedUntil: 0 },
   persist = async () => {},
 } = {}) {
@@ -288,6 +294,12 @@ export function createSocialService({
     return result;
   }
   async function dispatch(config, action, payload = {}) {
+    if (action === "ai.generate")
+      return generateScript(config, payload, fetchImpl, opencodeRuntime);
+    if (action === "ai.narration")
+      return generateNarration(config, payload, fetchImpl, opencodeRuntime);
+    if (action === "ai.models")
+      return listOpenCodeModels(config, fetchImpl, opencodeRuntime);
     const pool = createElevenLabsPool({ state, persist, fetchImpl });
     if (action === "elevenlabs.usage")
       return pool.usage(config, payload.accountId);

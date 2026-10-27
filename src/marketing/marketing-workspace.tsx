@@ -46,6 +46,36 @@ export function MarketingWorkspace({
   const [draft, setDraft] = useState<Post>(() => emptyPost(p.project.id));
   const [help, setHelp] = useState(false);
   const [toast, setToast] = useState("");
+  const generatedPost = p.page.canvas.metadata.post;
+  useEffect(() => {
+    if (module !== "Publish" || !generatedPost) return;
+    setDraft((old) =>
+      old.title || old.caption || old.media.length
+        ? old
+        : {
+            ...old,
+            title: generatedPost.name,
+            caption: generatedPost.caption,
+            media: generatedPost.frameIds.flatMap((id) => {
+              const frame = p.page.canvas.elements.find(
+                (o) => o.t === "frame" && o.id === id,
+              );
+              return frame
+                ? [
+                    {
+                      id: crypto.randomUUID(),
+                      kind: "frame" as const,
+                      name: frame.n,
+                      projectId: p.project.id,
+                      pageId: p.page.id,
+                      frameId: id,
+                    },
+                  ]
+                : [];
+            }),
+          },
+    );
+  }, [module, generatedPost, p.project.id, p.page.id]);
 
   useEffect(() => {
     if (!toast) return;

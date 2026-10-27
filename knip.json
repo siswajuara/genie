@@ -3,10 +3,7 @@
   "ignoreBinaries": ["dpkg-deb", "ffmpeg", "ffprobe"],
   "workspaces": {
     ".": {
-      "project": [
-        "src/**/*.{ts,tsx,js}",
-        "scripts/**/*.mjs"
-      ]
+      "project": ["src/**/*.{ts,tsx,js}", "scripts/**/*.mjs"]
     },
     "sidecar": {
       "entry": ["social-bridge.mjs", "voice-prototype.d.mts"]

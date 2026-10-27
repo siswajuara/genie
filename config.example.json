@@ -1,4 +1,5 @@
 {
+  "opencode": { "url": "", "token": "", "model": "" },
   "buffer": { "key": "", "organizationId": "" },
   "zernio": { "key": "", "profileId": "" },
   "elevenlabs": {

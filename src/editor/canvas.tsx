@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { prepareVideos, disposeVideos, type MediaImages } from "./video";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { frames, makeElement, type Element } from "./model";
+import { prepareScienceElement } from "./science";
 import { bounds, hitElements, intersects, reparentOnDrop } from "./scene";
 import { renderScene, type RenderCache } from "./render-scene";
 import type { Editor } from "./use-editor";
@@ -87,7 +88,6 @@ export function Canvas({
   const animationTextures = useRef<AnimationTextures>(new Map());
   const queuedPointer = useRef<PointerEvent | undefined>(undefined);
   const moveFrame = useRef<number | undefined>(undefined);
-  const space = useRef(false);
   const pointer = useRef<Point | undefined>(undefined);
   useEffect(() => {
     if (pendingAsset) {
@@ -139,13 +139,19 @@ export function Canvas({
           asset,
           at,
           { w: size.w / view.z, h: size.h / view.z },
-          target?.t === "img" && asset.type !== "video" ? target.id : undefined,
+          target?.t === "img" &&
+            !target.latex &&
+            !target.physics &&
+            !target.learning &&
+            asset.type !== "video"
+            ? target.id
+            : undefined,
         );
         return true;
       }
       const kind = data.getData("genie/element");
       if (kind) {
-        e.add(makeElement(kind), at);
+        e.add(await prepareScienceElement(makeElement(kind)), at);
         return true;
       }
       const encoded = data.getData(elementMime) || data.getData("text/plain");
@@ -600,6 +606,7 @@ export function Canvas({
     playback.frame?.id,
     playback.reducedMotion,
   ]);
+  const space = useRef(false);
   useEffect(() => {
     function key(ev: KeyboardEvent) {
       if (
@@ -617,7 +624,7 @@ export function Canvas({
       const k = ev.key.toLowerCase(),
         mod = ev.ctrlKey || ev.metaKey;
       if (mod && ["v", "c", "x"].includes(k)) return;
-      if (k === " ") {
+      if (k === " " && ev.shiftKey) {
         space.current = true;
         ev.preventDefault();
         return;
@@ -693,19 +700,19 @@ export function Canvas({
         });
       }
     }
-    const up = (ev: KeyboardEvent) => {
-      if (ev.code === "Space") space.current = false;
-    };
-    const blur = () => {
+    window.addEventListener("keydown", key);
+    const releasePan = () => {
       space.current = false;
     };
-    window.addEventListener("keydown", key);
-    window.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
+    const keyUp = (event: KeyboardEvent) => {
+      if (event.code === "Space") releasePan();
+    };
+    window.addEventListener("keyup", keyUp);
+    window.addEventListener("blur", releasePan);
     return () => {
       window.removeEventListener("keydown", key);
-      window.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
+      window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("blur", releasePan);
     };
   });
   function pos(ev: { clientX: number; clientY: number }) {
@@ -1104,14 +1111,32 @@ export function Canvas({
             <Icon name="redo" />
           </Button>
         </div>
-        <Button
-          aria-label="Toggle animation timeline"
-          title="Show or hide animation timeline"
-          aria-pressed={playback.open}
-          onClick={() => playback.setOpen(!playback.open)}
-        >
-          <Icon name="film" size={16} /> Timeline
-        </Button>
+        <div className="row">
+          <Button
+            className="primary"
+            aria-label={
+              playback.playing ? "Pause scene preview" : "Preview scene"
+            }
+            title={
+              playback.frame
+                ? "Preview scene animation"
+                : "Select a frame to preview"
+            }
+            disabled={!playback.frame}
+            onClick={playback.toggle}
+          >
+            <Icon name={playback.playing ? "pause" : "play"} size={16} />
+            {playback.playing ? "Pause" : "Preview scene"}
+          </Button>
+          <Button
+            aria-label="Toggle animation timeline"
+            title="Show or hide animation timeline"
+            aria-pressed={playback.open}
+            onClick={() => playback.setOpen(!playback.open)}
+          >
+            <Icon name="film" size={16} /> Timeline
+          </Button>
+        </div>
       </div>
       <div
         className={`canvas-stage ${pendingAsset ? "is-placing-asset" : ""}`}
@@ -1129,7 +1154,7 @@ export function Canvas({
             <AssetThumbnail asset={pendingAsset} size={36} />
             <span>
               Click the canvas to place this asset.
-              <small>Drag with Space to pan. Escape cancels.</small>
+              <small>Shift+Space-drag to pan. Space to play.</small>
             </span>
             <Button aria-label="Cancel asset placement" onClick={onAssetCancel}>
               <Icon name="close" size={16} />

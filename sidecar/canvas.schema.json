@@ -10,6 +10,19 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string" },
+        "post": {
+          "type": "object",
+          "required": ["name", "caption", "frameIds"],
+          "properties": {
+            "name": { "type": "string", "maxLength": 100 },
+            "caption": { "type": "string", "maxLength": 5000 },
+            "frameIds": {
+              "type": "array",
+              "maxItems": 10,
+              "items": { "type": "string" }
+            }
+          }
+        },
         "updatedAt": { "type": "string" },
         "date": { "type": "string", "format": "date" },
         "dateRange": {
@@ -266,6 +279,885 @@
         "text": { "type": "string", "minLength": 1, "maxLength": 2000 }
       }
     },
+    "physicsSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Gerak satu arah dengan percepatan positif tetap. s=v₀t+at²/2 dan v=v₀+at; lintasan dibatasi distance.",
+          "properties": {
+            "kind": { "const": "accelerated-motion" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "initialVelocity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 20
+            },
+            "acceleration": { "type": "number", "minimum": 0.1, "maximum": 10 },
+            "distance": { "type": "number", "minimum": 1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Benda dilepas dari diam. Percepatan g sin θ; gaya sejajar mg sin θ, normal mg cos θ. Tidak ada gesekan.",
+          "properties": {
+            "kind": { "const": "inclined-plane" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "mass": { "type": "number", "minimum": 0.1, "maximum": 20 },
+            "angle": { "type": "number", "minimum": 5, "maximum": 60 },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 },
+            "distance": { "type": "number", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Benda ditarik dengan kecepatan tetap di permukaan datar. Gaya tarik menyeimbangkan gesekan kinetik μmg; bukan model gesekan statik.",
+          "properties": {
+            "kind": { "const": "friction" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "mass": { "type": "number", "minimum": 0.1, "maximum": 20 },
+            "coefficient": { "type": "number", "minimum": 0, "maximum": 1 },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 },
+            "velocity": { "type": "number", "minimum": 0.1, "maximum": 5 },
+            "distance": { "type": "number", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tekanan sama: F₁/A₁=F₂/A₂. Penampang dalam m²; diagram gaya statis, tanpa rugi-rugi dan tanpa beda ketinggian piston.",
+          "properties": {
+            "kind": { "const": "hydraulic" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "force": { "type": "number", "minimum": 1, "maximum": 1000 },
+            "area1": { "type": "number", "minimum": 0.001, "maximum": 0.1 },
+            "area2": { "type": "number", "minimum": 0.001, "maximum": 0.5 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tekanan ukur relatif permukaan: p=ρgh, tidak termasuk tekanan atmosfer; cairan diam bermassa jenis tetap.",
+          "properties": {
+            "kind": { "const": "hydrostatic-pressure" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "fluidDensity": {
+              "type": "number",
+              "minimum": 500,
+              "maximum": 1500
+            },
+            "depth": { "type": "number", "minimum": 0.1, "maximum": 10 },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Hukum Snell n₁ sin i=n₂ sin r, sudut terhadap normal. Jika sin r>1, terjadi pantulan internal total dan tidak ada sinar bias.",
+          "properties": {
+            "kind": { "const": "refraction" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "index1": { "type": "number", "minimum": 1, "maximum": 2.5 },
+            "index2": { "type": "number", "minimum": 1, "maximum": 2.5 },
+            "angle": { "type": "number", "minimum": 0, "maximum": 80 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Partikel berosilasi sejajar arah rambat, bukan berpindah bersama gelombang. Syarat 2πA/λ≤0,8 agar urutan partikel tetap; v=λf.",
+          "properties": {
+            "kind": { "const": "longitudinal-wave" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "amplitude": { "type": "number", "minimum": 0.01, "maximum": 0.3 },
+            "wavelength": { "type": "number", "minimum": 1, "maximum": 8 },
+            "frequency": { "type": "number", "minimum": 0.1, "maximum": 3 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Rangkaian ideal tertutup: Rtotal=R₁+R₂, arus sama pada semua bagian, U₁+U₂=U. Titik bergerak mengilustrasikan arus konvensional.",
+          "properties": {
+            "kind": { "const": "series-circuit" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "voltage": { "type": "number", "minimum": 0.1, "maximum": 24 },
+            "resistance1": { "type": "number", "minimum": 1, "maximum": 100 },
+            "resistance2": { "type": "number", "minimum": 1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Pendulum (small angle)",
+          "properties": {
+            "kind": { "const": "pendulum" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 },
+            "length": { "type": "number", "minimum": 0.1, "maximum": 10 },
+            "angle": { "type": "number", "minimum": 1, "maximum": 30 },
+            "damping": { "type": "number", "minimum": 0, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Damped spring",
+          "properties": {
+            "kind": { "const": "spring" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "mass": { "type": "number", "minimum": 0.1, "maximum": 20 },
+            "springConstant": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 200
+            },
+            "amplitude": { "type": "number", "minimum": 0.02, "maximum": 2 },
+            "damping": { "type": "number", "minimum": 0, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Projectile (no air resistance)",
+          "properties": {
+            "kind": { "const": "projectile" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 },
+            "velocity": { "type": "number", "minimum": 0.1, "maximum": 40 },
+            "angle": { "type": "number", "minimum": 5, "maximum": 85 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Gerak lurus beraturan",
+          "properties": {
+            "kind": { "const": "linear-motion" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "velocity": { "type": "number", "minimum": 0.1, "maximum": 20 },
+            "distance": { "type": "number", "minimum": 1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Jatuh bebas",
+          "properties": {
+            "kind": { "const": "free-fall" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tuas ideal",
+          "properties": {
+            "kind": { "const": "lever" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "loadMass": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "loadArm": { "type": "number", "minimum": 0.1, "maximum": 5 },
+            "effortArm": { "type": "number", "minimum": 0.1, "maximum": 5 },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Katrol ideal",
+          "properties": {
+            "kind": { "const": "pulley" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "loadMass": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "supportingRopes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Gaya apung",
+          "properties": {
+            "kind": { "const": "buoyancy" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "objectDensity": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 2000
+            },
+            "fluidDensity": {
+              "type": "number",
+              "minimum": 500,
+              "maximum": 1500
+            },
+            "volume": { "type": "number", "minimum": 0.0001, "maximum": 0.05 },
+            "gravity": { "type": "number", "minimum": 0.1, "maximum": 30 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Gelombang transversal",
+          "properties": {
+            "kind": { "const": "wave" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "amplitude": { "type": "number", "minimum": 0.02, "maximum": 1 },
+            "wavelength": { "type": "number", "minimum": 0.2, "maximum": 10 },
+            "frequency": { "type": "number", "minimum": 0.1, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Rangkaian DC satu resistor",
+          "properties": {
+            "kind": { "const": "circuit" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "voltage": { "type": "number", "minimum": 0.1, "maximum": 24 },
+            "resistance": { "type": "number", "minimum": 1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Pemantulan cahaya",
+          "properties": {
+            "kind": { "const": "reflection" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "angle": { "type": "number", "minimum": 0, "maximum": 75 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Uniform circular motion",
+          "properties": {
+            "kind": { "const": "orbit" },
+            "loop": { "type": "boolean" },
+            "trail": { "type": "boolean" },
+            "radius": { "type": "number", "minimum": 0.1, "maximum": 10 },
+            "period": { "type": "number", "minimum": 0.2, "maximum": 60 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "learningSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Sudut 0–180°, diukur berlawanan arah jarum jam dari sinar mendatar. Lancip <90°, siku-siku 90°, tumpul >90° dan <180°.",
+          "properties": {
+            "kind": { "const": "angle" },
+            "animate": { "type": "boolean" },
+            "degrees": { "type": "number", "minimum": 0, "maximum": 180 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Semua sisi dan sudut sama. Keliling n×s; luas ns²/(4 tan(π/n)); jumlah sudut dalam (n−2)×180°.",
+          "properties": {
+            "kind": { "const": "regular-polygon" },
+            "animate": { "type": "boolean" },
+            "sides": { "type": "integer", "minimum": 3, "maximum": 10 },
+            "side": { "type": "number", "minimum": 0.1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Enam persegi kongruen: empat berjajar, satu di atas dan satu di bawah persegi kedua. Animasi menelusuri keenam sisi, bukan simulasi melipat 3D.",
+          "properties": {
+            "kind": { "const": "cube-net" },
+            "animate": { "type": "boolean" },
+            "side": { "type": "number", "minimum": 0.1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Banyak benda = baris × kolom. Semua benda tetap terlihat; animasi menyorot baris bergantian.",
+          "properties": {
+            "kind": { "const": "multiplication-array" },
+            "animate": { "type": "boolean" },
+            "rows": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "columns": { "type": "integer", "minimum": 1, "maximum": 10 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Bilangan bulat 0–9999 diuraikan menjadi ribuan, ratusan, puluhan, dan satuan; tidak menghilangkan angka nol.",
+          "properties": {
+            "kind": { "const": "place-value" },
+            "animate": { "type": "boolean" },
+            "number": { "type": "integer", "minimum": 0, "maximum": 9999 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Dua pecahan berpenyebut sama, jumlah maksimal satu utuh. Syarat first+second ≤ denominator; penyebut maksimal 12.",
+          "properties": {
+            "kind": { "const": "fraction-addition" },
+            "animate": { "type": "boolean" },
+            "first": { "type": "integer", "minimum": 0, "maximum": 12 },
+            "second": { "type": "integer", "minimum": 0, "maximum": 12 },
+            "denominator": { "type": "integer", "minimum": 1, "maximum": 12 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "2–6 kategori bernilai 0–100 dengan total >0. Sudut sektor = nilai/total ×360°. Contoh data, bukan survei nyata.",
+          "properties": {
+            "kind": { "const": "pie-chart" },
+            "animate": { "type": "boolean" },
+            "labels": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 6,
+              "items": { "type": "string", "minLength": 1, "maxLength": 14 }
+            },
+            "values": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 6,
+              "items": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "2–8 data berurutan pada sumbu berjarak sama; nilai 0–100 dan sumbu y mulai nol. Garis menghubungkan pengamatan, bukan data tambahan.",
+          "properties": {
+            "kind": { "const": "line-chart" },
+            "animate": { "type": "boolean" },
+            "labels": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": { "type": "string", "minLength": 1, "maxLength": 12 }
+            },
+            "values": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Jam 12 angka; jarum pendek bergerak sesuai menit. Animasi hanya menyorot jarum, tidak mengubah waktu yang sedang diajarkan.",
+          "properties": {
+            "kind": { "const": "analog-clock" },
+            "animate": { "type": "boolean" },
+            "hour": { "type": "integer", "minimum": 0, "maximum": 23 },
+            "minute": { "type": "integer", "minimum": 0, "maximum": 59 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Persamaan ax+b=c dengan c dihitung aplikasi dari solusi x. Animasi menjelaskan mengurangi b dan membagi a, tanpa mengubah persamaan.",
+          "properties": {
+            "kind": { "const": "balance-equation" },
+            "animate": { "type": "boolean" },
+            "coefficient": { "type": "integer", "minimum": 1, "maximum": 9 },
+            "constant": { "type": "integer", "minimum": 0, "maximum": 20 },
+            "answer": { "type": "integer", "minimum": 0, "maximum": 12 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Dua himpunan dengan tiga daerah. Setiap anggota harus unik dan berada pada daerah yang tepat; contoh bukan klasifikasi universal semua hewan.",
+          "properties": {
+            "kind": { "const": "venn" },
+            "animate": { "type": "boolean" },
+            "left": { "type": "string", "minLength": 1, "maxLength": 28 },
+            "right": { "type": "string", "minLength": 1, "maxLength": 28 },
+            "leftOnly": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": { "type": "string", "minLength": 1, "maxLength": 14 }
+            },
+            "both": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": { "type": "string", "minLength": 1, "maxLength": 14 }
+            },
+            "rightOnly": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": { "type": "string", "minLength": 1, "maxLength": 14 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Dua kelompok benda dengan perbandingan bilangan bulat positif. Tampilkan rasio awal dan bentuk sederhananya.",
+          "properties": {
+            "kind": { "const": "ratio" },
+            "animate": { "type": "boolean" },
+            "first": { "type": "integer", "minimum": 1, "maximum": 10 },
+            "second": { "type": "integer", "minimum": 1, "maximum": 10 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tiga contoh untuk kalimat berita, tanya, dan seruan/perintah. parts tidak memuat tanda akhir; marks memberi tanda akhir yang sesuai.",
+          "properties": {
+            "kind": { "const": "punctuation" },
+            "animate": { "type": "boolean" },
+            "parts": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": { "type": "string", "minLength": 1, "maxLength": 56 }
+            },
+            "marks": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": { "enum": [".", "?", "!"] }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Rangkaian awalan + kata dasar + akhiran. Model ini hanya penggabungan langsung tanpa peluluhan/perubahan bunyi; prefix atau suffix boleh kosong tetapi tidak keduanya.",
+          "properties": {
+            "kind": { "const": "affix" },
+            "animate": { "type": "boolean" },
+            "root": { "type": "string", "minLength": 1, "maxLength": 18 },
+            "prefix": { "type": "string", "maxLength": 12 },
+            "suffix": { "type": "string", "maxLength": 12 },
+            "result": { "type": "string", "minLength": 1, "maxLength": 32 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Dua peristiwa dengan hubungan sebab-akibat yang masuk akal. Panah selalu dari sebab ke akibat; kata hubung tidak boleh membalik hubungan.",
+          "properties": {
+            "kind": { "const": "cause-effect" },
+            "animate": { "type": "boolean" },
+            "cause": { "type": "string", "minLength": 1, "maxLength": 88 },
+            "effect": { "type": "string", "minLength": 1, "maxLength": 88 },
+            "connector": { "enum": ["sehingga", "karena", "akibatnya"] }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Empat unsur cerita: tokoh, latar, masalah, penyelesaian. Penyelesaian menjawab masalah yang sama; teks contoh fiksi.",
+          "properties": {
+            "kind": { "const": "story-map" },
+            "animate": { "type": "boolean" },
+            "character": { "type": "string", "minLength": 1, "maxLength": 40 },
+            "setting": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "problem": { "type": "string", "minLength": 1, "maxLength": 88 },
+            "solution": { "type": "string", "minLength": 1, "maxLength": 88 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Empat sisi sama panjang; luas s² dan keliling 4s.",
+          "properties": {
+            "kind": { "const": "square" },
+            "animate": { "type": "boolean" },
+            "side": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Empat sudut siku-siku; luas p×l dan keliling 2(p+l).",
+          "properties": {
+            "kind": { "const": "rectangle" },
+            "animate": { "type": "boolean" },
+            "width": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Segitiga siku-siku; alas dan tinggi tegak lurus, sisi miring dihitung dengan Pythagoras.",
+          "properties": {
+            "kind": { "const": "triangle" },
+            "animate": { "type": "boolean" },
+            "base": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Luas πr², keliling 2πr; π memakai Math.PI, hasil ditandai pendekatan.",
+          "properties": {
+            "kind": { "const": "circle" },
+            "animate": { "type": "boolean" },
+            "radius": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tinggi tegak lurus alas, bukan panjang sisi miring.",
+          "properties": {
+            "kind": { "const": "parallelogram" },
+            "animate": { "type": "boolean" },
+            "base": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "offset": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Dua sisi sejajar; luas (a+b)t/2. Alas bawah harus lebih panjang dari atas.",
+          "properties": {
+            "kind": { "const": "trapezoid" },
+            "animate": { "type": "boolean" },
+            "base": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "top": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Dua diagonal tegak lurus saling membagi dua; luas d₁d₂/2.",
+          "properties": {
+            "kind": { "const": "rhombus" },
+            "animate": { "type": "boolean" },
+            "diagonal1": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "diagonal2": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Diagonal simetri dibagi dengan perbandingan 1:2 oleh diagonal kedua; luas d₁d₂/2.",
+          "properties": {
+            "kind": { "const": "kite" },
+            "animate": { "type": "boolean" },
+            "diagonal1": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "diagonal2": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Proyeksi ilustratif, bukan perspektif berskala. Volume s³; luas permukaan 6s².",
+          "properties": {
+            "kind": { "const": "cube" },
+            "animate": { "type": "boolean" },
+            "side": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Volume p×l×t; luas permukaan 2(pl+pt+lt).",
+          "properties": {
+            "kind": { "const": "cuboid" },
+            "animate": { "type": "boolean" },
+            "width": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "depth": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tabung tertutup; volume πr²t dan luas permukaan 2πr(r+t).",
+          "properties": {
+            "kind": { "const": "cylinder" },
+            "animate": { "type": "boolean" },
+            "radius": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Tinggi tegak lurus alas; garis pelukis √(r²+t²), volume πr²t/3.",
+          "properties": {
+            "kind": { "const": "cone" },
+            "animate": { "type": "boolean" },
+            "radius": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Volume 4πr³/3; luas permukaan 4πr².",
+          "properties": {
+            "kind": { "const": "sphere" },
+            "animate": { "type": "boolean" },
+            "radius": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Alas segitiga siku-siku; volume at×panjang prisma/2.",
+          "properties": {
+            "kind": { "const": "triangular-prism" },
+            "animate": { "type": "boolean" },
+            "base": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "depth": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Limas tegak; puncak tepat di atas pusat alas. Volume s²t/3.",
+          "properties": {
+            "kind": { "const": "square-pyramid" },
+            "animate": { "type": "boolean" },
+            "side": { "type": "number", "minimum": 0.1, "maximum": 100 },
+            "height": { "type": "number", "minimum": 0.1, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Pecahan 0–1 dengan bagian sama besar; pembilang tidak melebihi penyebut.",
+          "properties": {
+            "kind": { "const": "fraction" },
+            "animate": { "type": "boolean" },
+            "numerator": { "type": "integer", "minimum": 0, "maximum": 12 },
+            "denominator": { "type": "integer", "minimum": 1, "maximum": 12 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Titik berada dalam rentang; maksimal 20 interval agar label terbaca.",
+          "properties": {
+            "kind": { "const": "number-line" },
+            "animate": { "type": "boolean" },
+            "minimum": { "type": "integer", "minimum": -100, "maximum": 99 },
+            "maximum": { "type": "integer", "minimum": -99, "maximum": 100 },
+            "value": { "type": "integer", "minimum": -100, "maximum": 100 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Empat kuadran dengan skala tetap −5 sampai 5; pasangan berurutan (x,y).",
+          "properties": {
+            "kind": { "const": "coordinates" },
+            "animate": { "type": "boolean" },
+            "pointX": { "type": "integer", "minimum": -5, "maximum": 5 },
+            "pointY": { "type": "integer", "minimum": -5, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "2–6 kategori; nilai 0–100; sumbu dimulai dari nol. Contoh data, bukan statistik nyata.",
+          "properties": {
+            "kind": { "const": "bar-chart" },
+            "animate": { "type": "boolean" },
+            "labels": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 6,
+              "items": { "type": "string", "minLength": 1, "maxLength": 14 }
+            },
+            "values": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 6,
+              "items": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Empat frasa berurutan: subjek, predikat, objek, keterangan. Gunakan kalimat transitif yang sesuai; bukan semua kalimat wajib memiliki objek.",
+          "properties": {
+            "kind": { "const": "sentence" },
+            "animate": { "type": "boolean" },
+            "parts": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": { "type": "string", "minLength": 1, "maxLength": 36 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Suku kata harus menyatu menjadi kata yang diberikan; contoh mengikuti ejaan bahasa Indonesia.",
+          "properties": {
+            "kind": { "const": "syllables" },
+            "animate": { "type": "boolean" },
+            "word": { "type": "string", "minLength": 1, "maxLength": 40 },
+            "parts": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": { "type": "string", "minLength": 1, "maxLength": 12 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Kelompok sinonim, antonim, atau kata berimbuhan. Pilih kata sesuai konteks; makna tidak selalu saling menggantikan.",
+          "properties": {
+            "kind": { "const": "word-family" },
+            "animate": { "type": "boolean" },
+            "words": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 5,
+              "items": { "type": "string", "minLength": 1, "maxLength": 26 }
+            },
+            "relation": { "enum": ["Sinonim", "Antonim", "Imbuhan"] }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "3–5 kejadian pendek dalam urutan logis: awal, perkembangan, akhir.",
+          "properties": {
+            "kind": { "const": "story-sequence" },
+            "animate": { "type": "boolean" },
+            "parts": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 5,
+              "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "description": "Satu ide pokok dengan 2–4 rincian yang mendukung gagasan yang sama.",
+          "properties": {
+            "kind": { "const": "main-idea" },
+            "animate": { "type": "boolean" },
+            "idea": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "details": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 4,
+              "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "element": {
       "type": "object",
       "required": ["id", "t", "n", "x", "y", "w", "h"],
@@ -280,6 +1172,18 @@
           "enum": ["frame", "text", "rect", "ellipse", "line", "img", "video"]
         },
         "n": { "type": "string" },
+        "brandRole": {
+          "enum": ["logo", "footer", "content"],
+          "description": "Marks an editable layer as part of the shared standard frame. Content explicitly stays outside shared branding. Saved canvases retain these as ordinary independent elements."
+        },
+        "generationRole": {
+          "enum": ["editable", "fixed", "page-number"],
+          "description": "Controls AI filling of a template layer; fixed layers remain editable manually."
+        },
+        "generationGroup": {
+          "type": "string",
+          "description": "Text layers that share a generation slot, such as fragments of one headline."
+        },
         "fid": {
           "type": "string",
           "description": "Parent frame ID. Coordinates remain absolute."
@@ -311,6 +1215,19 @@
         "bend": { "type": "number" },
         "dash": { "type": "number" },
         "src": { "type": "string" },
+        "aiDescription": { "type": "string", "maxLength": 4000 },
+        "latex": {
+          "type": "object",
+          "required": ["source"],
+          "description": "Math-only LaTeX source for an img layer. src embeds its standalone SVG; animation.enter controls its reveal.",
+          "properties": {
+            "source": { "type": "string", "minLength": 1, "maxLength": 2000 },
+            "displayMode": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "physics": { "$ref": "#/$defs/physicsSpec" },
+        "learning": { "$ref": "#/$defs/learningSpec" },
         "videoStart": { "type": "number", "minimum": 0, "maximum": 100000 },
         "videoLoop": { "type": "boolean" },
         "chromaKey": {

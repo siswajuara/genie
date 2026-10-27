@@ -10,4 +10,4 @@ Preserve canvas/page context and local edits across navigation. Keep existing ca
 
 Keep verification focused on the affected behavior. Do not make paid model calls, publish posts, or run live provider mutations to test ordinary code changes.
 
-Illustrations and animation catalogs are external asset packs under `asset-packs/`, not app bundle imports. See `asset-packs/README.md` for preparation and metadata. Keep browsing lazy, remember the selected desktop folder in local config.json, and embed only placed media into local canvases so designs remain portable.
+Templates, illustrations, and animation catalogs are external asset packs under `asset-packs/`, not app bundle imports. See `asset-packs/README.md` for preparation and metadata. Keep browsing lazy, remember the selected desktop folder in local config.json, and embed only placed media into local canvases so designs remain portable. Keep `design-references/` as the source for preset preparation, cutouts, text fitting, and validation.

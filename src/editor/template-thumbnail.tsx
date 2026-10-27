@@ -41,7 +41,7 @@ function image(src: string) {
   }
   return promise;
 }
-async function render(preset: Preset) {
+export async function renderTemplatePreview(preset: Preset) {
   const objects = preset.objects.filter((o) => !o.hide);
   await ensureDocumentFonts(objects);
   const areas = objects.map(bounds),
@@ -83,7 +83,7 @@ async function render(preset: Preset) {
     sources.map((src) => (src ? image(src) : undefined)),
   );
   ctx.scale(scale, scale);
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = preset.background || "#fff";
   ctx.fillRect(0, 0, width, height);
   ctx.translate(-x, -y);
   for (let i = 0; i < objects.length; i++)
@@ -98,7 +98,7 @@ function thumbnail(preset: Preset) {
     cached = new Promise<string>((resolve, reject) => {
       waiting.push(() => {
         setTimeout(() => {
-          void render(preset)
+          void renderTemplatePreview(preset)
             .then(resolve, reject)
             .finally(() => {
               running--;

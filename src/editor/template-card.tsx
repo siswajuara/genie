@@ -1,83 +1,76 @@
+import { PresetPreviewImage } from "./preset-preview-image";
 import { Button } from "@/components/ui/button";
 import type { Preset } from "./model";
 import { TemplateThumbnail } from "./template-thumbnail";
 import { Icon } from "../components/ui/icon";
+import { templateFormat, type PresetSummary } from "./preset-catalog";
 
-function format(preset: Preset) {
-  if (preset.kind !== "template") return `${preset.objects.length} elements`;
-  const ratio = (preset.W || 1122) / (preset.H || 1402);
-  return ratio < 0.65
-    ? "Story"
-    : ratio > 1.15
-      ? "Landscape"
-      : ratio > 0.95
-        ? "Square"
-        : "Portrait";
-}
 export function TemplateCard({
   preset,
-  canReplace,
-  onApply,
-  onDelete,
+  onPreview,
+  favorite,
+  onFavorite,
+  onRemove,
+  removed = false,
 }: {
-  preset: Preset;
-  canReplace: boolean;
-  onApply: (replace?: boolean) => void;
-  onDelete?: () => void;
+  preset: Preset | PresetSummary;
+  onPreview: () => void;
+  favorite: boolean;
+  onFavorite: () => void;
+  onRemove?: () => void;
+  removed?: boolean;
 }) {
   return (
     <article className="template-card">
       <div className="template-card-preview">
         <Button
           className="template-preview-button"
-          aria-label={`Use ${preset.name}`}
-          onClick={() => onApply()}
+          aria-label={`Preview ${preset.name}`}
+          onClick={onPreview}
         >
-          <TemplateThumbnail preset={preset} />
-        </Button>
-        <div className="template-card-actions">
-          <Button className="primary" onClick={() => onApply()}>
-            <Icon name="add" size={14} />
-            {preset.kind === "template" ? "Add Frame" : "Add elements"}
-          </Button>
-          {preset.kind === "template" && (
-            <Button
-              disabled={!canReplace}
-              title={
-                canReplace
-                  ? "Replace the selected frame"
-                  : "Select a frame first"
-              }
-              onClick={() => onApply(true)}
-            >
-              <Icon name="layers" size={14} />
-              Replace
-            </Button>
+          {"file" in preset && preset.thumbnail ? (
+            <div className="template-thumbnail">
+              <PresetPreviewImage
+                entry={preset}
+                alt={`${preset.name} template preview`}
+              />
+            </div>
+          ) : "objects" in preset ? (
+            <TemplateThumbnail preset={preset} />
+          ) : (
+            <span>Preview unavailable</span>
           )}
-        </div>
-        {onDelete && (
+        </Button>
+        <Button
+          className="template-favorite"
+          aria-label={`${favorite ? "Unsave" : "Save"} favorite ${preset.name}`}
+          aria-pressed={favorite}
+          onClick={onFavorite}
+        >
+          <Icon name="bookmark" size={14} />
+        </Button>
+        <span className="template-category">
+          {preset.useCases?.[0] || "content"}
+        </span>
+        {onRemove && (
           <Button
-            className="template-delete danger"
-            aria-label={`Delete ${preset.name}`}
-            title="Delete template"
-            onClick={onDelete}
+            className="template-remove"
+            aria-label={`${removed ? "Restore" : "Remove from library"} ${preset.name}`}
+            title={removed ? "Restore template" : "Remove from library"}
+            onClick={onRemove}
           >
-            <Icon name="delete" size={15} />
+            <Icon name={removed ? "undo" : "delete"} size={14} />
           </Button>
         )}
       </div>
       <div className="template-caption">
         <strong title={preset.name}>{preset.name}</strong>
         <small>
-          <span>{format(preset)}</span>
-          {preset.kind === "template" && (
-            <span>
-              {preset.W || 1122} × {preset.H || 1402}
-            </span>
-          )}
-          {preset.kind === "template" && (
-            <span>{preset.scene?.duration ?? 6}s animated</span>
-          )}
+          <span>{templateFormat(preset)}</span>
+          <span>
+            {"objects" in preset ? preset.objects.length : preset.elementCount}{" "}
+            layers
+          </span>
         </small>
       </div>
     </article>

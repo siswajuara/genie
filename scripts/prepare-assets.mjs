@@ -235,7 +235,13 @@ assets.sort((a, b) => a.name.localeCompare(b.name));
 await fs.writeFile(
   path.join(output, "manifest.json"),
   JSON.stringify(
-    { version: 1, id: "siswa-juara", name: "Siswa Juara Elements", assets },
+    {
+      version: 1,
+      id: "siswa-juara",
+      name: "Siswa Juara Elements",
+      assets,
+      ...(previous.presets ? { presets: previous.presets } : {}),
+    },
     null,
     2,
   ) + "\n",

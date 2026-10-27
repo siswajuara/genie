@@ -121,7 +121,7 @@ function drawPerspective(
     );
     drawElement(
       raster,
-      { ...element, rot: 0, op: 1, img: image },
+      { ...element, rot: 0, op: 1, img: image, scienceTime: textTime ?? 0 },
       true,
       glyphAnimation,
     );
@@ -299,7 +299,13 @@ export function drawAnimationFrame(
         textures,
         Math.max(width / frame.w, height / frame.h),
         glyphAnimation,
-        glyphAnimation ? time : undefined,
+        element.physics || element.learning
+          ? reducedMotion
+            ? 0
+            : Math.max(0, (time ?? 0) - timing(element, duration).start)
+          : glyphAnimation
+            ? time
+            : undefined,
       );
     } else {
       const perspective = 1600 / Math.max(200, 1600 - pose.z);
@@ -312,6 +318,9 @@ export function drawAnimationFrame(
           rot: 0,
           op: (element.op ?? 1) * pose.opacity,
           img: image,
+          scienceTime: reducedMotion
+            ? 0
+            : Math.max(0, (time ?? 0) - timing(element, duration).start),
         },
         true,
         glyphAnimation,

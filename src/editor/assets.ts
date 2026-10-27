@@ -75,8 +75,36 @@ const sources = new WeakMap<
 let generation = 0;
 const loading = new Map<string, Promise<string>>();
 const thumbnails = new Map<string, Promise<string>>();
-function activate(pack: AssetManifest, directory: string, read: ReadAsset) {
+let presetFiles = new Map<string, number>();
+let readPresetFile: ((path: string) => Promise<Blob>) | undefined;
+export const assetPackRevision = () => state.revision;
+export const hasPresetLibrary = () => presetFiles.has("presets/catalog.json");
+export async function loadPackPresetFile(path: string): Promise<Blob> {
+  const bytes = presetFiles.get(path),
+    read = readPresetFile,
+    current = generation;
+  if (!bytes || !read)
+    throw Error("Connect an asset pack with templates in Setting > Assets.");
+  const blob = await read(path);
+  if (current !== generation)
+    throw Error("The asset folder changed. Select the template again.");
+  if (blob.size !== bytes)
+    throw Error(
+      "Template file size does not match its metadata. Refresh the asset folder.",
+    );
+  return blob;
+}
+function activate(
+  pack: AssetManifest,
+  directory: string,
+  read: ReadAsset,
+  readPreset: (path: string) => Promise<Blob>,
+) {
   generation++;
+  presetFiles = new Map(
+    (pack.presets || []).map((file) => [file.path, file.bytes]),
+  );
+  readPresetFile = readPreset;
   loading.clear();
   thumbnails.clear();
   libraryAssets = pack.assets
@@ -106,16 +134,27 @@ function activate(pack: AssetManifest, directory: string, read: ReadAsset) {
 type NativePack = { manifest: unknown; directory: string; token: string };
 function activateNative(result: NativePack) {
   const pack = parseAssetManifest(result.manifest);
-  activate(pack, result.directory, async (asset, thumbnail) => {
-    const bytes = await invoke<ArrayBuffer>("asset_pack_read", {
-      token: result.token,
-      id: asset.id,
-      thumbnail,
-    });
-    return new Blob([bytes], {
-      type: thumbnail ? thumbnailMime(asset.thumbnail) : asset.mime,
-    });
-  });
+  activate(
+    pack,
+    result.directory,
+    async (asset, thumbnail) => {
+      const bytes = await invoke<ArrayBuffer>("asset_pack_read", {
+        token: result.token,
+        id: asset.id,
+        thumbnail,
+      });
+      return new Blob([bytes], {
+        type: thumbnail ? thumbnailMime(asset.thumbnail) : asset.mime,
+      });
+    },
+    async (path) =>
+      new Blob([
+        await invoke<ArrayBuffer>("asset_pack_read_preset", {
+          token: result.token,
+          path,
+        }),
+      ]),
+  );
 }
 function thumbnailMime(path: string) {
   return /\.png$/i.test(path)
@@ -135,14 +174,28 @@ export async function initializeAssetLibrary() {
       if (!response.ok)
         throw Error("Could not read the development asset pack.");
       const pack = parseAssetManifest(await response.json());
-      activate(pack, "Development asset folder", async (asset, thumbnail) => {
-        const response = await fetch(
-          `/api/genie-assets/file?path=${encodeURIComponent(thumbnail ? asset.thumbnail : asset.path)}`,
-        );
-        if (!response.ok)
-          throw Error("Asset file is missing. Reconnect the asset folder.");
-        return response.blob();
-      });
+      activate(
+        pack,
+        "Development asset folder",
+        async (asset, thumbnail) => {
+          const response = await fetch(
+            `/api/genie-assets/file?path=${encodeURIComponent(thumbnail ? asset.thumbnail : asset.path)}`,
+          );
+          if (!response.ok)
+            throw Error("Asset file is missing. Reconnect the asset folder.");
+          return response.blob();
+        },
+        async (path) => {
+          const response = await fetch(
+            `/api/genie-assets/file?path=${encodeURIComponent(path)}`,
+          );
+          if (!response.ok)
+            throw Error(
+              "Template file is missing. Reconnect the asset folder.",
+            );
+          return response.blob();
+        },
+      );
     }
   } catch (error) {
     update({ error: String(error) });
@@ -172,6 +225,11 @@ export async function connectBrowserAssetDirectory(files: File[]) {
         `Asset file size does not match its metadata: ${asset.name}.`,
       );
   }
+  for (const entry of pack.presets || []) {
+    const file = byPath.get(prefix + entry.path);
+    if (!file || file.size !== entry.bytes)
+      throw Error(`Template pack is incomplete: ${entry.path}.`);
+  }
   activate(
     pack,
     prefix.replace(/\/$/, ""),
@@ -180,11 +238,14 @@ export async function connectBrowserAssetDirectory(files: File[]) {
         [byPath.get(prefix + (thumbnail ? asset.thumbnail : asset.path))!],
         { type: thumbnail ? thumbnailMime(asset.thumbnail) : asset.mime },
       ),
+    async (path) => byPath.get(prefix + path)!,
   );
 }
 export async function disconnectAssetDirectory() {
   if (isTauri()) await invoke("asset_pack_disconnect");
   generation++;
+  presetFiles.clear();
+  readPresetFile = undefined;
   libraryAssets = [];
   loading.clear();
   thumbnails.clear();

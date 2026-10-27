@@ -1,6 +1,7 @@
 import type { Element, Preset } from "./model";
 import { loadAsset, matchLibraryAsset } from "./assets";
 import { brandImageSource } from "../lib/brand";
+import { prepareScienceElement } from "./science";
 
 export async function resolvePresetAssets(preset: Preset): Promise<Preset> {
   const loaded = new Map<string, Promise<string>>();
@@ -10,6 +11,10 @@ export async function resolvePresetAssets(preset: Preset): Promise<Preset> {
     while (index < objects.length) {
       const at = index++,
         object = objects[at];
+      if (object.latex || object.physics || object.learning) {
+        objects[at] = await prepareScienceElement(object);
+        continue;
+      }
       if (object.t !== "img" || object.src || !object.identifier) continue;
       const brand = brandImageSource(object.identifier);
       if (brand) {
@@ -31,12 +36,21 @@ export async function resolvePresetAssets(preset: Preset): Promise<Preset> {
     }
   }
   await Promise.all(Array.from({ length: 4 }, worker));
+  for (const identifier of preset.requiredAssets || []) {
+    if (!objects.some((o) => o.identifier === identifier && o.src))
+      throw Error(
+        "Connect the Siswa Juara asset pack in Setting > Assets to use this design. No changes were made to your canvas.",
+      );
+  }
   return { ...preset, objects };
 }
 export function unresolvedAssetSlots(elements: Element[]) {
   return elements.filter(
     (o) =>
       o.t === "img" &&
+      !o.latex &&
+      !o.physics &&
+      !o.learning &&
       !o.src &&
       o.identifier &&
       (brandImageSource(o.identifier) || matchLibraryAsset(o.identifier)),

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { elevenLabsAccounts } from "./elevenlabs-config.mjs";
-import { PROTOTYPE_VOICE_ID, SPEECH_MODEL } from "./voice-prototype.mjs";
+import { SPEECH_MODEL } from "./voice-prototype.mjs";
 
 class ElevenLabsLimitError extends Error {
   constructor(message, retryAfter = 60) {
@@ -43,10 +43,11 @@ export async function elevenLabsMedia(
         payload.text.length > 5000
       )
         throw Error("Enter 1–5,000 characters for the voiceover.");
-      if (payload.voiceId !== PROTOTYPE_VOICE_ID)
-        throw Error(
-          "Use the prototype voice ID from test.ts for voice generation.",
-        );
+      if (
+        typeof payload.voiceId !== "string" ||
+        !/^[a-zA-Z0-9_-]{1,100}$/.test(payload.voiceId)
+      )
+        throw Error("Choose a valid ElevenLabs voice.");
       path = `/v1/text-to-speech/${encodeURIComponent(payload.voiceId)}/with-timestamps?output_format=mp3_44100_128`;
       options = {
         method: "POST",

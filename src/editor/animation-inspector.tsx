@@ -116,14 +116,25 @@ export function AnimationInspector({
       ),
     });
   }
-  function applyEffectPreset(phase: "enter" | "exit", preset: Effect["preset"]) {
+  function applyEffectPreset(
+    phase: "enter" | "exit",
+    preset: Effect["preset"],
+  ) {
     const current = a[phase] ?? defaultEffect("none");
     patch({ [phase]: { ...current, preset } });
     if (preset === "none") return;
-    replayAt(phase === "enter" ? bounds.start + 0.01 : Math.max(bounds.start, bounds.end - 0.6));
+    replayAt(
+      phase === "enter"
+        ? bounds.start + 0.01
+        : Math.max(bounds.start, bounds.end - 0.6),
+    );
   }
   function applyMotionPreset(preset: Motion["preset"]) {
-    const current = a.motion ?? { preset: "none", amount: 40, easing: "ease-in-out" as Easing };
+    const current = a.motion ?? {
+      preset: "none",
+      amount: 40,
+      easing: "ease-in-out" as Easing,
+    };
     patch({ motion: { ...current, preset } });
     if (preset === "none") return;
     replayAt(bounds.start + 0.01);
@@ -144,8 +155,12 @@ export function AnimationInspector({
         title={`${label}: ${preset === "none" ? "None" : effectLabel(preset)}. Click to edit.`}
         onClick={() => setSlot(id)}
       >
+        <span className="anim-slot-dot" aria-hidden="true" />
         <strong>{label}</strong>
-        <span className="anim-slot-value">{preset === "none" ? "None" : effectLabel(preset)}</span>
+        <span className="anim-slot-value">
+          {preset === "none" ? "None" : effectLabel(preset)}
+        </span>
+        <Icon name={active ? "down" : "right"} size={14} />
       </Button>
     );
   }
@@ -180,7 +195,11 @@ export function AnimationInspector({
   }
   const enter = a.enter ?? defaultEffect("none"),
     exit = a.exit ?? defaultEffect("none"),
-    motion = a.motion ?? { preset: "none", amount: 40, easing: "ease-in-out" as Easing };
+    motion = a.motion ?? {
+      preset: "none",
+      amount: 40,
+      easing: "ease-in-out" as Easing,
+    };
   return (
     <div className="animation-inspector">
       <div className="section-title">
@@ -192,21 +211,6 @@ export function AnimationInspector({
               ? `${selected.length} layers`
               : o.n}
         </span>
-      </div>
-      <div className="animation-preview-row">
-        <Button className="primary" onClick={p.toggle}>
-          <Icon name={p.playing ? "pause" : "play"} size={14} />
-          {p.playing ? "Pause" : "Preview scene"}
-        </Button>
-        <Button
-          onClick={() => {
-            p.setOpen(true);
-            p.seek(0);
-          }}
-        >
-          <Icon name="film" size={14} />
-          Show timeline
-        </Button>
       </div>
       {locked && (
         <p className="hint">
@@ -228,12 +232,10 @@ export function AnimationInspector({
                   onChange={(duration) => scenePatch({ duration })}
                 />
               </Field>
-              <p className="hint">
-                Seconds. Each selected frame becomes a scene in MP4 export.
-              </p>
+              <p className="hint">Scene length in seconds.</p>
             </section>
             <section className="insp-section">
-              <h3>Camera</h3>
+              <h3>Camera &amp; transition</h3>
               <div className="anim-slots" role="group" aria-label="Scene slots">
                 <Button
                   type="button"
@@ -242,8 +244,11 @@ export function AnimationInspector({
                   title={`Camera: ${effectLabel(scene.camera?.preset ?? "none")}. Click to edit.`}
                   onClick={() => setSceneSlot("camera")}
                 >
+                  <Icon name="video" size={15} />
                   <strong>Camera</strong>
-                  <span className="anim-slot-value">{effectLabel(scene.camera?.preset ?? "none")}</span>
+                  <span className="anim-slot-value">
+                    {effectLabel(scene.camera?.preset ?? "none")}
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -252,8 +257,11 @@ export function AnimationInspector({
                   title={`Transition to next scene: ${effectLabel(scene.transition?.type ?? "cut")}. Click to edit.`}
                   onClick={() => setSceneSlot("transition")}
                 >
+                  <Icon name="film" size={15} />
                   <strong>Transition</strong>
-                  <span className="anim-slot-value">{effectLabel(scene.transition?.type ?? "cut")}</span>
+                  <span className="anim-slot-value">
+                    {effectLabel(scene.transition?.type ?? "cut")}
+                  </span>
                 </Button>
               </div>
               {sceneSlot === "camera" ? (
@@ -298,7 +306,10 @@ export function AnimationInspector({
                             options={options(easings)}
                             onChange={(easing) =>
                               scenePatch({
-                                camera: { ...scene.camera!, easing: easing as Easing },
+                                camera: {
+                                  ...scene.camera!,
+                                  easing: easing as Easing,
+                                },
                               })
                             }
                           />
@@ -307,8 +318,8 @@ export function AnimationInspector({
                     </div>
                   )}
                   <p className="hint">
-                    Dolly moves the camera through depth. Set layer depth to create
-                    parallax.
+                    Dolly moves the camera through depth. Set layer depth to
+                    create parallax.
                   </p>
                 </>
               ) : (
@@ -325,7 +336,8 @@ export function AnimationInspector({
                           duration: scene.transition?.duration ?? 0.5,
                         },
                       });
-                      if (type !== "cut") replayAt(Math.max(0, p.duration - 0.6));
+                      if (type !== "cut")
+                        replayAt(Math.max(0, p.duration - 0.6));
                     }}
                   />
                   {(scene.transition?.type ?? "cut") !== "cut" && (
@@ -366,8 +378,8 @@ export function AnimationInspector({
                     </div>
                   )}
                   <p className="hint">
-                    Transitions overlap adjacent scenes, up to half of either scene.
-                    Preview the full sequence in Export.
+                    Transitions overlap adjacent scenes, up to half of either
+                    scene. Preview the full sequence in Export.
                   </p>
                 </>
               )}
@@ -383,7 +395,9 @@ export function AnimationInspector({
                 <>
                   <p className="anim-timing-line" aria-live="polite">
                     Visible&nbsp;
-                    <strong>{bounds.start.toFixed(2)} s → {bounds.end.toFixed(2)} s</strong>
+                    <strong>
+                      {bounds.start.toFixed(2)} s → {bounds.end.toFixed(2)} s
+                    </strong>
                   </p>
                   <Field label="Start">
                     <NumberField
@@ -405,16 +419,16 @@ export function AnimationInspector({
                       onChange={(end) => patch({ start: bounds.start, end })}
                     />
                   </Field>
-                  <p className="hint">
-                    {lifetime.toFixed(2)} s visible. Entrance and exit durations
-                    fit within this time. Drag in the timeline to adjust.
-                  </p>
                 </>
               )}
             </section>
             <section className="insp-section">
               <h3>Effect</h3>
-              <div className="anim-slots" role="group" aria-label="Layer animation slots">
+              <div
+                className="anim-slots is-vertical"
+                role="group"
+                aria-label="Layer animation slots"
+              >
                 {slotButton("enter", "In", enter.preset)}
                 {slotButton("motion", "During", motion.preset)}
                 {slotButton("exit", "Out", exit.preset)}
@@ -426,7 +440,9 @@ export function AnimationInspector({
                     value={enter.preset}
                     kind="effect"
                     reduced={p.reducedMotion}
-                    onSelect={(preset) => applyEffectPreset("enter", preset as Effect["preset"])}
+                    onSelect={(preset) =>
+                      applyEffectPreset("enter", preset as Effect["preset"])
+                    }
                   />
                   {enter.preset !== "none" && (
                     <div className="anim-selected">
@@ -464,7 +480,11 @@ export function AnimationInspector({
                             label="Entrance easing"
                             value={enter.easing}
                             options={options(easings)}
-                            onChange={(easing) => patch({ enter: { ...enter, easing: easing as Easing } })}
+                            onChange={(easing) =>
+                              patch({
+                                enter: { ...enter, easing: easing as Easing },
+                              })
+                            }
                           />
                         </Field>
                       </details>
@@ -477,12 +497,18 @@ export function AnimationInspector({
                         type="button"
                         className="anim-slot"
                         aria-expanded={showTextGrid}
-                        title={showTextGrid ? "Hide text reveal choices" : "Show text reveal choices"}
+                        title={
+                          showTextGrid
+                            ? "Hide text reveal choices"
+                            : "Show text reveal choices"
+                        }
                         onClick={() => setShowTextGrid((v) => !v)}
                       >
                         <strong>Style</strong>
                         <span className="anim-slot-value">
-                          {textMotion.preset === "none" ? "None" : effectLabel(textMotion.preset)}
+                          {textMotion.preset === "none"
+                            ? "None"
+                            : effectLabel(textMotion.preset)}
                         </span>
                       </Button>
                       {showTextGrid && (
@@ -491,7 +517,9 @@ export function AnimationInspector({
                           value={textMotion.preset}
                           kind="text"
                           reduced={p.reducedMotion}
-                          onSelect={(preset) => applyTextPreset(preset as TextAnimation["preset"])}
+                          onSelect={(preset) =>
+                            applyTextPreset(preset as TextAnimation["preset"])
+                          }
                         />
                       )}
                       {textMotion.preset !== "none" && (
@@ -507,7 +535,9 @@ export function AnimationInspector({
                             />
                           </Field>
                           <details>
-                            <summary>Advanced (delay, easing, direction)</summary>
+                            <summary>
+                              Advanced (delay, easing, direction)
+                            </summary>
                             <Field label="Delay">
                               <NumberField
                                 label="Text reveal delay"
@@ -518,9 +548,11 @@ export function AnimationInspector({
                                 onChange={(delay) => patchText({ delay })}
                               />
                             </Field>
-                            {!["typewriter", "word-by-word", "line-by-line"].includes(
-                              textMotion.preset,
-                            ) && (
+                            {![
+                              "typewriter",
+                              "word-by-word",
+                              "line-by-line",
+                            ].includes(textMotion.preset) && (
                               <Field label="Easing">
                                 <SelectField
                                   label="Text reveal easing"
@@ -544,8 +576,8 @@ export function AnimationInspector({
                           </details>
                           <p className="hint">
                             {textUnits(o.text ?? "").count} characters ·{" "}
-                            {textUnits(o.text ?? "").wordCount} words. Alignment,
-                            colors, and line breaks stay in place.
+                            {textUnits(o.text ?? "").wordCount} words.
+                            Alignment, colors, and line breaks stay in place.
                           </p>
                         </>
                       )}
@@ -560,7 +592,9 @@ export function AnimationInspector({
                     value={motion.preset}
                     kind="motion"
                     reduced={p.reducedMotion}
-                    onSelect={(preset) => applyMotionPreset(preset as Motion["preset"])}
+                    onSelect={(preset) =>
+                      applyMotionPreset(preset as Motion["preset"])
+                    }
                   />
                   {motion.preset !== "none" && (
                     <div className="anim-selected">
@@ -572,7 +606,9 @@ export function AnimationInspector({
                           min={0}
                           max={500}
                           step={5}
-                          onChange={(amount) => patch({ motion: { ...motion, amount } })}
+                          onChange={(amount) =>
+                            patch({ motion: { ...motion, amount } })
+                          }
                         />
                       </Field>
                       <details>
@@ -583,7 +619,9 @@ export function AnimationInspector({
                             value={motion.easing}
                             options={options(easings)}
                             onChange={(easing) =>
-                              patch({ motion: { ...motion, easing: easing as Easing } })
+                              patch({
+                                motion: { ...motion, easing: easing as Easing },
+                              })
                             }
                           />
                         </Field>
@@ -599,7 +637,9 @@ export function AnimationInspector({
                     value={exit.preset}
                     kind="effect"
                     reduced={p.reducedMotion}
-                    onSelect={(preset) => applyEffectPreset("exit", preset as Effect["preset"])}
+                    onSelect={(preset) =>
+                      applyEffectPreset("exit", preset as Effect["preset"])
+                    }
                   />
                   {exit.preset !== "none" && (
                     <div className="anim-selected">
@@ -637,7 +677,11 @@ export function AnimationInspector({
                             label="Exit easing"
                             value={exit.easing}
                             options={options(easings)}
-                            onChange={(easing) => patch({ exit: { ...exit, easing: easing as Easing } })}
+                            onChange={(easing) =>
+                              patch({
+                                exit: { ...exit, easing: easing as Easing },
+                              })
+                            }
                           />
                         </Field>
                       </details>
@@ -646,7 +690,10 @@ export function AnimationInspector({
                 </>
               )}
             </section>
-            <Accordion title="Timing details" triggerTitle="Show layer depth and keyframes">
+            <Accordion
+              title="Timing details"
+              triggerTitle="Show layer depth and keyframes"
+            >
               <Field label="Depth">
                 <NumberField
                   label="Layer depth"

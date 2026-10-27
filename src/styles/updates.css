@@ -1,62 +1,63 @@
-@layer components {.update-settings {
-  @apply pt-[6px]! pr-[18px]! pb-[16px]! pl-[18px]!;
-}
-.update-settings > label {
-  @apply flex items-center gap-[10px] my-[12px] mx-0;
-}
-.update-toggle {
-  @apply flex items-start gap-[11px] p-[12px] border border-solid border-border rounded-[10px] bg-background mt-[10px] cursor-pointer;
-}
-.update-toggle span {
-  @apply flex flex-col gap-[2px] text-[12px];
-}
-.update-toggle strong {
-  @apply text-[12.5px] text-foreground;
-}
-.update-toggle small {
-  @apply text-[11px] text-muted-foreground;
-}
-.update-settings [data-slot="checkbox"] {
-  @apply accent-primary w-[17px] h-[17px] mt-[1px] shrink-0;
-}
-.update-actions {
-  @apply mt-[12px];
-}
-.update-checked {
-  @apply mt-[10px] text-[11px];
-}
-.app-update-notice {
-  --card: #fff;
-  --foreground: #1b2a7a;
-  --primary: #2f4bd8;
-  --secondary: #edf0fc;
-  --border: #d9dcea;
-  --destructive: #b52b3c;
-  @apply fixed bottom-[24px] right-[24px] z-[3000] w-[min(360px,_calc(100vw_-_32px))] max-h-[75vh] overflow-auto bg-card text-foreground border border-solid border-border rounded-[12px] p-[16px] shadow-[0_8px_24px_#0002];
-}
-.update-notice-heading {
-  @apply flex justify-between items-center gap-[12px];
-}
-.update-notice-heading button {
-  @apply flex p-[5px];
-}
-.app-update-notice [data-slot="progress"],
-.update-settings [data-slot="progress"] {
-  @apply w-full accent-primary;
-}
-.app-update-notice pre,
-.update-settings pre {
-  @apply whitespace-pre-wrap wrap-anywhere [font:inherit] max-h-[220px] overflow-auto;
-}
-.app-update-notice .row {
-  @apply flex-wrap;
-}
-.update-confirm {
-  @apply border-t border-solid border-t-border pt-[8px];
-}
-@media (prefers-reduced-motion: reduce) {
-  .app-update-notice * {
-    transition: none;
+@layer components {
+  .update-settings {
+    @apply pt-[6px]! pr-[18px]! pb-[16px]! pl-[18px]!;
   }
-}
+  .update-settings > label {
+    @apply flex items-center gap-[10px] my-[12px] mx-0;
+  }
+  .update-toggle {
+    @apply flex items-start gap-[11px] p-[12px] border border-solid border-border rounded-[10px] bg-background mt-[10px] cursor-pointer;
+  }
+  .update-toggle span {
+    @apply flex flex-col gap-[2px] text-[12px];
+  }
+  .update-toggle strong {
+    @apply text-[12.5px] text-foreground;
+  }
+  .update-toggle small {
+    @apply text-[11px] text-muted-foreground;
+  }
+  .update-settings [data-slot="checkbox"] {
+    @apply accent-primary w-[17px] h-[17px] mt-[1px] shrink-0;
+  }
+  .update-actions {
+    @apply mt-[12px];
+  }
+  .update-checked {
+    @apply mt-[10px] text-[11px];
+  }
+  .app-update-notice {
+    --card: #fff;
+    --foreground: #1b2a7a;
+    --primary: #2f4bd8;
+    --secondary: #edf0fc;
+    --border: #d9dcea;
+    --destructive: #b52b3c;
+    @apply fixed bottom-[24px] right-[24px] z-[3000] w-[min(360px,_calc(100vw_-_32px))] max-h-[75vh] overflow-auto bg-card text-foreground border border-solid border-border rounded-[12px] p-[16px] shadow-[0_8px_24px_#0002];
+  }
+  .update-notice-heading {
+    @apply flex justify-between items-center gap-[12px];
+  }
+  .update-notice-heading button {
+    @apply flex p-[5px];
+  }
+  .app-update-notice [data-slot="progress"],
+  .update-settings [data-slot="progress"] {
+    @apply w-full accent-primary;
+  }
+  .app-update-notice pre,
+  .update-settings pre {
+    @apply whitespace-pre-wrap wrap-anywhere [font:inherit] max-h-[220px] overflow-auto;
+  }
+  .app-update-notice .row {
+    @apply flex-wrap;
+  }
+  .update-confirm {
+    @apply border-t border-solid border-t-border pt-[8px];
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-update-notice * {
+      transition: none;
+    }
+  }
 }

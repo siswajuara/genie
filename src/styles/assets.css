@@ -1,177 +1,178 @@
-@layer components {.library-content:has(.asset-browser) {
-  @apply flex flex-col overflow-hidden min-h-0;
-}
-.library-content:has(.asset-browser) .editor-tabs {
-  @apply shrink-0;
-}
-.asset-browser {
-  @apply flex flex-col flex-[1] min-h-0 mt-0 mr-[-6px] mb-[-10px] ml-[-6px];
-}
-.asset-browser-head {
-  @apply pt-0 pr-[6px] pb-[10px] pl-[6px] shrink-0;
-}
-.asset-browser-head .section-title {
-  @apply mb-[10px];
-}
-.asset-search {
-  @apply flex items-center gap-[7px] border border-solid border-border rounded-[6px] py-0 px-[8px] bg-card text-muted-foreground;
-}
-.asset-search:focus-within {
-  @apply outline-[2px] outline-solid outline-primary outline-offset-[1px];
-}
-.asset-search input {
-  @apply w-full text-[12px] py-[8px] px-0 border-0 [outline:none]! bg-transparent;
-}
-.asset-search button {
-  @apply p-[2px] border-0 bg-transparent;
-}
-.asset-browser-head > .select-trigger {
-  @apply w-full mt-[9px] text-[11px];
-}
-.asset-scroll {
-  @apply flex-[1] min-h-[80px] overflow-auto overscroll-contain;
-  scrollbar-gutter: stable;
-  contain: layout style paint;
-}
-.asset-grid-space {
-  @apply relative my-0 mx-[5px];
-}
-.asset-grid-window {
-  @apply absolute top-0 left-0 right-0 grid auto-rows-[140px] gap-x-[8px];
-}
-.asset-card {
-  @apply p-[6px] text-left flex flex-col gap-[7px] mt-0 mr-0 mb-[10px] ml-0 overflow-hidden bg-card cursor-grab touch-pan-y;
-}
-.asset-card:active {
-  @apply cursor-grabbing;
-}
-.asset-card.is-pending {
-  @apply border-primary outline-[1px] outline-solid outline-primary bg-secondary;
-}
-.asset-thumbnail {
-  @apply h-[102px] w-full flex items-center justify-center rounded-[4px] bg-background relative overflow-hidden;
-}
-.asset-thumbnail img {
-  @apply w-[88px] h-[88px] max-w-full object-contain;
-}
-.asset-duration {
-  @apply absolute right-[4px] bottom-[4px] text-[9px] font-bold leading-[1] py-[3px] px-[5px] rounded-[4px] bg-[#0009];
-  @apply text-[#fff] pointer-events-none;
-}
-.asset-thumbnail[data-error]:after {
-  content: attr(data-error);
-  @apply absolute text-[10px] text-muted-foreground p-[10px] text-center;
-}
-.asset-name {
-  @apply text-[11px] leading-[1.35] whitespace-nowrap overflow-hidden text-ellipsis font-semibold;
-}
-.assets-empty {
-  @apply flex flex-col items-center text-center py-[35px] px-[10px] gap-[10px] text-muted-foreground text-[12px];
-}
-.assets-empty p {
-  @apply text-[11px] m-0;
-}
-.asset-placement-banner {
-  @apply absolute z-[6] top-[16px] left-[50%];
-  transform: translateX(-50%);
-  @apply flex items-center gap-[10px] bg-card border border-solid border-primary rounded-[8px] py-[9px] px-[12px] max-w-[calc(100%_-_28px)] shadow-[0_3px_16px_#0002] pointer-events-auto;
-}
-.asset-placement-banner img {
-  @apply w-[36px] h-[36px] object-contain shrink-0;
-}
-.asset-placement-banner > span {
-  @apply text-[11px] min-w-0 text-foreground;
-}
-.asset-placement-banner small {
-  @apply block text-[10px] text-muted-foreground;
-}
-.asset-placement-banner button {
-  @apply p-[4px] flex items-center justify-center border-0;
-}
-.canvas-stage.is-placing-asset > canvas {
-  @apply cursor-crosshair;
-}
-@media (max-width: 560px) {
+@layer components {
+  .library-content:has(.asset-browser) {
+    @apply flex flex-col overflow-hidden min-h-0;
+  }
+  .library-content:has(.asset-browser) .editor-tabs {
+    @apply shrink-0;
+  }
+  .asset-browser {
+    @apply flex flex-col flex-[1] min-h-0 mt-0 mr-[-6px] mb-[-10px] ml-[-6px];
+  }
   .asset-browser-head {
-    @apply grid grid-cols-[1fr_110px] gap-[8px];
+    @apply pt-0 pr-[6px] pb-[10px] pl-[6px] shrink-0;
   }
   .asset-browser-head .section-title {
-    @apply col-[1/-1] m-0;
-  }
-  .asset-browser-head > .select-trigger {
-    @apply m-0;
-  }
-  .asset-placement-banner {
-    @apply p-[7px] gap-[6px];
-  }
-  .asset-placement-banner img {
-    @apply w-[27px] h-[27px];
-  }
-}
-.asset-library-tabs {
-  @apply flex gap-[4px] mb-[10px];
-}
-.asset-library-tabs button {
-  @apply flex-[1] py-[7px] px-[3px] text-[11px];
-}
-.asset-library-tabs button[aria-pressed="true"] {
-  @apply bg-secondary border-primary text-primary;
-}
-.asset-card {
-  @apply border border-solid border-border rounded-[6px] cursor-default gap-[4px];
-}
-.asset-use {
-  @apply flex flex-col gap-[5px] p-0 border-0 text-left w-full bg-transparent cursor-grab min-w-0;
-}
-.asset-card-actions {
-  @apply flex justify-between gap-[4px];
-}
-.asset-card-actions button {
-  @apply text-[10px] py-[3px] px-[6px];
-}
-.asset-card-actions small {
-  @apply text-muted-foreground text-[10px];
-}
-.asset-error {
-  @apply text-[var(--destructive,_#b42318)];
-  @apply text-[11px] mt-[8px] mr-[6px] mb-0 ml-[6px] wrap-anywhere;
-}
-.asset-manage-row {
-  @apply flex flex-wrap;
-  align-items: end;
-  @apply gap-[6px] py-[10px] px-0 text-[12px];
-}
-.asset-manage-row label {
-  @apply w-full;
-}
-.asset-manage-row input {
-  @apply w-full mt-[5px];
-}
-@media (max-width: 560px) {
-  .asset-browser-head {
-    @apply block;
+    @apply mb-[10px];
   }
   .asset-search {
-    @apply mb-[8px];
+    @apply flex items-center gap-[7px] border border-solid border-border rounded-[6px] py-0 px-[8px] bg-card text-muted-foreground;
   }
-}
+  .asset-search:focus-within {
+    @apply outline-[2px] outline-solid outline-primary outline-offset-[1px];
+  }
+  .asset-search input {
+    @apply w-full text-[12px] py-[8px] px-0 border-0 [outline:none]! bg-transparent;
+  }
+  .asset-search button {
+    @apply p-[2px] border-0 bg-transparent;
+  }
+  .asset-browser-head > .select-trigger {
+    @apply w-full mt-[9px] text-[11px];
+  }
+  .asset-scroll {
+    @apply flex-[1] min-h-[80px] overflow-auto overscroll-contain;
+    scrollbar-gutter: stable;
+    contain: layout style paint;
+  }
+  .asset-grid-space {
+    @apply relative my-0 mx-[5px];
+  }
+  .asset-grid-window {
+    @apply absolute top-0 left-0 right-0 grid auto-rows-[140px] gap-x-[8px];
+  }
+  .asset-card {
+    @apply p-[6px] text-left flex flex-col gap-[7px] mt-0 mr-0 mb-[10px] ml-0 overflow-hidden bg-card cursor-grab touch-pan-y;
+  }
+  .asset-card:active {
+    @apply cursor-grabbing;
+  }
+  .asset-card.is-pending {
+    @apply border-primary outline-[1px] outline-solid outline-primary bg-secondary;
+  }
+  .asset-thumbnail {
+    @apply h-[102px] w-full flex items-center justify-center rounded-[4px] bg-background relative overflow-hidden;
+  }
+  .asset-thumbnail img {
+    @apply w-[88px] h-[88px] max-w-full object-contain;
+  }
+  .asset-duration {
+    @apply absolute right-[4px] bottom-[4px] text-[9px] font-bold leading-[1] py-[3px] px-[5px] rounded-[4px] bg-[#0009];
+    @apply text-[#fff] pointer-events-none;
+  }
+  .asset-thumbnail[data-error]:after {
+    content: attr(data-error);
+    @apply absolute text-[10px] text-muted-foreground p-[10px] text-center;
+  }
+  .asset-name {
+    @apply text-[11px] leading-[1.35] whitespace-nowrap overflow-hidden text-ellipsis font-semibold;
+  }
+  .assets-empty {
+    @apply flex flex-col items-center text-center py-[35px] px-[10px] gap-[10px] text-muted-foreground text-[12px];
+  }
+  .assets-empty p {
+    @apply text-[11px] m-0;
+  }
+  .asset-placement-banner {
+    @apply absolute z-[6] top-[16px] left-[50%];
+    transform: translateX(-50%);
+    @apply flex items-center gap-[10px] bg-card border border-solid border-primary rounded-[8px] py-[9px] px-[12px] max-w-[calc(100%_-_28px)] shadow-[0_3px_16px_#0002] pointer-events-auto;
+  }
+  .asset-placement-banner img {
+    @apply w-[36px] h-[36px] object-contain shrink-0;
+  }
+  .asset-placement-banner > span {
+    @apply text-[11px] min-w-0 text-foreground;
+  }
+  .asset-placement-banner small {
+    @apply block text-[10px] text-muted-foreground;
+  }
+  .asset-placement-banner button {
+    @apply p-[4px] flex items-center justify-center border-0;
+  }
+  .canvas-stage.is-placing-asset > canvas {
+    @apply cursor-crosshair;
+  }
+  @media (max-width: 560px) {
+    .asset-browser-head {
+      @apply grid grid-cols-[1fr_110px] gap-[8px];
+    }
+    .asset-browser-head .section-title {
+      @apply col-[1/-1] m-0;
+    }
+    .asset-browser-head > .select-trigger {
+      @apply m-0;
+    }
+    .asset-placement-banner {
+      @apply p-[7px] gap-[6px];
+    }
+    .asset-placement-banner img {
+      @apply w-[27px] h-[27px];
+    }
+  }
+  .asset-library-tabs {
+    @apply flex gap-[4px] mb-[10px];
+  }
+  .asset-library-tabs button {
+    @apply flex-[1] py-[7px] px-[3px] text-[11px];
+  }
+  .asset-library-tabs button[aria-pressed="true"] {
+    @apply bg-secondary border-primary text-primary;
+  }
+  .asset-card {
+    @apply border border-solid border-border rounded-[6px] cursor-default gap-[4px];
+  }
+  .asset-use {
+    @apply flex flex-col gap-[5px] p-0 border-0 text-left w-full bg-transparent cursor-grab min-w-0;
+  }
+  .asset-card-actions {
+    @apply flex justify-between gap-[4px];
+  }
+  .asset-card-actions button {
+    @apply text-[10px] py-[3px] px-[6px];
+  }
+  .asset-card-actions small {
+    @apply text-muted-foreground text-[10px];
+  }
+  .asset-error {
+    @apply text-[var(--destructive,_#b42318)];
+    @apply text-[11px] mt-[8px] mr-[6px] mb-0 ml-[6px] wrap-anywhere;
+  }
+  .asset-manage-row {
+    @apply flex flex-wrap;
+    align-items: end;
+    @apply gap-[6px] py-[10px] px-0 text-[12px];
+  }
+  .asset-manage-row label {
+    @apply w-full;
+  }
+  .asset-manage-row input {
+    @apply w-full mt-[5px];
+  }
+  @media (max-width: 560px) {
+    .asset-browser-head {
+      @apply block;
+    }
+    .asset-search {
+      @apply mb-[8px];
+    }
+  }
 
-.asset-pack-connection {
-  @apply flex flex-col gap-[7px] my-[9px] mx-0 p-[10px] border border-solid border-border rounded-[6px] text-[11px];
-}
-.asset-pack-connection small {
-  @apply text-muted-foreground text-[10px] wrap-anywhere;
-}
-.asset-pack-connection > div {
-  @apply flex flex-wrap gap-[5px];
-}
-.asset-pack-connection button {
-  @apply text-[10px] py-[5px] px-[7px];
-}
-.asset-pack-connection p {
-  @apply text-[var(--destructive,_#b42318)] m-0 wrap-anywhere;
-}
-.asset-pack-connection + .select-trigger {
-  @apply w-full mt-0 mr-0 mb-[9px] ml-0;
-}
+  .asset-pack-connection {
+    @apply flex flex-col gap-[7px] my-[9px] mx-0 p-[10px] border border-solid border-border rounded-[6px] text-[11px];
+  }
+  .asset-pack-connection small {
+    @apply text-muted-foreground text-[10px] wrap-anywhere;
+  }
+  .asset-pack-connection > div {
+    @apply flex flex-wrap gap-[5px];
+  }
+  .asset-pack-connection button {
+    @apply text-[10px] py-[5px] px-[7px];
+  }
+  .asset-pack-connection p {
+    @apply text-[var(--destructive,_#b42318)] m-0 wrap-anywhere;
+  }
+  .asset-pack-connection + .select-trigger {
+    @apply w-full mt-0 mr-0 mb-[9px] ml-0;
+  }
 }

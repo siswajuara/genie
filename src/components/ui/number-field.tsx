@@ -55,6 +55,7 @@ export function NumberField({
         aria-valuemax={max}
         inputMode="decimal"
         value={draft}
+        onFocus={(ev) => ev.target.select()}
         onChange={(ev) => {
           const raw = ev.target.value;
           if (!/^-?\d*\.?\d*$/.test(raw)) return;

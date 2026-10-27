@@ -15,13 +15,27 @@ const layerIcons: Record<string, IconName> = {
   line: "line",
 };
 
-function isAnimated(o: { animation?: { enter?: { preset?: string }; exit?: { preset?: string }; motion?: { preset?: string }; text?: { preset?: string }; keyframes?: unknown[] } }): boolean {
+function isAnimated(o: {
+  physics?: unknown;
+  learning?: { animate?: boolean };
+  animation?: {
+    enter?: { preset?: string };
+    exit?: { preset?: string };
+    motion?: { preset?: string };
+    text?: { preset?: string };
+    keyframes?: unknown[];
+  };
+}): boolean {
+  if (o.physics || (o.learning && o.learning.animate !== false)) return true;
   const a = o.animation;
   if (!a) return false;
   if ((a.keyframes?.length ?? 0) > 0) return true;
-  return [a.enter?.preset, a.exit?.preset, a.motion?.preset, a.text?.preset].some(
-    (p) => p && p !== "none",
-  );
+  return [
+    a.enter?.preset,
+    a.exit?.preset,
+    a.motion?.preset,
+    a.text?.preset,
+  ].some((p) => p && p !== "none");
 }
 
 export const LayerTree = memo(
@@ -29,7 +43,6 @@ export const LayerTree = memo(
     const [closed, setClosed] = useState<Set<string>>(new Set());
     const [query, setQuery] = useState("");
     const [filter, setFilter] = useState<"all" | "animated" | "text">("all");
-    const [showHint, setShowHint] = useState(true);
     const [dragging, setDragging] = useState<string[]>([]);
     const [dropTarget, setDropTarget] = useState("");
     const [renaming, setRenaming] = useState<string | null>(null);
@@ -405,60 +418,12 @@ export const LayerTree = memo(
             value={query}
             onChange={(ev) => setQuery(ev.target.value)}
           />
-          <div className="row layer-toolbar-actions">
-            <Button
-              title="Bring forward one step"
-              aria-label="Bring forward one step"
-              onClick={() => e.order(1)}
-            >
-              <Icon name="sortUp" size={14} />
-            </Button>
-            <Button
-              title="Send backward one step"
-              aria-label="Send backward one step"
-              onClick={() => e.order(-1)}
-            >
-              <Icon name="sortDown" size={14} />
-            </Button>
-            <Button
-              title="Bring to front"
-              aria-label="Bring to front"
-              onClick={() => e.order(1, true)}
-            >
-              <Icon name="up" size={14} />
-            </Button>
-            <Button
-              title="Send to back"
-              aria-label="Send to back"
-              onClick={() => e.order(-1, true)}
-            >
-              <Icon name="down" size={14} />
-            </Button>
-            <Button
-              title="Group / ungroup selection"
-              aria-label="Group or ungroup selection"
-              onClick={() => e.group()}
-            >
-              <Icon name="group" size={14} />
-            </Button>
-            <Button
-              title="Duplicate selected layers"
-              aria-label="Duplicate selected layers"
-              onClick={e.duplicate}
-            >
-              <Icon name="copy" size={14} />
-            </Button>
-            <Button
-              title="Delete selected layers"
-              aria-label="Delete selected layers"
-              onClick={e.remove}
-              className="danger"
-            >
-              <Icon name="delete" size={14} />
-            </Button>
-          </div>
         </div>
-        <div className="fx-chips layer-filter-chips" role="group" aria-label="Filter layers">
+        <div
+          className="fx-chips layer-filter-chips"
+          role="group"
+          aria-label="Filter layers"
+        >
           {(["all", "animated", "text"] as const).map((f) => (
             <Button
               key={f}
@@ -478,19 +443,6 @@ export const LayerTree = memo(
             </Button>
           ))}
         </div>
-        {showHint && (
-          <p className="hint layer-hint">
-            Drag to reorder · double-click to rename.
-            <Button
-              type="button"
-              aria-label="Dismiss layers hint"
-              title="Dismiss"
-              onClick={() => setShowHint(false)}
-            >
-              <Icon name="close" size={14} />
-            </Button>
-          </p>
-        )}
         <div
           ref={host}
           className="layers layer-tree"

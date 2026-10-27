@@ -36,7 +36,10 @@ export function AssetPackSettings() {
         <div>
           <p className="settings-eyebrow">Library</p>
           <h2>Assets</h2>
-          <p>Connect an external asset pack folder for the Library tab.</p>
+          <p>
+            Connect an external asset pack folder for templates, illustrations,
+            and animations.
+          </p>
         </div>
         <span
           className={`storage-status ${pack.connected ? "storage-status--ready" : ""}`}

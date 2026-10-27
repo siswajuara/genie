@@ -30,7 +30,7 @@ fn allowed(key: &str) -> bool {
     .any(|prefix| key.starts_with(prefix))
         || matches!(
             key,
-            "genie.canvas" | "genie.presets" | "genie.marketing.posts"
+            "genie.canvas" | "genie.presets" | "genie.marketing.posts" | "genie.standard-branding.v1" | "genie.removed-presets.v1"
         )
 }
 fn open(directory: &Path) -> Result<Connection, String> {
@@ -388,6 +388,21 @@ pub fn disk_reveal(app: tauri::AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn removed_presets_roundtrip_and_restore() {
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE documents(key TEXT PRIMARY KEY,value TEXT,is_json INTEGER);CREATE TABLE previous(key TEXT PRIMARY KEY,value TEXT,is_json INTEGER);CREATE TABLE assets(id TEXT PRIMARY KEY,value TEXT);").unwrap();
+        let removed = json!(["catalog:essentials-cover", "catalog:reference-example"]).to_string();
+        for value in [removed, "[]".to_string()] {
+            write_records(&mut db, &[Record {
+                key: "genie.removed-presets.v1".into(),
+                value: Some(value.clone()),
+            }], false).unwrap();
+            let records = read_records(&db).unwrap();
+            let saved = records.iter().find(|r| r.key == "genie.removed-presets.v1").unwrap();
+            assert_eq!(saved.value.as_ref().unwrap(), &value);
+        }
+    }
     #[test]
     fn image_deduplication_preserves_versions_and_roundtrips() {
         let mut db = Connection::open_in_memory().unwrap();

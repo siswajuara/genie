@@ -1,3 +1,5 @@
+import { FrameContextPanel } from "./frame-context-panel";
+import { buildFrameContext } from "../../sidecar/frame-context.mjs";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SelectField } from "@/components/ui/select";
@@ -30,6 +32,7 @@ import {
   type TimedWord,
 } from "./subtitles";
 import { socialRequest, useSocial } from "../social/client";
+import { canvasContextText } from "./generation";
 import { exportMessage, saveExport } from "../lib/export";
 import { Icon } from "../components/ui/icon";
 import { Accordion } from "../components/ui/accordion";
@@ -355,43 +358,131 @@ export function AudioPanel({
           type: "audio/mpeg",
         }),
       );
-      addTrack(audio.src, audio.duration, "Voiceover", "voiceover", targetId);
-      if (showCaptions)
-        addCues(
-          wordsToCues(alignmentToWords(result.alignment, true)),
-          targetId,
+      // Validate everything before replacing, so a failure keeps the old
+      // narration and subtitles instead of wiping them.
+      const newCues = showCaptions
+        ? wordsToCues(alignmentToWords(result.alignment, true))
+        : [];
+      if (showCaptions && !newCues.length)
+        throw Error(
+          "No speech timings were returned. Your existing narration and subtitles were kept.",
         );
+      const target = live.current.e
+        .getDocument()
+        .elements.find((o) => o.id === targetId);
+      if (!target) throw Error("The target frame no longer exists.");
+      const replaced = (target.audioTracks ?? []).some(
+        (track) => track.role === "voiceover",
+      );
+      const track: AudioTrack = {
+        id: uid(),
+        name: "Voiceover",
+        src: audio.src,
+        role: "voiceover",
+        start: 0,
+        end: Math.min(600, audio.duration),
+        trimStart: 0,
+        sourceDuration: audio.duration,
+        volume: 1,
+        loop: false,
+        muted: false,
+        fadeIn: 0,
+        fadeOut: 0,
+      };
+      update(
+        {
+          audioTracks: [
+            ...(target.audioTracks ?? []).filter(
+              (track) => track.role !== "voiceover",
+            ),
+            track,
+          ],
+          ...(showCaptions
+            ? {
+                subtitles: [...newCues].sort((a, b) => a.start - b.start),
+              }
+            : {}),
+          scene: {
+            ...target.scene,
+            duration: Math.min(
+              600,
+              Math.max(
+                sceneDuration(target),
+                track.end,
+                ...newCues.map((cue) => cue.end),
+              ),
+            ),
+          },
+        },
+        targetId,
+      );
       setMessage(
-        `Narration added.${result.characterCost !== null ? ` ElevenLabs reported ${result.characterCost} characters billed.` : " Refresh credits in Settings for actual usage."}`,
+        `${replaced ? "Narration replaced" : "Narration added"}.${result.characterCost !== null ? ` ElevenLabs reported ${result.characterCost} characters billed.` : " Refresh credits in Settings for actual usage."}${
+          showCaptions ? ` ${newCues.length} matching captions.` : ""
+        }`,
       );
     });
   }
   const canGenerate = !!accountId && !!script.trim() && !busy;
   const hasVoice = voiceTracks.length > 0;
+  const frameTexts = frame
+    ? canvasContextText(e.getDocument(), [frame.id])
+    : "";
+  async function rewriteNarration() {
+    const targetId = frame!.id;
+    await run("Rewriting narration…", async () => {
+      const texts = canvasContextText(live.current.e.getDocument(), [targetId]);
+      if (!texts.trim())
+        throw Error(
+          "This frame has no readable text to narrate. Add text layers first.",
+        );
+      const result = await socialRequest<{ narration: string }>(
+        "ai.narration",
+        {
+          texts,
+          frameContext: buildFrameContext(live.current.e.getDocument(), [
+            targetId,
+          ]),
+          language,
+          seconds: sceneDuration(live.current.frame ?? frame!),
+          currentScript: script,
+          confirmed: true,
+        },
+      );
+      setDraft({ script: result.narration });
+      setMessage(
+        "Script rewritten from the canvas text. Generate narration to hear it.",
+      );
+    });
+  }
   return (
     <section
       className="audio-panel narration-panel in-inspector"
       aria-label={`Narration for ${frame.n}`}
       onKeyDown={(ev) => ev.stopPropagation()}
     >
-      <header className="audio-panel-header narration-head">
+      <FrameContextPanel document={e.getDocument()} selection={[frame.id]} />
+      <header className="audio-panel-header narration-head flex items-center justify-between w-full">
         <div>
           <strong>Narration</strong>
           <span>
             {frame.n} · {duration.toFixed(1)} s
-            {hasVoice
-              ? ` · ${voiceTracks.length} voice`
-              : " · no voice"}
+            {hasVoice ? ` · ${voiceTracks.length} voice` : " · no voice"}
             {cues.length > 0 && ` · ${cues.length} captions`}
           </span>
         </div>
         <Button
-          disabled={!!busy}
-          aria-label="Back to properties"
-          title="Back to properties"
-          onClick={onClose}
+          disabled={!!busy || !frameTexts.trim()}
+          aria-label="Regenerate script from canvas text"
+          size={"icon"}
+          title={
+            frameTexts.trim()
+              ? "Regenerate script from canvas text (same language)"
+              : "Add text to the frame first"
+          }
+          onClick={() => void rewriteNarration()}
         >
-          <Icon name="close" size={16} />
+          <Icon name="refresh" size={16} />
         </Button>
       </header>
       <div className="audio-panel-body narration-body" aria-busy={!!busy}>
@@ -402,7 +493,10 @@ export function AudioPanel({
               Audio accounts, then pick an account below.
             </p>
           )}
-          <section className="narration-step narration-group" aria-label="Script">
+          <section
+            className="narration-step narration-group"
+            aria-label="Script"
+          >
             <div className="narration-label-row">
               <span className="narration-label">Script</span>
               <small className="narration-step-hint">
@@ -426,7 +520,10 @@ export function AudioPanel({
               Tip: [excited] or [softly] changes delivery.
             </p>
           </section>
-          <section className="narration-step narration-group" aria-label="Voice">
+          <section
+            className="narration-step narration-group"
+            aria-label="Voice"
+          >
             <div className="narration-label-row">
               <span className="narration-label">Voice</span>
               <small className="narration-step-hint">
@@ -441,7 +538,10 @@ export function AudioPanel({
                 onChange={(accountId) => setDraft({ accountId })}
                 options={[
                   { value: "", label: "Choose billing account…" },
-                  ...accounts.map((account) => ({ value: account.id, label: account.name })),
+                  ...accounts.map((account) => ({
+                    value: account.id,
+                    label: account.name,
+                  })),
                 ]}
               />
             </Label>
@@ -449,12 +549,17 @@ export function AudioPanel({
               Billed to this ElevenLabs account.
             </p>
           </section>
-          <section className="narration-step narration-group" aria-label="Captions">
+          <section
+            className="narration-step narration-group"
+            aria-label="Captions"
+          >
             <div className="narration-captions-row">
               <Label className="audio-check narration-toggle">
                 <Checkbox
                   checked={showCaptions}
-                  onCheckedChange={(checked) => setDraft({ subtitles: checked === true })}
+                  onCheckedChange={(checked) =>
+                    setDraft({ subtitles: checked === true })
+                  }
                 />
                 Matching captions
               </Label>
@@ -790,7 +895,12 @@ export function AudioPanel({
                   <SelectField
                     label={`Role for ${track.name}`}
                     value={track.role}
-                    onChange={(role) => patchTrack(track.id, { role: role as AudioTrack["role"], loop: role === "music" })}
+                    onChange={(role) =>
+                      patchTrack(track.id, {
+                        role: role as AudioTrack["role"],
+                        loop: role === "music",
+                      })
+                    }
                     options={[
                       { value: "music", label: "Background music" },
                       { value: "voiceover", label: "Voiceover" },

@@ -1,5 +1,8 @@
 {
   "name": "genie-social-runtime",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@opencode/client": "^2.2.0"
+  }
 }

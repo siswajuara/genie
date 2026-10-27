@@ -312,18 +312,12 @@ function ProviderConnection({ provider }: { provider: Provider }) {
           </div>
         )}
       {status && (
-        <p
-          className="settings-alert is-success mt-2.5"
-          role="status"
-        >
+        <p className="settings-alert is-success mt-2.5" role="status">
           {status}
         </p>
       )}
       {(error || issue) && (
-        <p
-          className="settings-alert is-error mt-2.5"
-          role="alert"
-        >
+        <p className="settings-alert is-error mt-2.5" role="alert">
           {error || issue?.message}
         </p>
       )}

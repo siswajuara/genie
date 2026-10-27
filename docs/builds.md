@@ -42,9 +42,9 @@ These are six native builds dispatched from one command. There is no emulation o
 
 `npm run build:desktop` stages the social runtime and builds React. Run `npm ci` and `npm ci --prefix sidecar` before building locally.
 
-The generated `src-tauri/resources/sidecar` contains the current build's Node executable, social and audio provider modules, the Node license, and a manifest with architecture, version, and SHA-256 hash. Assistant executables and SDKs are no longer bundled.
+The generated `src-tauri/resources/sidecar` contains the current build's Node executable, social and audio provider modules, the native Promise OpenCode client SDK, their licenses, and a manifest with architecture, SDK/runtime versions, and the Node SHA-256 hash. The OpenCode executable is installed separately or accessed through a configured service URL. Codex is not bundled or used.
 
-`npm run sidecar:check` checks the staged Node from an unrelated working directory without relying on global Node. It verifies the version, architecture, hash, syntax, module imports, and absence of the old assistant bridge. It makes no provider requests. CI repeats this check on resources extracted from the actual installer.
+`npm run sidecar:check` checks the staged Node from an unrelated working directory without relying on global Node. It verifies the version, architecture, hash, syntax, module imports, and absence of the old assistant bridge. It exercises OpenCode catalog and generation against a mocked HTTP service and makes no real provider requests. CI repeats this check on resources extracted from the actual installer.
 
 The native launcher simplifies Windows resource paths before starting the social bridge. Generated resources are ignored by Git and rebuilt on each native runner.
 

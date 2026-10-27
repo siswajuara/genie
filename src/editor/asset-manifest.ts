@@ -26,6 +26,7 @@ export type AssetManifest = {
   id: string;
   name: string;
   assets: PackAsset[];
+  presets?: { path: string; bytes: number }[];
 };
 const mimeExtensions: Record<string, RegExp> = {
   "image/png": /\.png$/i,
@@ -62,6 +63,32 @@ export function parseAssetManifest(raw: unknown): AssetManifest {
       "Choose an asset folder containing a valid version 1 manifest.json.",
     );
   const ids = new Set<string>();
+  if (pack.presets !== undefined) {
+    if (!Array.isArray(pack.presets) || pack.presets.length > 20000)
+      throw Error("Invalid template file listing.");
+    const paths = new Set<string>();
+    for (const file of pack.presets) {
+      const limit = file?.path?.endsWith(".json")
+        ? 4 * 1024 * 1024
+        : 1024 * 1024;
+      if (
+        !file ||
+        !safePackPath(file.path) ||
+        !/^presets\/[a-z0-9/_-]+\.(json|webp|png)$/.test(file.path) ||
+        paths.has(file.path) ||
+        !Number.isSafeInteger(file.bytes) ||
+        file.bytes <= 0 ||
+        file.bytes > limit
+      )
+        throw Error("Invalid template file metadata.");
+      paths.add(file.path);
+    }
+    if (
+      !paths.has("presets/catalog.json") ||
+      !paths.has("presets/shared/branding.json")
+    )
+      throw Error("The template pack needs its catalog and standard branding.");
+  }
   for (const asset of pack.assets) {
     if (
       !asset ||

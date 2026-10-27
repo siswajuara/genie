@@ -1,6 +1,11 @@
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
-import { Dialog as DialogRoot, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog as DialogRoot,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Icon, type IconName } from "../components/ui/icon";
 import { platforms } from "./store";
 import { brandImageSource } from "../lib/brand";
@@ -76,16 +81,30 @@ export function Dialog({
   onClose: () => void;
 }) {
   return (
-    <DialogRoot open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="marketing-dialog" {...(!description ? { "aria-describedby": undefined } : {})}>
+    <DialogRoot
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent
+        className="marketing-dialog"
+        {...(!description ? { "aria-describedby": undefined } : {})}
+      >
         <section>
           <div className="marketing-dialog-head">
-            <DialogTitle asChild><h2>{title}</h2></DialogTitle>
+            <DialogTitle asChild>
+              <h2>{title}</h2>
+            </DialogTitle>
             <Button type="button" aria-label="Close dialog" onClick={onClose}>
               <Icon name="close" />
             </Button>
           </div>
-          {description && <DialogDescription asChild><p className="dialog-description">{description}</p></DialogDescription>}
+          {description && (
+            <DialogDescription asChild>
+              <p className="dialog-description">{description}</p>
+            </DialogDescription>
+          )}
           {children}
         </section>
       </DialogContent>

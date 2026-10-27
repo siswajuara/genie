@@ -1,31 +1,48 @@
 # Genie by SiswaJuara
 
-React canvas editor with projects, pages, carousel frames, JSON documents, 13 reference templates, editable text and images, and desktop agent chat. Tools are organized as Chat | Editor | Debug.
+Genie creates editable canvases with pages and frames for still designs, carousels, and narrated video. The workspace provides **Canvases**, **Publish**, **Schedule**, and **Setting**. Designs, versions, personal templates, drafts, plans, and delivery receipts stay local.
+
+Start with the [canvas user guide](docs/canvas.md) for the complete workflow: presets, artwork, editing, narration, captions, animation, export, and recovery.
+
+## Use the editor
+
+1. Connect the extracted external pack in **Setting → Assets** to browse supplied templates, illustrations, and animation clips.
+2. Create a canvas, add a frame from Templates or Elements, and edit its layers.
+3. Select a frame and open **Narration** for voice generation, recordings, music, and editable captions. Configure ElevenLabs in **Setting → Audio**; generation and transcription use provider credits.
+4. Set scene timing in **Animation** and **Timeline**, then export PNG/JPG images, a ZIP of slides, or an MP4 with frame audio and captions.
+5. Save checkpoints in **Versions** and editable backups in **Canvas settings**. Publish or schedule through Buffer/Zernio separately when ready.
+
+Supplied templates and media are external packs under `asset-packs/`; they are excluded from application builds. Only placed media embeds in designs. Desktop remembers the selected folder in local `config.json`; browser folder selections last for the session.
+
+## Run locally
 
 ```sh
 npm install
 npm install --prefix sidecar
-npm run dev
+npm run dev          # browser development
+npm run tauri dev    # desktop development; requires the Tauri/Rust toolchain
 ```
 
-For Chat, install the official Codex CLI, run `codex login`, then `npm run tauri dev`. Node must be available on PATH, or supplied through `NODE_BIN`. Chat uses the installed CLI and checks its macOS signature before launch; configure its path in Chat settings if needed.
+Development uses Node. Packaged desktop builds include the Node runtime for provider connections. Local canvas editing works without AI. Optional frame generation uses the OpenCode client SDK with Beam Free; install OpenCode 2 and connect OpenCode Go, or supply a running service URL in Setting → AI generation. Browser development provides local provider middleware; a production static browser build can edit local designs but needs the desktop app for provider connections.
 
-Packaged builds include Node and Codex for macOS, Windows, and Linux (x64 and ARM64). After pushing to GitHub, trigger all six builds with:
+A prepared local pack is available automatically in Vite development. For preparing and distributing packs, see [external asset packs](asset-packs/README.md). Keep `design-references/` for rebuilding the supplied presets and artwork.
 
-```sh
-npm run build:ci -- --repo OWNER/REPO --ref main
-```
+## Documentation
 
-See [desktop build instructions](docs/builds.md) for installer downloads and macOS signing secrets.
+| Guide                                               | Covers                                                                                            |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [Canvas user guide](docs/canvas.md)                 | Pages, frames, presets, branding, assets, narration, captions, shortcuts, export, troubleshooting |
+| [Animation and export reference](docs/animation.md) | Timeline, effects, keyframes, scene transitions, rendering, document fields                       |
+| [AI generation](docs/ai-generation.md)              | OpenCode setup, Beam Free selection, ordered scene metadata, and mocked verification              |
+| [AI frame context](docs/frame-context.md)           | All layer types, diagram data, captions, descriptions, and media availability                     |
+| [SD–SMP learning models](docs/learning.md)          | Geometry, fractions, graphs, Indonesian language, physics, and AI-added diagrams                  |
+| [LaTeX and physics](docs/science.md)                | Editable equations, simulation parameters, worked examples, and AI generation                     |
+| [Preset authoring](design-references/README.md)     | Editable template files, source references, cutouts, catalog and preview preparation              |
+| [External asset packs](asset-packs/README.md)       | Folder connection, media preparation, manifest, packaging                                         |
+| [Storage and recovery](docs/storage.md)             | Local saving, library backups, migration, recovery                                                |
+| [Publishing and scheduling](docs/social.md)         | Buffer/Zernio connections, local drafts, confirmed submissions, actual usage                      |
+| [Editor implementation](src/README.md)              | JSON contract, ownership, rendering, local integrations                                           |
+| [Desktop builds](docs/builds.md)                    | Installers, build workflow, signing                                                               |
+| [Versioning and updates](docs/updates.md)           | Release scripts, updater setup, signed updates                                                    |
 
-Automatic updates use signed GitHub releases. Run `npm run updater:setup` once, configure the signing secret, and prepare releases with `npm run release:patch`. See [versioning and auto-update setup](docs/updates.md).
-
-See [editor and integration documentation](src/README.md) for the JSON contract, controls, packaging, and checks.
-
-Local canvases and chats use a managed desktop library with image deduplication, verified migration, and storage controls. See [storage and recovery](docs/storage.md).
-
-Idea and Canvas chat include built-in skills for brainstorming, ideas, carousels, campaigns, and content review. See [assistant skills](docs/skills.md) for usage, source documents, and packaging.
-
-The chat model control opens model, reasoning, web search, account, and usage settings. See [assistant controls](docs/assistant.md).
-
-Connect Buffer and Zernio directly in **Setting → Social accounts** to publish, schedule, and fetch actual API usage. Drafts, plans, and delivery history stay local; the website social API is not used. See [social connections and usage](docs/social.md).
+AI generation uses OpenCode’s stateless API and keeps canvas/page/frame metadata local; see [generation setup and contract](docs/ai-generation.md). Provider keys and related settings live in local `config.json`, outside canvas exports. Social publishing calls Buffer and Zernio directly. Narration calls ElevenLabs when requested; Soniox remains reserved in configuration. No siswajuara.com social API or website social tables are used.

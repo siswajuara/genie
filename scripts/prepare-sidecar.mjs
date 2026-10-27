@@ -18,6 +18,16 @@ await fs.mkdir(destination, { recursive: true });
 await fs.writeFile(path.join(destination, ".gitkeep"), "");
 for (const file of [
   "social-core.mjs",
+  "generate.mjs",
+  "opencode.mjs",
+  "opencode-config.mjs",
+  "opencode-generation.mjs",
+  "opencode-narration.mjs",
+  "science.mjs",
+  "learning.mjs",
+  "learning-extra.mjs",
+  "physics-extra.mjs",
+  "frame-context.mjs",
   "social-usage.mjs",
   "social-bridge.mjs",
   "local-json.mjs",
@@ -30,12 +40,31 @@ await fs.writeFile(
   path.join(destination, "package.json"),
   '{"private":true,"type":"module"}\n',
 );
+// The native Promise client and Service entry points are self-contained JS.
+// Other SDK interfaces (Effect, Solid, MCP) are not used by this runtime.
+const sdkSource = path.join(source, "node_modules/@opencode/client");
+const sdk = JSON.parse(
+  await fs.readFile(path.join(sdkSource, "package.json"), "utf8"),
+);
+const sdkDestination = path.join(destination, "node_modules/@opencode/client");
+await fs.mkdir(sdkDestination, { recursive: true });
+await fs.copyFile(
+  path.join(sdkSource, "package.json"),
+  path.join(sdkDestination, "package.json"),
+);
+await fs.cp(path.join(sdkSource, "dist"), path.join(sdkDestination, "dist"), {
+  recursive: true,
+});
 await fs.mkdir(path.join(destination, "runtime"), { recursive: true });
 const nodePath = path.join(destination, "runtime", info.nodeExecutable);
 await fs.copyFile(process.execPath, nodePath);
 if (process.platform !== "win32") await fs.chmod(nodePath, 0o755);
 const licenseDirectory = path.join(destination, "licenses");
 await fs.mkdir(licenseDirectory, { recursive: true });
+await fs.copyFile(
+  path.join(source, "licenses/OpenCode.LICENSE"),
+  path.join(licenseDirectory, "OpenCode.LICENSE"),
+);
 let nodeLicense;
 for (const dir of [
   path.dirname(process.execPath),
@@ -66,6 +95,7 @@ await fs.writeFile(
     {
       ...info,
       nodeVersion: process.versions.node,
+      opencodeClientVersion: sdk.version,
       sha256: {
         node: await digest(nodePath),
       },

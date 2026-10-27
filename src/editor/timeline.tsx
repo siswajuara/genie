@@ -590,7 +590,11 @@ export function Timeline({
           ev.key.toLowerCase() === "y" || ev.shiftKey ? e.redo() : e.undo();
           return;
         }
-        if ((ev.target as HTMLElement).closest("input,select,textarea,button"))
+        if (
+          (ev.target as HTMLElement).closest(
+            "input,select,textarea,[contenteditable='true'],[role='combobox'],[role='slider'],[role='checkbox'],[role='menu']",
+          )
+        )
           return;
         if (ev.key.toLowerCase() === "i") {
           ev.preventDefault();
@@ -620,7 +624,7 @@ export function Timeline({
         }
         if (ev.key === " ") {
           ev.preventDefault();
-          p.toggle();
+          if (!ev.repeat) p.toggle();
         }
         if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
           ev.preventDefault();
@@ -695,19 +699,26 @@ export function Timeline({
           <div className="timeline-grid" style={{ width: pixels + 170 }}>
             <div className="timeline-label timeline-ruler-label">
               <strong title={frame.n}>{frame.n}</strong>
-              {frame.scene?.transition && frame.scene.transition.type !== "cut" && (
-                <Button
-                  type="button"
-                  className="anim-chip timeline-transition-chip"
-                  title={`Transition to next scene: ${effectLabel(frame.scene.transition.type)} (${frame.scene.transition.duration.toFixed(2)} s). Click to preview the transition.`}
-                  aria-label={`Transition to next scene: ${effectLabel(frame.scene.transition.type)}`}
-                  onClick={() =>
-                    p.seek(Math.max(0, p.duration - (frame.scene!.transition!.duration + 0.2)))
-                  }
-                >
-                  ⇄ {effectLabel(frame.scene.transition.type)}
-                </Button>
-              )}
+              {frame.scene?.transition &&
+                frame.scene.transition.type !== "cut" && (
+                  <Button
+                    type="button"
+                    className="anim-chip timeline-transition-chip"
+                    title={`Transition to next scene: ${effectLabel(frame.scene.transition.type)} (${frame.scene.transition.duration.toFixed(2)} s). Click to preview the transition.`}
+                    aria-label={`Transition to next scene: ${effectLabel(frame.scene.transition.type)}`}
+                    onClick={() =>
+                      p.seek(
+                        Math.max(
+                          0,
+                          p.duration -
+                            (frame.scene!.transition!.duration + 0.2),
+                        ),
+                      )
+                    }
+                  >
+                    ⇄ {effectLabel(frame.scene.transition.type)}
+                  </Button>
+                )}
             </div>
             <div className="timeline-ruler" style={{ width: pixels }}>
               {p.range && (
@@ -901,7 +912,10 @@ export function Timeline({
                   Captions
                 </Button>
                 <div className="timeline-track" style={{ width: pixels }}>
-                  <span className="timeline-placeholder-hint" aria-hidden="true">
+                  <span
+                    className="timeline-placeholder-hint"
+                    aria-hidden="true"
+                  >
                     Captions will appear here
                   </span>
                 </div>
@@ -1073,9 +1087,8 @@ export function Timeline({
         </div>
       </div>
       <footer>
-        Drag clips to move them; drag either edge to trim. Right-click a track
-        for timing and animation actions. Shift-click to select a range; I/O
-        sets the preview range.
+        Space play/pause · ←/→ step · I/O range · K keyframe · Drag edges to
+        trim
       </footer>
       {menu && (
         <div
