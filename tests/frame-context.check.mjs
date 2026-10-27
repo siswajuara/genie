@@ -227,6 +227,10 @@ assert.match(readableFrameText(ctx), /Akar menyerap air/);
 assert.match(readableFrameText(ctx), /Video tunas/);
 assert.match(readableFrameText(ctx), /Kotak/);
 assert.ok(
+  !readableFrameText(ctx).includes("belum dideskripsikan"),
+  "undescribed media falls back to sibling visible text, not a placeholder",
+);
+assert.ok(
   contextCoverage(ctx).mediaNeedingDescription.some((m) => m.id === "photo"),
 );
 const req = {

@@ -27,17 +27,9 @@ export function FrameContextPanel({
         AI frame context · {coverage.frames} frame · {coverage.layers} layer
       </summary>
       <p className="science-hint">
-        Teks, persamaan, hasil hitung diagram, bentuk, warna, posisi, animasi,
-        caption, dan deskripsi media ikut dikirim. Layer tersembunyi ditandai
-        sebagai referensi.
+        Teks terlihat, persamaan, hasil hitung diagram, caption, dan narasi
+        ikut dikirim sebagai konteks.
       </p>
-      {coverage.mediaNeedingDescription.length > 0 && (
-        <p role="status" className="science-hint">
-          Media perlu deskripsi:{" "}
-          {coverage.mediaNeedingDescription.map((m) => m.name).join(", ")}. Isi
-          AI description di Properties agar AI mengetahui isinya.
-        </p>
-      )}
       {coverage.audioNeedingTranscript.length > 0 && (
         <p className="science-hint">
           Audio tanpa transkrip:{" "}

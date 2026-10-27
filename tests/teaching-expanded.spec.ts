@@ -138,7 +138,7 @@ test("all 40 learning models animate on the real canvas without changing their l
   expect(result.physics).toBe(20);
   expect(result.issues).toEqual([]);
 });
-test("full frame context and media descriptions reach Generate and narration, and survive reload", async ({
+test("full frame context and visible text reach Generate and narration, and survive reload", async ({
   page,
 }) => {
   const requests: any[] = [];
@@ -205,8 +205,9 @@ test("full frame context and media descriptions reach Generate and narration, an
         "base64",
       ),
     });
+  await page.getByRole("button", { name: "Text", exact: true }).click();
   await page
-    .getByRole("textbox", { name: "AI description", exact: true })
+    .getByRole("textbox", { name: "Text", exact: true })
     .fill("Foto tumbuhan dengan akar, batang, dan daun.");
   await page.getByRole("button", { name: "Generate", exact: true }).click();
   const dialog = page.getByRole("dialog");
@@ -225,7 +226,7 @@ test("full frame context and media descriptions reach Generate and narration, an
   ).toBe(true);
   expect(
     context.frames[0].layers.some((o: any) =>
-      o.media?.description.includes("akar, batang"),
+      o.readableText?.includes("akar, batang"),
     ),
   ).toBe(true);
   await dialog
@@ -263,7 +264,7 @@ test("full frame context and media descriptions reach Generate and narration, an
   expect(spoken.frames[0].layers.length).toBe(context.frames[0].layers.length);
   expect(
     spoken.frames[0].layers.some((o: any) =>
-      o.media?.description.includes("akar, batang"),
+      o.readableText?.includes("akar, batang"),
     ),
   ).toBe(true);
   await page.reload();
@@ -282,8 +283,7 @@ test("full frame context and media descriptions reach Generate and narration, an
   });
   expect(
     restored.some(
-      (o: any) =>
-        o.aiDescription === "Foto tumbuhan dengan akar, batang, dan daun.",
+      (o: any) => o.text === "Foto tumbuhan dengan akar, batang, dan daun.",
     ),
   ).toBe(true);
 });

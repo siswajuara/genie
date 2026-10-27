@@ -1,12 +1,21 @@
 {
   "$schema": "https://unpkg.com/knip/schema.json",
-  "ignoreBinaries": ["dpkg-deb", "ffmpeg", "ffprobe"],
+  "ignoreBinaries": ["dpkg-deb", "ffmpeg", "ffprobe", "swift"],
+  "ignoreDependencies": ["tailwindcss"],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "unresolved": "off"
+  },
+  "paths": {
+    "/src/*": ["./src/*"]
+  },
   "workspaces": {
     ".": {
-      "project": ["src/**/*.{ts,tsx,js}", "scripts/**/*.mjs"]
+      "project": ["src/**/*.{ts,tsx,js,mjs}", "scripts/**/*.mjs", "tests/**/*.{ts,mjs}"],
+      "entry": ["scripts/**/*.mjs", "tests/**/*.check.mjs", "tests/**/*.spec.ts", "src/editor/standard-branding.ts"]
     },
     "sidecar": {
-      "entry": ["social-bridge.mjs", "voice-prototype.d.mts"]
+      "entry": ["social-bridge.mjs", "voice-prototype.d.mts", "frame-context.d.mts", "generate.d.mts", "learning.d.mts", "science.d.mts"]
     }
   }
 }

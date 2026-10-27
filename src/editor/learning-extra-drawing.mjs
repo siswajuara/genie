@@ -16,6 +16,10 @@ export function drawExtraLearning(d, p, time) {
       cx = 300,
       cy = 340,
       r = 230;
+    // Visible emphasis sweep: a bright dot travels along the arc, ping-pong
+    // every 1.3 s. Deterministic in time so scrubbing and export agree.
+    const pingpong = 1 - Math.abs(1 - 2 * ((time / 1.3) % 1)),
+      sa = a * pingpong;
     arrow(cx, cy, r, 0);
     arrow(cx, cy, r * Math.cos(a), -r * Math.sin(a));
     path(
@@ -25,6 +29,14 @@ export function drawExtraLearning(d, p, time) {
       ]),
       "#d89300",
     );
+    if (p.animate)
+      ellipse(
+        cx + 70 * Math.cos(sa),
+        cy - 70 * Math.sin(sa),
+        10,
+        10,
+        "#d89300",
+      );
     ellipse(
       cx + r * Math.cos(a),
       cy - r * Math.sin(a),

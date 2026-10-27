@@ -215,10 +215,6 @@ export function ScienceInspector({
             )
           }
         />
-        <p className="science-hint">
-          Bangun ruang memakai proyeksi ilustratif. Luas dan volume dihitung
-          dari parameter; teks Bahasa Indonesia tetap bisa diedit.
-        </p>
       </section>
     );
   if (element.physics)
@@ -234,10 +230,6 @@ export function ScienceInspector({
             )
           }
         />
-        <p className="science-hint">
-          Play or scrub the timeline. Values use SI units. Pendulum uses the
-          small-angle approximation; projectile motion ignores air resistance.
-        </p>
       </section>
     );
   if (!element.latex) return null;

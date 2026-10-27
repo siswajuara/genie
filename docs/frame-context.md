@@ -6,12 +6,12 @@ Generate dan **Regenerate script from canvas text** mengirim `frameContext` yang
 
 Konteks mencakup seluruh layer milik frame, termasuk layer terkunci, tersembunyi, dan branding. Layer tersembunyi/fixed/branding ditandai sebagai referensi sehingga tidak otomatis menjadi isi narasi. Konteks memuat:
 
-- Teks asli serta teks tanpa markup warna; nama dan deskripsi elemen.
+- Teks asli serta teks tanpa markup warna; nama elemen.
 - Sumber LaTeX, jenis/parameter diagram, aturan model, dan hasil perhitungan lokal.
 - Label teks pada SVG tertanam, termasuk judul dan deskripsi SVG.
 - Jenis bentuk, posisi, ukuran, warna, rotasi, transparansi, grup, dan pengaturan animasi/keyframe.
 - Warna/pengaturan frame, durasi scene, caption bertiming, draf narasi, serta nama/peran/timing/pengaturan audio.
-- Jenis/status media, nama, dan `aiDescription`, tanpa isi biner media atau URL sumbernya.
+- Jenis/status media dan nama, tanpa isi biner media atau URL sumbernya. Deskripsi dari versi lama tetap ikut bila ada.
 
 Koordinat canvas adalah **pixel**, bukan cm atau meter. Parameter bangun geometri dan fisika tetap memakai satuan model masing-masing. `sampleTime` saat ini bernilai nol: AI menerima keadaan analitis awal serta semua parameter/timing untuk memahami geraknya, bukan rekaman yang sedang diputar. Angka dan label diagram dihitung lokal; AI tidak perlu menebak gambar diagram dari nama file.
 
@@ -23,14 +23,9 @@ Jalur OpenCode satu-permintaan yang digunakan aplikasi menerima prompt teks. API
 
 Karena itu, mengirim nama file atau string base64 tidak membuat AI melihat foto atau mendengar audio. Aplikasi menandai media tanpa keterangan sebagai `needs-description`, SVG yang hanya memiliki teks sebagai `vector-text-only`, dan audio tanpa draf/transkrip sebagai `needs-transcript`. Prompt melarang AI mengarang isi yang belum tersedia.
 
-Untuk memberi AI isi foto/video atau informasi tambahan pada elemen lain:
+Untuk memberi AI isi foto/video, tambahkan teks terlihat pada frame yang sama — misalnya layer Text yang menjelaskan isi, label, makna, atau bagian penting — atau gunakan caption/transkrip untuk ucapan pada video/audio, lalu buka panel konteks untuk memeriksa cakupan. Seluruh teks terlihat pada frame otomatis menjadi konteks tambahan saat Generate dan penulisan narasi.
 
-1. Pilih elemennya di canvas atau Layers.
-2. Buka **Properties → AI context → AI description**.
-3. Jelaskan isi, label, makna, atau bagian penting yang dibutuhkan AI.
-4. Gunakan caption/transkrip untuk ucapan pada video/audio, lalu buka panel konteks untuk memeriksa cakupan.
-
-Deskripsi tersimpan lokal bersama elemen, ikut backup, dan dapat di-undo. Mengganti sumber gambar/video membersihkan deskripsi lama agar AI tidak memakai keterangan media sebelumnya. Tanpa deskripsi/transkrip, AI mengetahui keberadaan serta pengaturan media itu, tetapi tidak mengetahui piksel/ucapannya. Pembacaan piksel otomatis membutuhkan jalur vision/OCR tersendiri; fitur tersebut tidak diklaim oleh pembaca konteks ini.
+Tanpa teks terlihat/deskripsi/transkrip, AI mengetahui keberadaan serta pengaturan media itu, tetapi tidak mengetahui piksel/ucapannya. Pembacaan piksel otomatis membutuhkan jalur vision/OCR tersendiri; fitur tersebut tidak diklaim oleh pembaca konteks ini.
 
 ## Kontrak dan privasi
 
@@ -57,4 +52,4 @@ node tests/frame-context.check.mjs
 npm run test:ui -- tests/teaching-expanded.spec.ts
 ```
 
-Tes mencakup seluruh jenis layer, parameter dan hasil hitung, teks SVG, data tersembunyi/terkunci, metadata media, batas ukuran, pengiriman ke kedua alur AI, dan pemuatan ulang deskripsi.
+Tes mencakup seluruh jenis layer, parameter dan hasil hitung, teks SVG, teks terlihat sebagai konteks, data tersembunyi/terkunci, metadata media, batas ukuran, pengiriman ke kedua alur AI, dan pemuatan ulang.

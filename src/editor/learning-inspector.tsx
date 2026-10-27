@@ -111,7 +111,6 @@ export function LearningFields({
           apply(normalizeLearning({ kind: kind as LearningKind }))
         }
       />
-      <p className="science-hint">{model.description}</p>
       {Object.entries(model.defaults).map(([key, initial]) => (
         <div className="generate-field" key={`${draft.kind}-${key}`}>
           <Label htmlFor={`learning-${key}`}>{labels[key] || key}</Label>

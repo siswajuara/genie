@@ -222,10 +222,6 @@ export function readableFrameText(context) {
       if (o.media) {
         if (o.media.description) parts.push(o.media.description);
         if (o.media.vectorText?.length) parts.push(...o.media.vectorText);
-        if (!o.media.description && !o.media.vectorText?.length)
-          parts.push(
-            `[${o.media.type}: ${o.n || o.label || o.id}; isi belum dideskripsikan]`,
-          );
       }
       if (!o.readableText && !o.teaching && !o.equation && !o.media)
         parts.push(

@@ -716,25 +716,6 @@ export function Inspector({
                   </Button>
                 </Section>
               )}
-              <Section title="AI context">
-                <Label htmlFor={`ai-description-${o.id}`}>AI description</Label>
-                <Textarea
-                  id={`ai-description-${o.id}`}
-                  aria-label="AI description"
-                  rows={3}
-                  maxLength={4000}
-                  value={o.aiDescription || ""}
-                  placeholder="Jelaskan isi, makna, atau teks penting pada elemen ini."
-                  onChange={(event) =>
-                    e.patch({ aiDescription: event.target.value }, [o.id])
-                  }
-                />
-                <p className="science-hint">
-                  Terbaca saat Generate dan penulisan narasi. Foto/video
-                  membutuhkan deskripsi isi; nama file saja tidak menjelaskan
-                  gambarnya.
-                </p>
-              </Section>
               {(o.latex || o.physics || o.learning) && (
                 <ScienceInspector key={o.id} element={o} editor={e} />
               )}
