@@ -163,7 +163,9 @@
     @apply pt-0 pr-0 pb-[8px] pl-0 border-b-0;
   }
   .narration-panel.in-inspector .audio-panel-body {
-    @apply p-0 overflow-visible max-h-none;
+    @apply px-0 pt-0 overflow-visible max-h-none;
+    /* Clearance so the last controls scroll fully above the sticky footer. */
+    padding-bottom: 88px;
   }
   .narration-panel.in-inspector .narration-foot {
     @apply sticky bottom-[-18px] mt-[4px] mr-[-16px] mb-[-18px] ml-[-16px] py-[12px] px-[16px];
@@ -212,9 +214,6 @@
   .narration-tip {
     @apply m-0;
   }
-  .narration-captions-row {
-    @apply flex items-center justify-between gap-[8px];
-  }
   .narration-group .audio-field textarea {
     @apply min-h-[64px];
   }
@@ -236,11 +235,17 @@
   .narration-toggle {
     @apply text-[12px] p-0;
   }
-  .narration-style-toggle {
-    @apply justify-self-start inline-flex items-center gap-[6px];
-  }
   .narration-style {
-    @apply grid gap-[8px] pt-[2px];
+    @apply grid gap-[10px] pt-[2px];
+  }
+  .narration-style-field {
+    @apply grid gap-[6px] content-start;
+  }
+  .narration-style-field .hint {
+    @apply m-0 text-[11px];
+  }
+  .narration-apply-all {
+    @apply w-full justify-center;
   }
   .narration-presets {
     @apply flex gap-[6px] flex-wrap;
@@ -277,16 +282,6 @@
   }
   .narration-track-name {
     @apply flex-[1] text-[11px] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-  }
-  /* Quiet [data-slot="progress"]ive disclosures: dividers, not boxes. */
-  .narration-more {
-    @apply m-0 border-t border-solid border-t-border pt-[2px] pr-0 pb-[8px] pl-0 text-[12px];
-  }
-  .narration-more .accordion-trigger {
-    @apply py-[8px] px-0 font-bold;
-  }
-  .narration-more .accordion-trigger[data-state="open"] {
-    @apply mb-[6px];
   }
   .narration-details {
     @apply mt-[8px] text-[11px];

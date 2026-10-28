@@ -232,7 +232,6 @@ export function AnimationInspector({
                   onChange={(duration) => scenePatch({ duration })}
                 />
               </Field>
-              <p className="hint">Scene length in seconds.</p>
             </section>
             <section className="insp-section">
               <h3>Camera &amp; transition</h3>
@@ -284,7 +283,6 @@ export function AnimationInspector({
                   />
                   {(scene.camera?.preset ?? "none") !== "none" && (
                     <div className="anim-selected">
-                      <h4>Selected: {effectLabel(scene.camera!.preset)}</h4>
                       <Field label="Intensity">
                         <NumberField
                           label="Camera intensity"
@@ -317,10 +315,6 @@ export function AnimationInspector({
                       </details>
                     </div>
                   )}
-                  <p className="hint">
-                    Dolly moves the camera through depth. Set layer depth to
-                    create parallax.
-                  </p>
                 </>
               ) : (
                 <>
@@ -342,7 +336,6 @@ export function AnimationInspector({
                   />
                   {(scene.transition?.type ?? "cut") !== "cut" && (
                     <div className="anim-selected">
-                      <h4>Selected: {effectLabel(scene.transition!.type)}</h4>
                       <Field label="Duration">
                         <NumberField
                           label="Transition duration"
@@ -377,10 +370,6 @@ export function AnimationInspector({
                       </details>
                     </div>
                   )}
-                  <p className="hint">
-                    Transitions overlap adjacent scenes, up to half of either
-                    scene. Preview the full sequence in Export.
-                  </p>
                 </>
               )}
             </section>

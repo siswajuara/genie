@@ -213,10 +213,13 @@
     @apply mt-[10px] mr-0 mb-[4px] ml-0 text-[10px] font-extrabold uppercase tracking-[0.06em] text-muted-foreground;
   }
   .style-presets {
-    @apply grid grid-cols-[repeat(4,_minmax(0,_1fr))] gap-[6px] my-[8px] mx-0;
+    @apply grid grid-cols-[repeat(4,_minmax(0,_1fr))] gap-[6px] my-[6px] mx-0;
   }
   .style-presets button {
-    @apply grid gap-[2px] justify-items-center pt-[7px] pr-[2px] pb-[6px] pl-[2px] text-[10px] rounded-[8px];
+    @apply grid gap-0 justify-items-center px-[2px] py-[4px] text-[10px] rounded-[8px] leading-tight whitespace-nowrap;
+  }
+  .style-presets .style-aa {
+    font-size: 13px;
   }
   .style-aa {
     @apply font-black text-[16px] leading-[1];
@@ -262,7 +265,29 @@
   }
   .library-content,
   .panel-scroll {
-    @apply py-[18px] px-[16px] overflow-auto min-h-0 flex-[1];
+    @apply overflow-auto min-h-0 flex-[1];
+  }
+  .library-content {
+    padding: 0 16px 18px;
+  }
+  .panel-scroll {
+    @apply py-[18px] px-[16px];
+  }
+  .library-tabs-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0 -16px;
+    padding: 12px 16px 10px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  .library-tabs-sticky .editor-tabs {
+    margin-bottom: 0;
+  }
+  /* Breathing room between the sticky tab bar and the tab content below. */
+  .library-content > .library-tabs-sticky + * {
+    margin-top: 16px;
   }
   .section-title {
     @apply flex items-center justify-between gap-[8px] mb-[12px];
@@ -412,6 +437,18 @@
   .tool-row {
     @apply flex items-center gap-[4px] flex-wrap mt-[8px] mr-0 mb-0 ml-0;
   }
+  /* Arrange rows fill the full width with equal columns, so no empty
+     space remains on the right regardless of button count. */
+  .tool-row.arrange-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .tool-row.arrange-grid .tool-btn {
+    width: auto;
+    min-width: 0;
+  }
   .tool-btn {
     @apply w-[32px] h-[32px] min-w-[32px] p-0 grid place-items-center rounded-[8px] text-foreground;
   }
@@ -546,35 +583,20 @@
   .template-preview-status {
     @apply flex flex-col items-center gap-[8px] text-muted-foreground text-[10px];
   }
-  .template-library-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin: 16px 0;
-  }
-  .template-library-heading h2 {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-  }
-  .template-library-heading p {
-    color: var(--muted-foreground);
-    font-size: 11px;
-    margin-top: 4px;
-  }
-  .template-library-heading > span {
-    background: var(--secondary);
-    color: var(--primary);
-    border-radius: 20px;
-    padding: 5px 9px;
-    font-size: 11px;
-    font-weight: 800;
+  .template-sticky {
+    position: sticky;
+    top: 61px;
+    z-index: 20;
+    margin: 0 -16px;
+    /* No top padding: the tab-content gap above already provides the space. */
+    padding: 0 16px 10px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
   }
   .template-library-tools {
     display: flex;
     gap: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .template-library-tools button {
     display: flex;
@@ -592,41 +614,27 @@
   .template-search > svg {
     position: absolute;
     left: 10px;
-    top: 12px;
+    top: 10px;
     color: var(--muted-foreground);
   }
   .template-search input {
     width: 100%;
     padding-left: 32px;
-    min-height: 39px;
+    min-height: 34px;
     font-size: 12px;
-  }
-  .template-use-cases {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin: 12px 0;
-  }
-  .template-use-cases button {
-    border-radius: 20px;
-    font-size: 10px;
-    padding: 5px 9px;
-    background: transparent;
-  }
-  .template-use-cases button[aria-pressed="true"] {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
   }
   .template-filter-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 7px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
   }
   .template-filter-grid .select-trigger {
     min-width: 0;
     font-size: 10px;
-    padding: 7px;
+    padding: 6px 4px 6px 6px;
+    gap: 4px;
+    min-height: 0;
   }
   .template-results-bar {
     display: flex;
@@ -634,7 +642,7 @@
     align-items: center;
     font-size: 10px;
     color: var(--muted-foreground);
-    margin-top: 14px;
+    margin-top: 8px;
   }
   .template-results-bar .select-trigger {
     font-size: 10px;
@@ -708,22 +716,6 @@
   }
   .template-card .template-thumbnail img {
     object-fit: contain;
-  }
-  .template-pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    margin: 18px 0;
-    font-size: 11px;
-    color: var(--muted-foreground);
-  }
-  .template-pagination button {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: grid;
-    place-items: center;
   }
   .template-empty {
     display: flex;
@@ -1361,7 +1353,7 @@
     }
   }
   .layer-tree {
-    @apply mt-[12px];
+    @apply mt-[12px] pb-[20px];
   }
   .tree-layer {
     @apply min-h-[34px] cursor-pointer select-none;

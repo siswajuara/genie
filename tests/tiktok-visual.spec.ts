@@ -1,4 +1,10 @@
 import { expect, test } from "@playwright/test";
+
+declare global {
+  interface Window {
+    genieSource(path: string): Promise<any>;
+  }
+}
 function wavSpeech(text: string) {
   const samples = 8000 * 8;
   const bytes = Buffer.alloc(44 + samples * 2);
@@ -28,6 +34,17 @@ function wavSpeech(text: string) {
   };
 }
 test.beforeEach(async ({ page }) => {
+  // Same module-source helper as presets.spec.ts: reuse the app's module URL
+  // so persistence checks read the initialized store.
+  await page.addInitScript(() => {
+    window.genieSource = (path) => {
+      const resource = performance
+        .getEntriesByType("resource")
+        .reverse()
+        .find((r) => new URL(r.name).pathname === path);
+      return import(resource?.name || path);
+    };
+  });
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:1423\/)/, (r) => r.abort());
   await page.route("**/api/genie-social/**", async (route) => {
     if (route.request().url().endsWith("/settings"))
@@ -69,14 +86,22 @@ test("tiktok karaoke visual check", async ({ page }) => {
     .getByRole("button", { name: "Generate narration", exact: true })
     .click();
   await expect(panel.getByText("Voice clips (1)")).toBeVisible();
-  await panel.getByRole("button", { name: /Captions ·/, exact: false }).click();
-  await expect(
-    panel.getByRole("textbox", { name: "Subtitle 1 text", exact: true }),
-  ).toHaveValue("Kunjungi siswajuara.com");
-  await expect(
-    panel.getByRole("textbox", { name: "Subtitle 2 text", exact: true }),
-  ).toHaveValue("sekarang ya.");
-  await panel.getByRole("button", { name: "Style", exact: true }).click();
+  // Captions are generated with the narration but no longer have a dedicated
+  // editing section; verify them through the persisted frame instead.
+  const cueTexts = await page.evaluate(async () => {
+    const { prepareLocalSave, localStore } = await window.genieSource(
+      "/src/lib/local-store.ts",
+    );
+    await prepareLocalSave();
+    const w = JSON.parse(localStore.getItem("genie.workspace.v1"));
+    const project = w.projects.find((p) => p.id === w.activeProjectId);
+    const frame = project.pages[0].canvas.elements.find(
+      (el) => el.t === "frame",
+    );
+    return (frame.subtitles || []).map((cue) => cue.text);
+  });
+  expect(cueTexts).toEqual(["Kunjungi siswajuara.com", "sekarang ya."]);
+  // The caption style section is always visible (no toggle).
   await panel.getByRole("button", { name: "TikTok", exact: true }).click();
   await panel.getByRole("button", { name: "Karaoke", exact: true }).click();
   await expect(panel.getByText("Outline width · 14%")).toBeVisible();

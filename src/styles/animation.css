@@ -315,15 +315,6 @@
   .timeline-fps {
     @apply w-[76px];
   }
-  .timeline-range-tools {
-    @apply gap-[3px];
-  }
-  .timeline-range-tools button {
-    @apply p-[4px] min-h-[26px];
-  }
-  .timeline-range-readout {
-    @apply text-[10px] text-muted-foreground tabular-nums;
-  }
   .timeline-editbar .check {
     @apply text-[10px] gap-[4px];
   }
@@ -335,21 +326,6 @@
   }
   .timeline-editbar .row button.is-active {
     @apply border-primary text-foreground;
-  }
-  .timeline-range-menu {
-    @apply relative;
-  }
-  .timeline-range-menu > button {
-    @apply inline-flex items-center gap-[5px] text-[11px] py-[5px] px-[7px] min-h-[29px];
-  }
-  .timeline-range-menu > button span {
-    @apply text-[11px];
-  }
-  .timeline-menu {
-    @apply absolute top-[calc(100%_+_6px)] left-0 z-[50] grid gap-[2px] min-w-[220px] p-[6px] bg-card border border-solid border-border rounded-[8px] shadow-[0_8px_24px_rgb(0_0_0_/_0.12)];
-  }
-  .timeline-menu button {
-    @apply text-left text-[11px] py-[7px] px-[9px];
   }
   .timeline-settings {
     @apply grid gap-[10px] min-w-[200px] p-[4px];
@@ -475,44 +451,22 @@
     @apply text-muted-foreground font-semibold;
   }
   .fx-picker {
-    @apply mt-[4px] mr-0 mb-[8px] ml-0;
+    @apply mt-[4px] mr-0 mb-[6px] ml-0;
   }
   .fx-filter-row {
-    @apply flex items-center gap-[8px] mb-[10px] min-w-0;
+    @apply flex items-center gap-[8px] mb-[8px] min-w-0;
   }
-  .fx-chips-scroll {
-    @apply flex-[1] min-w-0;
-  }
-  .fx-chips-scroll > .ui-scroll-viewport {
-    @apply overflow-x-auto overflow-y-hidden;
-  }
-  .fx-chips-scroll .ui-scroll-bar[data-orientation="horizontal"] {
-    height: 4px;
-  }
-  .fx-chips {
-    @apply flex items-center gap-[5px] flex-nowrap w-max min-w-full;
-  }
-  .fx-chips button {
-    @apply py-[4px] px-[11px] text-[11px] font-semibold rounded-full border border-solid border-border bg-card text-muted-foreground shrink-0;
-    transition:
-      border-color 120ms ease,
-      background-color 120ms ease,
-      color 120ms ease;
-  }
-  .fx-chips button:hover {
-    @apply text-foreground border-[color-mix(in_srgb,_var(--primary)_55%,_var(--border))];
-  }
-  .fx-chips button.is-active {
-    @apply border-primary text-white bg-primary;
+  .fx-filter-row .select-trigger {
+    @apply flex-[1] min-w-0 text-[11px] min-h-[32px] py-[4px];
   }
   .fx-count {
     @apply text-[10px] tabular-nums text-muted-foreground font-semibold shrink-0;
   }
   .fx-grid {
-    @apply grid grid-cols-[repeat(3,_minmax(0,_1fr))] gap-[8px];
+    @apply grid grid-cols-[repeat(3,_minmax(0,_1fr))] gap-[6px];
   }
   .fx-tile {
-    @apply relative grid gap-[5px] justify-items-center pt-[7px] pr-[5px] pb-[7px] pl-[5px] border border-solid border-border rounded-[10px] bg-card text-[10px] min-w-0 cursor-pointer;
+    @apply relative grid gap-[4px] justify-items-center pt-[5px] pr-[4px] pb-[5px] pl-[4px] border border-solid border-border rounded-[10px] bg-card text-[10px] min-w-0 cursor-pointer;
     transition:
       border-color 120ms ease,
       background-color 120ms ease,
@@ -534,7 +488,7 @@
     @apply absolute top-[5px] right-[5px] z-[1] grid place-items-center w-[16px] h-[16px] rounded-full bg-primary text-white;
   }
   .fx-thumb {
-    @apply relative grid place-items-center w-full h-[52px] rounded-[8px] bg-background overflow-hidden border border-solid border-[color-mix(in_srgb,_var(--border)_70%,_transparent)];
+    @apply relative grid place-items-center w-full h-[38px] rounded-[8px] bg-background overflow-hidden border border-solid border-[color-mix(in_srgb,_var(--border)_70%,_transparent)];
   }
   .fx-tile.is-active .fx-thumb {
     @apply bg-card;
@@ -563,10 +517,7 @@
     @apply text-muted-foreground font-medium;
   }
   .anim-selected {
-    @apply border border-solid border-border rounded-[10px] pt-[10px] pr-[10px] pb-[6px] pl-[10px] mt-0 mr-0 mb-[10px] ml-0 bg-card;
-  }
-  .anim-selected > h4 {
-    @apply mt-0 mr-0 mb-[6px] ml-0 text-[11px] uppercase tracking-[0.06em] text-muted-foreground;
+    @apply border border-solid border-border rounded-[10px] p-[8px] mt-0 mr-0 mb-[8px] ml-0 bg-card;
   }
   .anim-selected details {
     @apply my-[4px] mx-0 text-[11px];

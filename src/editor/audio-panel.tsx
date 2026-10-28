@@ -12,9 +12,6 @@ import type { AnimationPlayback } from "./use-animation-playback";
 import { uid, type Element } from "./model";
 import { sceneDuration } from "./animation";
 import {
-  audioToWav,
-  extractVideoAudio,
-  mixAudio,
   readAudio,
   validateAudio,
   type AudioTrack,
@@ -22,19 +19,13 @@ import {
 import {
   alignmentToWords,
   defaultSubtitleStyle,
-  parseSrt,
-  toSrt,
   validateSubtitles,
   wordsToCues,
-  type SubtitleCue,
   type SubtitleStyle,
-  type TimedWord,
 } from "./subtitles";
 import { socialRequest, useSocial } from "../social/client";
 import { canvasContextText } from "./generation";
-import { exportMessage, saveExport } from "../lib/export";
 import { Icon } from "../components/ui/icon";
-import { Accordion } from "../components/ui/accordion";
 import {
   PROTOTYPE_VOICE_ID,
   PROTOTYPE_VOICE_NAME,
@@ -113,41 +104,6 @@ function sizeLabel(size: number) {
   return "Medium";
 }
 
-function Seconds({
-  label,
-  value,
-  onChange,
-  max = 600,
-  min = 0,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  max?: number;
-  min?: number;
-}) {
-  return (
-    <Label className="audio-field">
-      <span>{label}</span>
-      <Input
-        type="number"
-        aria-label={label}
-        step={0.05}
-        min={min}
-        max={max}
-        value={Number(value.toFixed(3))}
-        onChange={(ev) => {
-          if (
-            ev.target.value !== "" &&
-            Number.isFinite(ev.target.valueAsNumber)
-          )
-            onChange(ev.target.valueAsNumber);
-        }}
-      />
-    </Label>
-  );
-}
-
 export function AudioPanel({
   editor: e,
   playback: p,
@@ -181,9 +137,6 @@ export function AudioPanel({
   const [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
-  const [styleOpen, setStyleOpen] = useState(false);
-  const audioInput = useRef<HTMLInputElement>(null),
-    srtInput = useRef<HTMLInputElement>(null);
   const running = useRef(false);
   const live = useRef({ e, frame });
   live.current = { e, frame };
@@ -209,7 +162,6 @@ export function AudioPanel({
     );
   const duration = sceneDuration(frame);
   const voiceTracks = tracks.filter((track) => track.role === "voiceover");
-  const musicTracks = tracks.filter((track) => track.role !== "voiceover");
   function setDraft(patch: Partial<typeof draft>) {
     p.edit();
     update({
@@ -260,116 +212,31 @@ export function AudioPanel({
       setError(err instanceof Error ? err.message : String(err));
     }
   }
-  function addTrack(
-    src: string,
-    sourceDuration: number,
-    name: string,
-    role: AudioTrack["role"],
-    targetId: string,
-  ) {
-    const target = live.current.e
-      .getDocument()
-      .elements.find((o) => o.id === targetId);
-    if (!target) throw Error("The target frame no longer exists.");
-    const track: AudioTrack = {
-      id: uid(),
-      name,
-      src,
-      role,
-      start: 0,
-      end: Math.min(
-        600,
-        role === "music" ? sceneDuration(target) : sourceDuration,
-      ),
-      trimStart: 0,
-      sourceDuration,
-      volume: role === "music" ? 0.2 : 1,
-      loop: role === "music",
-      muted: false,
-      fadeIn: role === "music" ? 0.5 : 0,
-      fadeOut: role === "music" ? 0.5 : 0,
-    };
-    update(
-      {
-        audioTracks: [...(target.audioTracks ?? []), track],
-        scene: {
-          ...target.scene,
-          duration: Math.min(600, Math.max(sceneDuration(target), track.end)),
-        },
-      },
-      targetId,
-    );
-  }
-  function addCues(newCues: SubtitleCue[], targetId = frame!.id) {
-    if (!newCues.length)
-      throw Error(
-        "No speech timings were returned. Your existing subtitles were kept.",
-      );
-    const target = live.current.e
-      .getDocument()
-      .elements.find((o) => o.id === targetId);
-    if (!target) throw Error("The target frame no longer exists.");
-    const combined = [...(target.subtitles ?? []), ...newCues].sort(
-      (a, b) => a.start - b.start,
-    );
-    update(
-      {
-        subtitles: combined,
-        scene: {
-          ...target.scene,
-          duration: Math.min(
-            600,
-            Math.max(sceneDuration(target), ...newCues.map((cue) => cue.end)),
-          ),
-        },
-      },
-      targetId,
-    );
-    setMessage(`Added ${newCues.length} editable subtitle cues.`);
-  }
-  function patchCue(id: string, patch: Partial<SubtitleCue>) {
-    try {
-      update({
-        subtitles: cues.map((cue) =>
-          cue.id === id ? { ...cue, ...patch } : cue,
-        ),
-        ...(patch.end && patch.end > duration
-          ? { scene: { ...frame!.scene, duration: patch.end } }
-          : {}),
-      });
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  }
   function seek(time: number) {
     e.select([frame!.id]);
     p.setOpen(true);
     p.seek(time);
   }
-  async function transcribe(track: AudioTrack) {
-    const targetId = frame!.id;
-    if (track.loop)
-      throw Error("Turn off looping before transcribing a speech track.");
-    const result = await socialRequest<{ words: TimedWord[] }>(
-      "elevenlabs.transcribe",
-      { accountId, src: track.src, language, confirmed: true },
-    );
-    const mapped = result.words
-      .filter(
-        (word) =>
-          word.end > track.trimStart &&
-          word.start < track.trimStart + track.end - track.start,
-      )
-      .map((word) => ({
-        ...word,
-        start: Math.max(
-          track.start,
-          word.start - track.trimStart + track.start,
-        ),
-        end: Math.min(track.end, word.end - track.trimStart + track.start),
-      }));
-    addCues(wordsToCues(mapped), targetId);
+  const pageFrameIds = e
+    .getDocument()
+    .elements.filter((o) => o.t === "frame")
+    .map((o) => o.id);
+  const activePreset =
+    CAPTION_PRESETS.find((preset) =>
+      Object.entries(preset.patch).every(
+        ([key, value]) => style[key as keyof SubtitleStyle] === value,
+      ),
+    )?.name ?? "Custom";
+  async function applyStyleToAllFrames() {
+    const target = { subtitleStyle: { ...style } };
+    await run("Applying caption style…", async () => {
+      for (const id of live.current.e
+        .getDocument()
+        .elements.filter((o) => o.t === "frame")
+        .map((o) => o.id)) {
+        update(target, id);
+      }
+    });
   }
   async function generate() {
     const targetId = frame!.id;
@@ -595,28 +462,24 @@ export function AudioPanel({
             className="narration-step narration-group"
             aria-label="Captions"
           >
-            <div className="narration-captions-row">
-              <Label className="audio-check narration-toggle">
-                <Checkbox
-                  checked={showCaptions}
-                  onCheckedChange={(checked) =>
-                    setDraft({ subtitles: checked === true })
-                  }
-                />
-                Matching captions
-              </Label>
-              <Button
-                type="button"
-                className="narration-style-toggle"
-                aria-expanded={styleOpen}
-                onClick={() => setStyleOpen((value) => !value)}
-              >
-                <Icon name={styleOpen ? "up" : "down"} size={14} />
-                {styleOpen ? "Hide style" : "Style"}
-              </Button>
+            <div className="narration-label-row">
+              <span className="narration-label">Caption style</span>
+              <small className="narration-step-hint">{activePreset}</small>
             </div>
-            {styleOpen && (
-              <div className="narration-style">
+            <Label className="audio-check narration-toggle">
+              <Checkbox
+                checked={showCaptions}
+                onCheckedChange={(checked) =>
+                  setDraft({ subtitles: checked === true })
+                }
+              />
+              Matching captions
+            </Label>
+            <div className="narration-style">
+              <div className="narration-style-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  Preset
+                </span>
                 <div
                   className="narration-presets"
                   role="group"
@@ -646,6 +509,11 @@ export function AudioPanel({
                     </Button>
                   ))}
                 </div>
+              </div>
+              <div className="narration-style-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  Position
+                </span>
                 <div
                   className="narration-segment"
                   role="group"
@@ -671,6 +539,11 @@ export function AudioPanel({
                     </Button>
                   ))}
                 </div>
+              </div>
+              <div className="narration-style-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  Animation
+                </span>
                 <div
                   className="narration-segment"
                   role="group"
@@ -824,7 +697,26 @@ export function AudioPanel({
                   </p>
                 </div>
               </div>
-            )}
+              <div className="narration-style-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  All frames
+                </span>
+                <Button
+                  type="button"
+                  className="narration-apply-all"
+                  disabled={pageFrameIds.length < 2}
+                  title="Copy this frame's caption style to every frame on this page"
+                  onClick={() => void applyStyleToAllFrames()}
+                >
+                  <Icon name="copy" size={14} />
+                  Apply style to all {pageFrameIds.length} frames
+                </Button>
+                <p className="hint">
+                  Copies the preset, position, animation, sizes, and colors
+                  above to every frame on this page.
+                </p>
+              </div>
+            </div>
           </section>
           {voiceTracks.length > 0 && (
             <section
@@ -893,407 +785,6 @@ export function AudioPanel({
               ))}
             </section>
           )}
-          <Accordion
-            className="narration-more"
-            title={`Music${musicTracks.length ? ` · ${musicTracks.length}` : ""}`}
-          >
-            <div className="audio-actions">
-              <Button
-                onClick={() => audioInput.current?.click()}
-                title="MP3, WAV, M4A, OGG, FLAC · up to 25 MB · starts at 20% volume"
-              >
-                <Icon name="upload" size={15} /> Import audio
-              </Button>
-              <Button
-                disabled={
-                  !tracks.some((track) => !track.muted && track.volume > 0)
-                }
-                onClick={() =>
-                  void run("Mixing audio…", async () => {
-                    const buffer = await mixAudio(
-                      [frame],
-                      new AbortController().signal,
-                    );
-                    if (!buffer)
-                      throw Error("No audible tracks within this frame.");
-                    setMessage(
-                      exportMessage(
-                        await saveExport(audioToWav(buffer), `${frame.n}.wav`),
-                      ),
-                    );
-                  })
-                }
-              >
-                Export audio mix
-              </Button>
-              <span className="hint">
-                MP3, WAV, M4A, OGG, FLAC · up to 25 MB.
-              </span>
-            </div>
-            <Input
-              hidden
-              ref={audioInput}
-              type="file"
-              accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
-              aria-label="Import audio file"
-              onChange={(ev) => {
-                const file = ev.target.files?.[0],
-                  targetId = frame.id;
-                ev.target.value = "";
-                if (file)
-                  void run("Importing audio…", async () => {
-                    const result = await readAudio(file);
-                    addTrack(
-                      result.src,
-                      result.duration,
-                      file.name.slice(0, 200),
-                      "music",
-                      targetId,
-                    );
-                  });
-              }}
-            />
-            {e.doc.elements
-              .filter((o) => o.t === "video" && o.fid === frame.id && o.src)
-              .map((video) => (
-                <Button
-                  key={video.id}
-                  onClick={() => {
-                    const targetId = frame.id;
-                    void run("Extracting video audio…", async () => {
-                      const start = video.animation?.start ?? 0,
-                        end = Math.min(
-                          duration,
-                          video.animation?.end ?? duration,
-                        );
-                      if (start >= end)
-                        throw Error(
-                          "Move the video clip inside the frame duration first.",
-                        );
-                      const result = await extractVideoAudio(
-                        video.src!,
-                        video.videoStart ?? 0,
-                        end - start,
-                      );
-                      const target = live.current.e
-                        .getDocument()
-                        .elements.find((o) => o.id === targetId);
-                      if (!target)
-                        throw Error("The target frame no longer exists.");
-                      update(
-                        {
-                          audioTracks: [
-                            ...(target.audioTracks ?? []),
-                            {
-                              id: uid(),
-                              name: `${video.n} audio`.slice(0, 200),
-                              src: result.src,
-                              role: "voiceover",
-                              start,
-                              end: Math.min(end, start + result.duration),
-                              trimStart: 0,
-                              sourceDuration: result.duration,
-                              volume: 1,
-                              loop: false,
-                              muted: false,
-                              fadeIn: 0,
-                              fadeOut: 0,
-                            },
-                          ],
-                        },
-                        targetId,
-                      );
-                      setMessage(
-                        "Video audio added as a voice track. Transcribe it under Files & transcription if you need captions.",
-                      );
-                    });
-                  }}
-                >
-                  Extract audio from {video.n}
-                </Button>
-              ))}
-            {!tracks.length && (
-              <p className="audio-empty">
-                Plays with the timeline and MP4 exports.
-              </p>
-            )}
-            {tracks.map((track) => (
-              <article
-                className={`audio-track-card${trackId === track.id ? " is-selected" : ""}`}
-                id={`audio-track-${track.id}`}
-                key={track.id}
-                aria-label={track.name}
-              >
-                <div className="audio-actions">
-                  <Input
-                    className="audio-track-name"
-                    aria-label="Track name"
-                    maxLength={200}
-                    value={track.name}
-                    onChange={(ev) =>
-                      patchTrack(track.id, { name: ev.target.value })
-                    }
-                  />
-                  <SelectField
-                    label={`Role for ${track.name}`}
-                    value={track.role}
-                    onChange={(role) =>
-                      patchTrack(track.id, {
-                        role: role as AudioTrack["role"],
-                        loop: role === "music",
-                      })
-                    }
-                    options={[
-                      { value: "music", label: "Background music" },
-                      { value: "voiceover", label: "Voiceover" },
-                      { value: "sound", label: "Sound effect" },
-                    ]}
-                  />
-                  <Button
-                    aria-label={`Delete ${track.name}`}
-                    onClick={() =>
-                      update({
-                        audioTracks: tracks.filter((t) => t.id !== track.id),
-                      })
-                    }
-                  >
-                    <Icon name="delete" size={15} />
-                  </Button>
-                </div>
-                <div className="audio-fields">
-                  <Seconds
-                    label="Start (s)"
-                    value={track.start}
-                    max={track.end - 0.05}
-                    onChange={(start) => patchTrack(track.id, { start })}
-                  />
-                  <Seconds
-                    label="End (s)"
-                    value={track.end}
-                    min={track.start + 0.05}
-                    onChange={(end) => patchTrack(track.id, { end })}
-                  />
-                  <Label className="audio-field">
-                    <span>Volume · {Math.round(track.volume * 100)}%</span>
-                    <Slider
-                      aria-label={`Volume for ${track.name}`}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={[track.volume]}
-                      onValueChange={([value]) =>
-                        patchTrack(track.id, {
-                          volume: value,
-                        })
-                      }
-                    />
-                  </Label>
-                  <Label className="audio-check">
-                    <Checkbox
-                      checked={track.muted}
-                      onCheckedChange={(checked) =>
-                        patchTrack(track.id, { muted: checked === true })
-                      }
-                    />
-                    Mute
-                  </Label>
-                </div>
-                <details className="narration-details">
-                  <summary>Timing details</summary>
-                  <div className="audio-fields">
-                    <Seconds
-                      label="Trim source (s)"
-                      value={track.trimStart}
-                      max={track.sourceDuration - 0.05}
-                      onChange={(trimStart) =>
-                        patchTrack(track.id, { trimStart })
-                      }
-                    />
-                    <Seconds
-                      label="Fade in (s)"
-                      value={track.fadeIn}
-                      onChange={(fadeIn) => patchTrack(track.id, { fadeIn })}
-                    />
-                    <Seconds
-                      label="Fade out (s)"
-                      value={track.fadeOut}
-                      onChange={(fadeOut) => patchTrack(track.id, { fadeOut })}
-                    />
-                    <Label className="audio-check">
-                      <Checkbox
-                        checked={track.loop}
-                        onCheckedChange={(checked) =>
-                          patchTrack(track.id, { loop: checked === true })
-                        }
-                      />
-                      Loop
-                    </Label>
-                  </div>
-                </details>
-                {track.end > duration && (
-                  <p className="hint">
-                    This track extends beyond the frame.{" "}
-                    <Button
-                      onClick={() =>
-                        update({
-                          scene: { ...frame.scene, duration: track.end },
-                        })
-                      }
-                    >
-                      Extend frame to {track.end.toFixed(1)} s
-                    </Button>
-                  </p>
-                )}
-              </article>
-            ))}
-          </Accordion>
-          <Accordion
-            className="narration-more"
-            title={`Captions · ${cues.length}`}
-          >
-            <div className="audio-actions">
-              <Button
-                onClick={() => {
-                  const start = Math.min(p.time, duration - 0.1);
-                  addCues([
-                    {
-                      id: uid(),
-                      start,
-                      end: Math.min(duration, start + 2),
-                      text: "Your subtitle",
-                    },
-                  ]);
-                }}
-              >
-                Add caption at playhead
-              </Button>
-            </div>
-            {!cues.length && (
-              <p className="audio-empty">
-                Auto-filled when you generate narration.
-              </p>
-            )}
-            <div className="subtitle-cues">
-              {cues.map((cue, i) => (
-                <div className="subtitle-cue" key={cue.id}>
-                  <Button
-                    aria-label={`Preview subtitle ${i + 1}`}
-                    onClick={() => seek(cue.start)}
-                  >
-                    {i + 1}
-                  </Button>
-                  <Seconds
-                    label={`Cue ${i + 1} start`}
-                    value={cue.start}
-                    max={cue.end - 0.001}
-                    onChange={(start) => patchCue(cue.id, { start })}
-                  />
-                  <Seconds
-                    label={`Cue ${i + 1} end`}
-                    value={cue.end}
-                    min={cue.start + 0.001}
-                    onChange={(end) => patchCue(cue.id, { end })}
-                  />
-                  <Textarea
-                    rows={2}
-                    aria-label={`Subtitle ${i + 1} text`}
-                    maxLength={2000}
-                    value={cue.text}
-                    onChange={(ev) =>
-                      patchCue(cue.id, { text: ev.target.value })
-                    }
-                  />
-                  <Button
-                    aria-label={`Delete subtitle ${i + 1}`}
-                    onClick={() =>
-                      update({
-                        subtitles: cues.filter((c) => c.id !== cue.id),
-                      })
-                    }
-                  >
-                    <Icon name="delete" size={14} />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </Accordion>
-          <Accordion className="narration-more" title="Files & transcription">
-            <div className="audio-actions">
-              <Button onClick={() => srtInput.current?.click()}>
-                Import SRT
-              </Button>
-              <Button
-                disabled={!cues.length}
-                onClick={() =>
-                  void run("Exporting SRT…", async () => {
-                    setMessage(
-                      exportMessage(
-                        await saveExport(
-                          new Blob([toSrt(cues)], {
-                            type: "application/x-subrip;charset=utf-8",
-                          }),
-                          `${frame.n}.srt`,
-                        ),
-                      ),
-                    );
-                  })
-                }
-              >
-                Export SRT
-              </Button>
-            </div>
-            <Input
-              hidden
-              ref={srtInput}
-              type="file"
-              accept=".srt,application/x-subrip"
-              aria-label="Import SRT file"
-              onChange={(ev) => {
-                const file = ev.target.files?.[0],
-                  targetId = frame.id;
-                ev.target.value = "";
-                if (file)
-                  void run("Importing subtitles…", async () => {
-                    if (file.size > 2_000_000)
-                      throw Error("Choose an SRT file under 2 MB.");
-                    addCues(parseSrt(await file.text()), targetId);
-                  });
-              }}
-            />
-            <div className="narration-transcribe">
-              <Label className="audio-field">
-                <span>Transcription language</span>
-                <Input
-                  aria-label="Subtitle language"
-                  maxLength={3}
-                  value={language}
-                  placeholder="Auto"
-                  onChange={(ev) =>
-                    setDraft({ language: ev.target.value.toLowerCase() })
-                  }
-                />
-              </Label>
-              {tracks
-                .filter((track) => !track.loop)
-                .map((track) => (
-                  <Button
-                    key={track.id}
-                    disabled={!accountId}
-                    title={`Transcribe ${track.name} (uses ElevenLabs credits)`}
-                    onClick={() =>
-                      void run("Transcribing audio…", () => transcribe(track))
-                    }
-                  >
-                    Transcribe {track.name}
-                  </Button>
-                ))}
-              {!tracks.some((track) => !track.loop) && (
-                <p className="hint">
-                  Add a recording with Loop off to enable transcription.
-                </p>
-              )}
-            </div>
-          </Accordion>
         </fieldset>
         {busy && (
           <p role="status">{busy} Keep this page open until it finishes.</p>

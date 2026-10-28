@@ -5,6 +5,7 @@ import {
   loadPackPresetFile,
 } from "./assets";
 import { localStore } from "../lib/local-store";
+import { layoutPresetObjects } from "./preset-layout";
 
 type Branding = { version: 1; W: number; H: number; objects: Element[] };
 const key = "genie.standard-branding.v1";
@@ -93,34 +94,22 @@ export async function withStandardBranding(preset: Preset): Promise<Preset> {
     preset.objects.some((o) => role(o) === "footer")
   )
     return preset;
-  const b = await standardFrame(),
-    sx = (preset.W || b.W) / b.W,
-    sy = (preset.H || b.H) / b.H;
+  const b = await standardFrame();
+  const branding = layoutPresetObjects(
+    b.objects,
+    { w: b.W, h: b.H },
+    { w: preset.W || b.W, h: preset.H || b.H },
+  );
   const objects = preset.objects.filter((o) => !isBrandElement(o));
   const ids = new Set(objects.map((o) => o.id));
-  b.objects.forEach((o, i) => {
+  branding.forEach((o, i) => {
     let id = `standard-brand-${i + 1}`;
     while (ids.has(id)) id += "-brand";
     ids.add(id);
     const element = {
       ...copy(o),
       id,
-      x: o.x * sx,
-      y: o.y * sy,
-      w: o.w * sx,
-      h: o.h * sy,
     };
-    for (const key of [
-      "size",
-      "lw",
-      "r",
-      "tsw",
-      "sh",
-      "shx",
-      "shy",
-      "ls",
-    ] as const)
-      if (element[key] !== undefined) element[key] *= Math.min(sx, sy);
     objects.push(element);
   });
   // Application snapshots these ordinary elements into the canvas; later standard

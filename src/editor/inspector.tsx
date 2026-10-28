@@ -931,7 +931,7 @@ export function Inspector({
                   Align
                 </p>
                 <div
-                  className="tool-row"
+                  className="tool-row arrange-grid"
                   role="group"
                   aria-labelledby="arrange-align"
                 >
@@ -948,7 +948,7 @@ export function Inspector({
                   Order
                 </p>
                 <div
-                  className="tool-row"
+                  className="tool-row arrange-grid"
                   role="group"
                   aria-labelledby="arrange-order"
                 >
@@ -977,7 +977,7 @@ export function Inspector({
                   Actions
                 </p>
                 <div
-                  className="tool-row"
+                  className="tool-row arrange-grid"
                   role="group"
                   aria-labelledby="arrange-actions"
                 >

@@ -2,9 +2,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { AnimationPlayback } from "./use-animation-playback";
-import { clamp } from "./animation";
 import { PickerPopover } from "../components/ui/popover";
 import { SelectField } from "../components/ui/select";
 import { Icon, type IconName } from "../components/ui/icon";
@@ -57,10 +56,6 @@ export function TimelineControls({
   onSearch,
   filter,
   onFilter,
-  previousKey,
-  nextKey,
-  addKey,
-  hasSelection,
 }: {
   playback: AnimationPlayback;
   zoom: number;
@@ -70,35 +65,9 @@ export function TimelineControls({
   onSearch: (value: string) => void;
   filter: TimelineFilter;
   onFilter: (value: TimelineFilter) => void;
-  previousKey: () => void;
-  nextKey: () => void;
-  addKey: () => void;
-  hasSelection: boolean;
 }) {
   const zooms = [...new Set([0.5, 1, 2, 4, zoom])].sort((a, b) => a - b);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const rangeMenu = useRef<HTMLDivElement>(null);
-  const [rangeOpen, setRangeOpen] = useState(false);
-  useEffect(() => {
-    if (!rangeOpen) return;
-    const close = (ev: globalThis.PointerEvent) => {
-      if (!rangeMenu.current?.contains(ev.target as Node)) setRangeOpen(false);
-    };
-    window.addEventListener("pointerdown", close);
-    return () => window.removeEventListener("pointerdown", close);
-  }, [rangeOpen]);
-  const setRangeEdge = (edge: "start" | "end") =>
-    p.setRange(
-      edge === "start"
-        ? {
-            start: clamp(p.time, 0, (p.range?.end ?? p.duration) - 1 / p.fps),
-            end: p.range?.end ?? p.duration,
-          }
-        : {
-            start: p.range?.start ?? 0,
-            end: clamp(p.time, (p.range?.start ?? 0) + 1 / p.fps, p.duration),
-          },
-    );
   return (
     <>
       <header className="timeline-toolbar">
@@ -159,77 +128,6 @@ export function TimelineControls({
           role="group"
           aria-label="Timeline view"
         >
-          <TimelineButton
-            label="Previous keyframe (,)"
-            icon="previousKeyframe"
-            onClick={previousKey}
-          />
-          <TimelineButton
-            label="Add keyframe at playhead (K)"
-            icon="addKeyframe"
-            onClick={addKey}
-            disabled={!hasSelection}
-          />
-          <TimelineButton
-            label="Next keyframe (.)"
-            icon="nextKeyframe"
-            onClick={nextKey}
-          />
-          <div className="timeline-range-menu" ref={rangeMenu}>
-            <Button
-              type="button"
-              title="Set preview range (I sets start, O sets end)"
-              aria-label="Set preview range"
-              aria-expanded={rangeOpen}
-              aria-pressed={!!p.range}
-              onClick={() => setRangeOpen((value) => !value)}
-            >
-              <span>{p.range ? "Range" : "Set range"}</span>
-            </Button>
-            {rangeOpen && (
-              <div
-                className="timeline-menu"
-                role="menu"
-                aria-label="Preview range"
-              >
-                <Button
-                  role="menuitem"
-                  onClick={() => {
-                    setRangeEdge("start");
-                    setRangeOpen(false);
-                  }}
-                >
-                  Set start to playhead (I)
-                </Button>
-                <Button
-                  role="menuitem"
-                  onClick={() => {
-                    setRangeEdge("end");
-                    setRangeOpen(false);
-                  }}
-                >
-                  Set end to playhead (O)
-                </Button>
-                {p.range && (
-                  <>
-                    <span className="timeline-range-readout" role="status">
-                      {formatTimelineTime(p.range.start)}–
-                      {formatTimelineTime(p.range.end)}
-                    </span>
-                    <Button
-                      role="menuitem"
-                      onClick={() => {
-                        p.setRange(undefined);
-                        setRangeOpen(false);
-                      }}
-                    >
-                      Clear range
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
           <div className="timeline-zoom-select">
             <SelectField
               label="Timeline zoom"

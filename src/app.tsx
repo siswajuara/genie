@@ -505,21 +505,23 @@ function WorkspacePage({
         {!zen && (
           <aside className="library">
             <div className="library-content">
-              <div
-                className="editor-tabs"
-                role="tablist"
-                aria-label="Editor library"
-              >
-                {["Elements", "Templates", "Assets"].map((t) => (
-                  <Button
-                    key={t}
-                    role="tab"
-                    aria-selected={editorTab === t}
-                    onClick={() => setEditorTab(t)}
-                  >
-                    {t}
-                  </Button>
-                ))}
+              <div className="library-tabs-sticky">
+                <div
+                  className="editor-tabs"
+                  role="tablist"
+                  aria-label="Editor library"
+                >
+                  {["Elements", "Templates", "Assets"].map((t) => (
+                    <Button
+                      key={t}
+                      role="tab"
+                      aria-selected={editorTab === t}
+                      onClick={() => setEditorTab(t)}
+                    >
+                      {t}
+                    </Button>
+                  ))}
+                </div>
               </div>
               {editorTab === "Elements" ? (
                 <>

@@ -154,7 +154,11 @@ export const LayerTree = memo(
       }
 
       return (
-        <div key={node.id} className="layer-branch">
+        <div
+          key={node.id}
+          className="layer-branch"
+          data-layer-id={node.id}
+        >
           <div
             role="treeitem"
             aria-label={label}
@@ -385,7 +389,7 @@ export const LayerTree = memo(
             </span>
           </div>
           {branch && expanded && (
-            <div role="group">
+            <div role="group" data-layer-id={node.id}>
               {[...node.children]
                 .reverse()
                 .map((child) => row(child, depth + 1))}
@@ -449,6 +453,33 @@ export const LayerTree = memo(
           role="tree"
           aria-label="Canvas layers"
           aria-multiselectable="true"
+          onDragOver={(ev) => {
+            if (!dragging.length) return;
+            ev.preventDefault();
+            ev.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(ev) => {
+            if (!dragging.length) return;
+            // Rows stop propagation, so this only fires for gaps between
+            // rows and the empty area below the list (resolves to the
+            // enclosing branch, or "" for the top level).
+            const row = (ev.target as HTMLElement).closest?.(
+              "[data-layer-id]",
+            );
+            const targetId = row ? row.getAttribute("data-layer-id")! : "";
+            ev.preventDefault();
+            ev.stopPropagation();
+            try {
+              e.drop(
+                JSON.parse(ev.dataTransfer.getData("genie/layers")),
+                targetId,
+              );
+            } catch {
+              e.notify("Could not reorder those layers.");
+            }
+            setDragging([]);
+            setDropTarget("");
+          }}
         >
           {[...e.scene.tree].reverse().map((node) => row(node, 0))}
         </div>

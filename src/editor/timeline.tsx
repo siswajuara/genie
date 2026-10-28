@@ -55,17 +55,6 @@ export function Timeline({
   const selectedIds = children
     .filter((o) => e.selection.includes(o.id) && !e.scene.isLocked(o))
     .map((o) => o.id);
-  const keyTimes = [
-    ...new Set(
-      (selectedIds.length
-        ? children.filter((o) => selectedIds.includes(o.id))
-        : children
-      ).flatMap((o) => {
-        const { start } = timing(o, p.duration);
-        return (o.animation?.keyframes ?? []).map((key) => start + key.time);
-      }),
-    ),
-  ].sort((a, b) => a - b);
   const latest = useRef(e);
   latest.current = e;
   function gotoNarration(trackId?: string) {
@@ -168,13 +157,6 @@ export function Timeline({
       ),
     });
     p.seek(p.time);
-  }
-  function jumpKey(direction: number) {
-    p.seek(
-      direction < 0
-        ? (keyTimes.findLast((time) => time < p.time - 0.0001) ?? 0)
-        : (keyTimes.find((time) => time > p.time + 0.0001) ?? p.duration),
-    );
   }
   function resize(ev: ReactPointerEvent) {
     if (ev.button !== 0) return;
@@ -614,10 +596,6 @@ export function Timeline({
           ev.preventDefault();
           p.seek(ev.key === "Home" ? 0 : p.duration);
         }
-        if (ev.key === "," || ev.key === ".") {
-          ev.preventDefault();
-          jumpKey(ev.key === "," ? -1 : 1);
-        }
         if (ev.key.toLowerCase() === "k") {
           ev.preventDefault();
           addKey();
@@ -677,10 +655,6 @@ export function Timeline({
         onSearch={setSearch}
         filter={filter}
         onFilter={setFilter}
-        previousKey={() => jumpKey(-1)}
-        nextKey={() => jumpKey(1)}
-        addKey={addKey}
-        hasSelection={selectedIds.length > 0}
       />
       {p.audioError && (
         <p role="alert" className="timeline-audio-error">

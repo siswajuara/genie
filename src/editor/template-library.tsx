@@ -20,6 +20,7 @@ import type { Editor } from "./use-editor";
 import { TemplateCard } from "./template-card";
 import { TemplateThumbnail } from "./template-thumbnail";
 import { resolvePresetAssets } from "./resolve-assets";
+import { fitPresetToFrame } from "./preset-layout";
 import { loadAsset, matchLibraryAsset, useAssetLibrary } from "./assets";
 
 const title = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -62,8 +63,7 @@ export function TemplateLibrary({
     [category, setCategory] = useState("all"),
     [collection, setCollection] = useState("all"),
     [format, setFormat] = useState("all"),
-    [sort, setSort] = useState("curated"),
-    [page, setPage] = useState(0);
+    [sort, setSort] = useState("curated");
   const [favorites, setFavorites] = useState(() =>
     readList("genie.template-favorites"),
   );
@@ -119,10 +119,11 @@ export function TemplateLibrary({
     };
   }, [preview, pack.revision]);
   const entries = useMemo(() => [...catalog, ...saved], [catalog, saved]);
-  const availableCount = entries.filter(
-    (p) => !removed.includes(identity(p)),
-  ).length;
   const previewRemoved = !!preview && removed.includes(identity(preview));
+  const fittedPreview = useMemo(
+    () => loaded && editor.frame ? fitPresetToFrame(loaded, editor.frame) : loaded,
+    [loaded, editor.frame?.w, editor.frame?.h],
+  );
   const collections = Array.from(
     new Set(entries.map((e) => e.collection || "Classic")),
   )
@@ -159,11 +160,6 @@ export function TemplateLibrary({
     if (sort === "za") items.sort((a, b) => b.name.localeCompare(a.name));
     return items;
   }, [entries, query, category, collection, favorites, format, sort, removed]);
-  useEffect(() => {
-    setPage(0);
-  }, [query, category, collection, format, sort]);
-  const pageCount = Math.max(1, Math.ceil(result.length / 20)),
-    activePage = Math.min(page, pageCount - 1);
   function toggleFavorite(p: Entry) {
     const id = identity(p),
       next = favorites.includes(id)
@@ -249,14 +245,8 @@ export function TemplateLibrary({
   }
   return (
     <section className="template-library" aria-label="Template library">
-      <div className="template-library-heading">
-        <div>
-          <h2>Find your next design</h2>
-          <p>Start with a layout. Make it yours.</p>
-        </div>
-        <span>{availableCount}</span>
-      </div>
-      <div className="template-library-tools">
+      <div className="template-sticky">
+        <div className="template-library-tools">
         <Button
           onClick={() => {
             setName(editor.frame?.n || "My template");
@@ -297,24 +287,22 @@ export function TemplateLibrary({
           aria-label="Search templates"
         />
       </div>
-      <div className="template-use-cases" aria-label="Template use cases">
-        {["all", ...useCases].map((c) => (
-          <Button
-            key={c}
-            aria-pressed={category === c}
-            onClick={() => setCategory(c)}
-          >
-            {title(c)}
-          </Button>
-        ))}
-      </div>
       <div className="template-filter-grid">
+        <SelectField
+          label="Template use case"
+          value={category}
+          onChange={setCategory}
+          options={[
+            { value: "all", label: "Use case" },
+            ...useCases.map((c) => ({ value: c, label: title(c) })),
+          ]}
+        />
         <SelectField
           label="Template collection"
           value={collection}
           onChange={setCollection}
           options={[
-            { value: "all", label: "All collections" },
+            { value: "all", label: "Collection" },
             { value: "favorites", label: "Favorites" },
             { value: "mine", label: "My templates" },
             { value: "removed", label: "Removed" },
@@ -326,7 +314,7 @@ export function TemplateLibrary({
           value={format}
           onChange={setFormat}
           options={[
-            { value: "all", label: "All formats" },
+            { value: "all", label: "Format" },
             ...["Portrait", "Square", "Story", "Landscape", "Elements"].map(
               (c) => ({ value: c, label: c }),
             ),
@@ -347,6 +335,7 @@ export function TemplateLibrary({
             { value: "za", label: "Name Z–A" },
           ]}
         />
+        </div>
       </div>
       {loading && (
         <p className="hint" role="status">
@@ -360,7 +349,7 @@ export function TemplateLibrary({
         </div>
       )}
       <div className="template-list">
-        {result.slice(activePage * 20, (activePage + 1) * 20).map((p, i) => (
+        {result.map((p, i) => (
           <TemplateCard
             key={`${identity(p)}:${i}`}
             preset={p}
@@ -403,27 +392,6 @@ export function TemplateLibrary({
           </Button>
         </div>
       )}
-      {pageCount > 1 && (
-        <nav className="template-pagination" aria-label="Template pages">
-          <Button
-            aria-label="Previous template page"
-            disabled={!activePage}
-            onClick={() => setPage(activePage - 1)}
-          >
-            <Icon name="left" size={16} />
-          </Button>
-          <span>
-            Page {activePage + 1} of {pageCount}
-          </span>
-          <Button
-            aria-label="Next template page"
-            disabled={activePage >= pageCount - 1}
-            onClick={() => setPage(activePage + 1)}
-          >
-            <Icon name="right" size={16} />
-          </Button>
-        </nav>
-      )}
       <Dialog
         open={!!preview}
         onOpenChange={(open) => {
@@ -452,8 +420,8 @@ export function TemplateLibrary({
                     src={original}
                     alt="Original design reference for comparison"
                   />
-                ) : loaded ? (
-                  <TemplateThumbnail preset={loaded} />
+                ) : fittedPreview ? (
+                  <TemplateThumbnail preset={fittedPreview} />
                 ) : "file" in preview && preview.thumbnail ? (
                   <PresetPreviewImage entry={preview} alt="Template preview" />
                 ) : (
@@ -479,6 +447,12 @@ export function TemplateLibrary({
                   {preview.H || 1402}
                   {loaded ? ` · ${loaded.objects.length} layers` : ""}
                 </p>
+                {editor.frame && !previewRemoved && (
+                  <p className="hint">
+                    Automatically fits your selected frame: {editor.frame.w} ×{" "}
+                    {editor.frame.h}.
+                  </p>
+                )}
                 {preview.reference && (
                   <p className="hint">
                     Text, artwork, panels, and ornaments are separate layers.

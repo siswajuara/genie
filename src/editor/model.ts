@@ -25,6 +25,12 @@ import {
 } from "../../sidecar/learning.mjs";
 import { learningSvg } from "./learning-drawing.mjs";
 import { physicsSvg } from "./physics-drawing.mjs";
+import {
+  fitPresetToFrame,
+  resizeFrameLayout,
+  validateFrameLayout,
+  type FrameLayout,
+} from "./preset-layout";
 
 export type Element = {
   id: string;
@@ -82,6 +88,7 @@ export type Element = {
   voiceoverDraft?: VoiceoverDraft;
   subtitles?: SubtitleCue[];
   subtitleStyle?: SubtitleStyle;
+  responsiveLayout?: FrameLayout;
 };
 export type Preset = {
   schemaVersion?: 2;
@@ -131,9 +138,11 @@ export function applyPreset(
 ): CanvasDocument {
   const next = copy(doc);
   let frame = next.elements.find((o) => o.id === frameId && o.t === "frame");
+  const targetSize = frame ? { w: frame.w, h: frame.h } : undefined;
   if (preset.kind === "template") {
     if (replace && frame) {
       next.elements = next.elements.filter((o) => o.fid !== frame!.id);
+      delete frame.responsiveLayout;
       Object.assign(frame, {
         w: preset.W || 1122,
         h: preset.H || 1402,
@@ -159,6 +168,7 @@ export function applyPreset(
     }
   }
   if (!frame) throw new Error("Add or select a frame first.");
+  if (preset.kind === "object") preset = fitPresetToFrame(preset, frame);
   const groups = new Map<string, string>();
   for (const o of preset.objects)
     if (o.gid && !groups.has(o.gid)) groups.set(o.gid, uid());
@@ -173,6 +183,11 @@ export function applyPreset(
       fid: frame.id,
     })),
   );
+  if (preset.kind === "template" && targetSize)
+    next.elements = resizeFrameLayout(next.elements, frame, {
+      ...frame,
+      ...targetSize,
+    });
   return stamp(next);
 }
 export const initialDocument = (): CanvasDocument => ({
@@ -348,6 +363,9 @@ export function validateElements(value: unknown): Element[] {
     validateAnimationData(o);
     validateAudio(o);
     validateSubtitles(o);
+    if (o.responsiveLayout !== undefined && o.t !== "frame")
+      throw Error("Responsive layout requires a frame.");
+    validateFrameLayout(o.responsiveLayout);
     o.id ||= uid();
     if (ids.has(o.id)) throw new Error(`Duplicate element id: ${o.id}`);
     ids.add(o.id);

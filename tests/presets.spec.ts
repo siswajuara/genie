@@ -52,7 +52,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("button", { name: "New Canvas", exact: true }).click();
 });
 
-test("catalog is metadata only; browsing is lazy, searchable, filtered, and paginated", async ({
+test("catalog is metadata only; browsing is lazy, searchable, and filtered without pagination", async ({
   page,
 }) => {
   const jsonRequests: string[] = [];
@@ -66,7 +66,7 @@ test("catalog is metadata only; browsing is lazy, searchable, filtered, and pagi
   });
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
   const library = page.getByRole("region", { name: "Template library" });
-  await expect(library.locator(".template-card")).toHaveCount(20);
+  await expect(library.locator(".template-card")).toHaveCount(132);
   await expect(library.locator(".template-card img").first()).toBeVisible();
   expect(
     jsonRequests.map((u) =>
@@ -76,13 +76,14 @@ test("catalog is metadata only; browsing is lazy, searchable, filtered, and pagi
   await expect(
     library.getByText("132 templates", { exact: true }),
   ).toBeVisible();
-  await library.getByRole("button", { name: "Next template page" }).click();
-  await expect(library.locator(".template-card")).toHaveCount(20);
-  await expect(library.getByText("Page 2 of 7", { exact: true })).toBeVisible();
-  for (let next = 0; next < 5; next++)
-    await library.getByRole("button", { name: "Next template page" }).click();
-  await expect(library.locator(".template-card")).toHaveCount(12);
-  await library.getByRole("button", { name: "Question", exact: true }).click();
+  await expect(
+    library.getByRole("button", { name: "Next template page" }),
+  ).toHaveCount(0);
+  await expect(
+    library.getByRole("button", { name: "Previous template page" }),
+  ).toHaveCount(0);
+  await library.getByRole("combobox", { name: "Template use case" }).click();
+  await page.getByRole("option", { name: "Question", exact: true }).click();
   await expect(library.locator(".template-card")).toHaveCount(11);
   await library
     .getByRole("textbox", { name: "Search templates" })
@@ -111,7 +112,7 @@ test("browser folder templates replace cached pack data and saved branding remai
   page,
 }) => {
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
-  await expect(page.locator(".template-card")).toHaveCount(20);
+  await expect(page.locator(".template-card")).toHaveCount(132);
   const catalog = JSON.parse(
     await fs.readFile(path.join(packRoot, "presets/catalog.json"), "utf8"),
   );
@@ -404,7 +405,7 @@ test("remove unsuitable library presets, persist the choice, and restore without
   await page.reload();
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
   await expect(
-    library.getByText("110 templates", { exact: true }),
+    library.getByText("130 templates", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".footer-meta")).toContainText("1 frame");
   await library.getByRole("combobox", { name: "Template collection" }).click();
@@ -434,17 +435,12 @@ test("remove unsuitable library presets, persist the choice, and restore without
   await expect(library.locator(".template-card")).toHaveCount(0);
   await library.getByRole("combobox", { name: "Template collection" }).click();
   await page
-    .getByRole("option", { name: "All collections", exact: true })
+    .getByRole("option", { name: "Collection", exact: true })
     .click();
-  await expect(
-    library.getByRole("button", {
-      name: "Preview Mulai dari satu bacaan",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(library.locator(".template-library-heading > span")).toHaveText(
-    "132",
-  );
+  await expect(library.locator(".template-card")).toHaveCount(1);
+  await library.getByRole("combobox", { name: "Template collection" }).click();
+  await page.getByRole("option", { name: "Removed", exact: true }).click();
+  await expect(library.locator(".template-card")).toHaveCount(0);
   await expect(page.locator(".footer-meta")).toContainText("1 frame");
 });
 
@@ -908,4 +904,324 @@ test("Studio presets fit their copy, resolve separate artwork, animate, and gene
   expect(result.placeholders).toBe(2);
   expect(result.fixed).toBe(true);
   expect(result.frames).toBe(16);
+});
+
+test("all presets adapt to each frame format without distorting their content or changing the source", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { loadPresetCatalog, loadPreset } = await window.genieSource(
+      "/src/editor/preset-catalog.ts",
+    );
+    const { applyPreset, initialDocument, parseDocument } =
+      await window.genieSource("/src/editor/model.ts");
+    const { fitPresetToFrame } = await window.genieSource(
+      "/src/editor/preset-layout.ts",
+    );
+    const catalog = await loadPresetCatalog();
+    const errors = [];
+    let checked = 0;
+    for (const entry of catalog.presets) {
+      const p = await loadPreset(entry);
+      const original = JSON.stringify(p);
+      for (const [w, h] of [
+        [1122, 1402],
+        [940, 1672],
+        [1080, 1080],
+        [1280, 720],
+      ]) {
+        const target = {
+          id: "target",
+          t: "frame",
+          n: "Chosen frame",
+          x: 123,
+          y: 87,
+          w,
+          h,
+        };
+        const doc = { ...initialDocument(), elements: [target] };
+        const replaced = parseDocument(applyPreset(doc, p, target.id, true));
+        const frame = replaced.elements.find((o) => o.id === target.id);
+        const fitted = fitPresetToFrame(p, { w, h });
+        if (frame.w !== w || frame.h !== h || frame.x !== 123 || frame.y !== 87)
+          errors.push(`${entry.identifier}: changed chosen frame`);
+        const children = replaced.elements.filter((o) => o.fid === frame.id);
+        for (const [index, layer] of p.objects.entries()) {
+          const next = children[index];
+          const preview = fitted.objects[index];
+          if (
+            !next ||
+            Math.abs(next.x - frame.x - preview.x) > 0.001 ||
+            Math.abs(next.y - frame.y - preview.y) > 0.001
+          )
+            errors.push(`${entry.identifier}: preview/application mismatch`);
+          if (
+            (layer.t === "text" || layer.t === "img" || layer.brandRole) &&
+            layer.w &&
+            layer.h &&
+            Math.abs(next.w / layer.w - next.h / layer.h) > 0.001
+          )
+            errors.push(`${entry.identifier}: distorted ${layer.n}`);
+          if (
+            layer.t === "text" &&
+            Math.abs(next.size / layer.size - next.w / layer.w) > 0.001
+          )
+            errors.push(`${entry.identifier}: incorrect font scale`);
+        }
+        const added = applyPreset(doc, p, target.id);
+        const newFrame = added.elements.filter((o) => o.t === "frame").at(-1);
+        if (
+          newFrame.id === target.id ||
+          newFrame.w !== w ||
+          newFrame.h !== h ||
+          added.elements[0].n !== target.n
+        )
+          errors.push(
+            `${entry.identifier}: add frame lost chosen dimensions or edited the original`,
+          );
+        checked++;
+      }
+      if (JSON.stringify(p) !== original)
+        errors.push(`${entry.identifier}: mutated source preset`);
+    }
+    return { count: catalog.presets.length, checked, errors };
+  });
+  expect(result.count).toBe(132);
+  expect(result.checked).toBe(528);
+  expect(result.errors).toEqual([]);
+});
+
+test("frame layout survives repeated resizing, reload, manual edits, and grouped element insertion", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { applyPreset, initialDocument, parseDocument } =
+      await window.genieSource("/src/editor/model.ts");
+    const { resizeFrameLayout } = await window.genieSource(
+      "/src/editor/preset-layout.ts",
+    );
+    const { appendGeneratedFrames } = await window.genieSource(
+      "/src/editor/generation.ts",
+    );
+    const p = {
+      name: "Portable layout",
+      kind: "template",
+      W: 1000,
+      H: 1200,
+      objects: [
+        { id: "paper", t: "rect", n: "Paper", x: 0, y: 0, w: 1000, h: 1200 },
+        {
+          id: "text",
+          t: "text",
+          n: "Text",
+          x: 100,
+          y: 300,
+          w: 800,
+          h: 200,
+          text: "Keep my copy",
+          size: 80,
+          ls: 2,
+          sh: 4,
+          rot: 5,
+        },
+        {
+          id: "logo",
+          t: "img",
+          n: "Logo",
+          x: 20,
+          y: 20,
+          w: 100,
+          h: 100,
+          brandRole: "logo",
+        },
+        {
+          id: "footer",
+          t: "rect",
+          n: "Footer",
+          x: 100,
+          y: 1100,
+          w: 800,
+          h: 50,
+          brandRole: "footer",
+        },
+      ],
+    };
+    let doc = applyPreset(initialDocument(), p);
+    const frameId = doc.elements[0].id;
+    const before = JSON.stringify(doc.elements);
+    const resize = (w, h, x, y) => {
+      const frame = doc.elements.find((o) => o.id === frameId);
+      doc.elements = resizeFrameLayout(doc.elements, frame, {
+        ...frame,
+        w,
+        h,
+        x: x ?? frame.x,
+        y: y ?? frame.y,
+      });
+      doc = parseDocument(JSON.parse(JSON.stringify(doc)));
+    };
+    for (let i = 0; i < 3; i++) {
+      resize(1280, 720);
+      resize(940, 1672);
+      resize(1000, 1200);
+    }
+    const roundTrip =
+      JSON.stringify(doc.elements.map(({ responsiveLayout, ...o }) => o)) ===
+      before;
+    const text = doc.elements.find((o) => o.t === "text");
+    text.text = "Edited locally";
+    text.x += 25;
+    const editedX = text.x;
+    resize(500, 600, 200, 100);
+    const movedText = doc.elements.find((o) => o.t === "text");
+    const moved =
+      movedText.x === 200 + (editedX - 20) / 2 &&
+      movedText.text === "Edited locally";
+    resize(1000, 1200, 20, 80);
+    const editPreserved =
+      doc.elements.find((o) => o.t === "text").x === editedX;
+    const objectPreset = {
+      name: "Grouped",
+      kind: "object",
+      objects: [
+        {
+          id: "a",
+          gid: "pair",
+          t: "rect",
+          n: "Card",
+          x: -500,
+          y: 1200,
+          w: 2000,
+          h: 1000,
+        },
+        {
+          id: "b",
+          gid: "pair",
+          t: "text",
+          n: "Label",
+          x: -400,
+          y: 1300,
+          w: 1800,
+          h: 800,
+          text: "Together",
+          size: 100,
+        },
+      ],
+    };
+    const added = applyPreset(doc, objectPreset, frameId);
+    const objects = added.elements.slice(-2);
+    const k = objects[0].w / 2000;
+    resize(700, 400);
+    const generated = appendGeneratedFrames(
+      doc,
+      [p, p],
+      [{}, {}],
+      undefined,
+      frameId,
+    );
+    return {
+      roundTrip,
+      moved,
+      editPreserved,
+      group: objects[0].gid === objects[1].gid && objects[0].gid !== "pair",
+      relative: Math.abs((objects[1].x - objects[0].x) / k - 100) < 0.001,
+      fits: objects.every(
+        (o) => o.x >= 20 && o.y >= 80 && o.x + o.w <= 1020 && o.y + o.h <= 1280,
+      ),
+      generated:
+        generated.ids.length === 2 &&
+        generated.document.elements
+          .filter((o) => generated.ids.includes(o.id))
+          .every((o) => o.w === 700 && o.h === 400),
+    };
+  });
+  expect(result).toEqual({
+    roundTrip: true,
+    moved: true,
+    editPreserved: true,
+    group: true,
+    relative: true,
+    fits: true,
+    generated: true,
+  });
+});
+
+test("selected frame size controls preset previews, replacement, insertion, and inspector resizing", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: /Square 1080/ }).click();
+  await page.getByRole("tab", { name: "Templates", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Search templates" })
+    .fill("essentials cover");
+  await page
+    .getByRole("button", {
+      name: "Preview Mulai dari satu bacaan",
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByText("Automatically fits your selected frame: 1080 × 1080.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Replace selected frame", exact: true })
+    .click();
+  const width = page.getByRole("spinbutton", { name: "Width", exact: true });
+  const height = page.getByRole("spinbutton", { name: "Height", exact: true });
+  await expect(width).toHaveValue("1080");
+  await expect(height).toHaveValue("1080");
+  const read = () =>
+    page.evaluate(async () => {
+      const { prepareLocalSave, localStore } = await window.genieSource(
+        "/src/lib/local-store.ts",
+      );
+      await prepareLocalSave();
+      const workspace = JSON.parse(localStore.getItem("genie.workspace.v1"));
+      return workspace.projects
+        .find((p) => p.id === workspace.activeProjectId)
+        .pages.find((p) => p.id === workspace.activePageId).canvas.elements;
+    });
+  const before = await read();
+  const headline = before.find((o) => o.n === "Headline");
+  const unlock = page.getByRole("button", {
+    name: "Unlock aspect ratio",
+    exact: true,
+  });
+  if (await unlock.count()) await unlock.click();
+  await width.fill("1280");
+  await width.press("Tab");
+  await height.fill("720");
+  await height.press("Tab");
+  const resized = await read();
+  const afterHeadline = resized.find((o) => o.id === headline.id);
+  expect(afterHeadline.size).toBeLessThan(headline.size);
+  expect(afterHeadline.text).toBe(headline.text);
+  expect(resized.find((o) => o.n === "Paper").w).toBe(1280);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(height).toHaveValue("1080");
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect(height).toHaveValue("720");
+  await page
+    .getByRole("button", {
+      name: "Preview Mulai dari satu bacaan",
+      exact: true,
+    })
+    .click();
+  await dialog.getByRole("button", { name: "Add frame", exact: true }).click();
+  await expect(width).toHaveValue("1280");
+  await expect(height).toHaveValue("720");
+  await expect(page.locator(".footer-meta")).toContainText("2 frames");
+  await read();
+  await page.reload();
+  await expect(page.locator(".footer-meta")).toContainText("2 frames");
+  const restored = await read();
+  expect(
+    restored
+      .filter((o) => o.t === "frame")
+      .every((o) => o.w === 1280 && o.h === 720),
+  ).toBe(true);
+  expect(restored.find((o) => o.id === headline.id).text).toBe(headline.text);
 });

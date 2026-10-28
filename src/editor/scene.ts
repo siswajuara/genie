@@ -126,25 +126,100 @@ export function dropLayer(
   targetId: string,
 ) {
   const selected = new Set(sourceIds);
-  let changed = false;
-  const visit = (nodes: LayerNode[]): LayerNode[] => {
-    const source = nodes.filter((n) =>
+  if (!selected.size) return elements;
+  const sources = elements.filter((o) => selected.has(o.id));
+  if (!sources.length) return elements;
+
+  // Dropping on empty canvas moves everything out to the top level.
+  if (targetId === "") {
+    let changed = false;
+    const patched = elements.map((o) => {
+      if (!selected.has(o.id) || o.t === "frame" || o.fid === undefined)
+        return o;
+      changed = true;
+      return { ...o, fid: undefined, gid: undefined };
+    });
+    const moved = new Set(sources.map((o) => o.id));
+    const rest = patched.filter((o) => !moved.has(o.id));
+    const movedEls = patched.filter((o) => moved.has(o.id));
+    const next = [...rest, ...movedEls];
+    if (!changed && next.every((o, i) => o.id === elements[i].id))
+      return elements;
+    return next;
+  }
+
+  const scene = buildScene(elements);
+  // Index every node with its containing list and owning frame.
+  type Loc = {
+    list: LayerNode[];
+    index: number;
+    node: LayerNode;
+    owner?: string;
+  };
+  const byNodeId = new Map<string, Loc>();
+  const walk = (nodes: LayerNode[], owner?: string) => {
+    nodes.forEach((node, index) => {
+      byNodeId.set(node.id, { list: nodes, index, node, owner });
+      walk(
+        node.children,
+        node.element?.t === "frame" ? node.id : owner,
+      );
+    });
+  };
+  walk(scene.tree);
+
+  // Frames always live at the top level: dropping one onto another frame
+  // row just reorders the frames; anything else refuses the drop.
+  if (sources.some((o) => o.t === "frame")) {
+    const targetLoc = byNodeId.get(targetId);
+    if (!targetLoc || targetLoc.list !== scene.tree) return elements;
+    const movable = (n: LayerNode): boolean =>
       n.element
         ? selected.has(n.id)
-        : n.children.every((c) => selected.has(c.id)),
-    );
-    const target = nodes.find((n) => n.id === targetId);
-    if (target && source.length && !source.includes(target)) {
-      changed = true;
-      const rest = nodes.filter((n) => !source.includes(n));
-      // The visual tree runs top-to-bottom; dropping on a row places the layer immediately above it.
-      rest.splice(rest.indexOf(target) + 1, 0, ...source);
-      return rest;
-    }
-    return nodes.map((n) => ({ ...n, children: visit(n.children) }));
-  };
-  const next = visit(buildScene(elements).tree);
-  return changed ? next.flatMap(nodeElements) : elements;
+        : n.children.length > 0 && n.children.every((c) => selected.has(c.id));
+    const source = targetLoc.list.filter(movable);
+    if (!source.length || source.includes(targetLoc.node)) return elements;
+    const rest = targetLoc.list.filter((n) => !movable(n));
+    rest.splice(rest.indexOf(targetLoc.node) + 1, 0, ...source);
+    const next = rest.flatMap(nodeElements);
+    if (next.every((o, i) => o.id === elements[i].id)) return elements;
+    return next;
+  }
+
+  const targetLoc = byNodeId.get(targetId);
+  if (!targetLoc) return elements;
+  // Refuse drops onto the dragged layers themselves.
+  const targetMembers = nodeElements(targetLoc.node).map((o) => o.id);
+  if (targetMembers.every((id) => selected.has(id))) return elements;
+
+  // Destination: dropping on a frame appends inside it, otherwise the layer
+  // adopts the target row's parent (which may be another frame or top level).
+  const owner =
+    targetLoc.node.element?.t === "frame" ? targetLoc.node.id : targetLoc.owner;
+
+  let fidChanged = false;
+  const patched = elements.map((o) => {
+    if (!selected.has(o.id)) return o;
+    const gid = owner !== o.fid ? undefined : o.gid;
+    if (o.fid === owner && gid === o.gid) return o;
+    fidChanged = true;
+    return { ...o, fid: owner, gid };
+  });
+  const moved = new Set(sources.map((o) => o.id));
+  const rest = patched.filter((o) => !moved.has(o.id));
+  // Anchor on the last remaining target member (the anchor itself may have
+  // been dragged away when only part of a group was selected).
+  const remaining = new Set(
+    rest.filter((o) => targetMembers.includes(o.id)).map((o) => o.id),
+  );
+  const anchor =
+    [...rest].reverse().find((o) => remaining.has(o.id)) ?? rest[rest.length - 1];
+  const at = anchor ? rest.indexOf(anchor) + 1 : rest.length;
+  const movedEls = patched.filter((o) => moved.has(o.id));
+  const next = [...rest.slice(0, at), ...movedEls, ...rest.slice(at)];
+  if (!fidChanged && next.every((o, i) => o.id === elements[i].id))
+    return elements;
+  return next;
 }
 export function bounds(o: Element): Bounds {
   const angle = ((o.rot || 0) * Math.PI) / 180;

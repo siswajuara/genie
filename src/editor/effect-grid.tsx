@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SelectField } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { effectLabel } from "./animation";
 import { Icon } from "../components/ui/icon";
@@ -193,24 +193,15 @@ export function EffectGrid({
     <div className="fx-picker" data-reduced={reduced ? "true" : undefined}>
       {categories && (
         <div className="fx-filter-row">
-          <ScrollArea orientation="horizontal" className="fx-chips-scroll">
-            <div className="fx-chips" role="group" aria-label="Filter effects">
-              {[
-                { id: "all", label: "All", test: () => true },
-                ...categories,
-              ].map((c) => (
-                <Button
-                  key={c.id}
-                  type="button"
-                  className={category === c.id ? "is-active" : ""}
-                  aria-pressed={category === c.id}
-                  onClick={() => setCategory(c.id)}
-                >
-                  {c.label}
-                </Button>
-              ))}
-            </div>
-          </ScrollArea>
+          <SelectField
+            label="Filter effects"
+            value={category}
+            onChange={setCategory}
+            options={[
+              { id: "all", label: "All", test: () => true },
+              ...categories,
+            ].map((c) => ({ value: c.id, label: c.label }))}
+          />
           <span
             className="fx-count"
             aria-live="polite"

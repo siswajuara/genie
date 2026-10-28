@@ -19,6 +19,7 @@ import { resolvePresetAssets, unresolvedAssetSlots } from "./resolve-assets";
 import { brandImageSource } from "../lib/brand";
 import { loadPreset, type PresetSummary } from "./preset-catalog";
 import { resizeFrameTiming, syncNarrationTiming } from "./animation";
+import { remapFrameLayout, resizeFrameLayout } from "./preset-layout";
 
 export function useEditor(
   initial?: CanvasDocument,
@@ -147,7 +148,13 @@ export function useEditor(
         .filter((o) => o.t === "frame" && chosen.has(o.id))
         .map((o) => [
           o.id,
-          { x: (patch.x ?? o.x) - o.x, y: (patch.y ?? o.y) - o.y },
+          {
+            x: (patch.x ?? o.x) - o.x,
+            y: (patch.y ?? o.y) - o.y,
+            resizing:
+              (patch.w !== undefined && patch.w !== o.w) ||
+              (patch.h !== undefined && patch.h !== o.h),
+          },
         ]),
     );
     let elements = live.elements.map((o) => {
@@ -169,10 +176,18 @@ export function useEditor(
           : { ...o, ...nextPatch };
       }
       const offset = o.fid ? offsets.get(o.fid) : undefined;
+      if (offset?.resizing) return o;
       return offset && (offset.x || offset.y)
         ? { ...o, x: o.x + offset.x, y: o.y + offset.y }
         : o;
     });
+    if (patch.w !== undefined || patch.h !== undefined)
+      for (const before of live.elements.filter(
+        (o) => o.t === "frame" && chosen.has(o.id),
+      )) {
+        const after = elements.find((o) => o.id === before.id)!;
+        elements = resizeFrameLayout(elements, before, after);
+      }
     if (patch.scene?.duration !== undefined)
       for (const frame of live.elements.filter(
         (o) => o.t === "frame" && chosen.has(o.id),
@@ -257,6 +272,7 @@ export function useEditor(
       x: o.x + dx,
       y: o.y + dy,
       n: o.n + " copy",
+      responsiveLayout: remapFrameLayout(o.responsiveLayout, idMap),
       gid: o.gid ? groupMap.get(`${o.fid || ""}:${o.gid}`) : undefined,
       fid:
         o.t === "frame"
@@ -355,6 +371,7 @@ export function useEditor(
       id: idMap.get(o.id)!,
       x: o.x + dx,
       n: o.t === "frame" ? o.n + " copy" : o.n,
+      responsiveLayout: remapFrameLayout(o.responsiveLayout, idMap),
       fid: o.fid ? idMap.get(o.fid) : undefined,
       gid: o.gid ? groupMap.get(o.gid) : undefined,
     }));
@@ -456,7 +473,7 @@ export function useEditor(
     const elements = dropLayer(doc.elements, sourceIds, targetId);
     if (elements === doc.elements) {
       notify(
-        "Drag to a sibling layer to change its order. Use Parent frame to move between frames.",
+        "Couldn't move those layers there. Drop on a frame to move layers into it, or on empty canvas to move them out.",
       );
       return;
     }

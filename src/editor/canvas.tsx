@@ -16,6 +16,7 @@ import {
 import { ensureFont } from "../lib/fonts";
 import { Icon } from "../components/ui/icon";
 import { InlineText } from "./inline-text";
+import { resizeFrameLayout } from "./preset-layout";
 import {
   assetMime,
   findAsset,
@@ -961,67 +962,62 @@ export function Canvas({
       }
     }
     setGuides(gs);
-    e.change(
-      {
-        ...d.doc,
-        elements: d.doc.elements.map((o) => {
-          if (d.mode === "move" && d.idSet.has(o.id))
-            return { ...o, x: Math.round(o.x + mx), y: Math.round(o.y + my) };
-          if (o.id !== d.object?.id) return o;
-          const cx = o.x + o.w / 2,
-            cy = o.y + o.h / 2;
-          if (d.mode === "rotate") {
-            let a = (Math.atan2(p.y - cy, p.x - cx) * 180) / Math.PI + 90;
-            if (ev.shiftKey) a = Math.round(a / 15) * 15;
-            return { ...o, rot: Math.round(a) };
-          }
-          if (d.mode === "bend") {
-            const q = rotate(p, o, -1),
-              len = Math.hypot(o.w, o.h) || 1;
-            return {
-              ...o,
-              bend: Math.round(
-                ((q.x - cx) * -o.h) / len + ((q.y - cy) * o.w) / len,
-              ),
-            };
-          }
-          if (d.mode === "resize" && d.handle) {
-            const [hx, hy] = d.handle,
-              a = ((o.rot || 0) * Math.PI) / 180,
-              anchor = ev.altKey
-                ? { x: cx, y: cy }
-                : rotate({ x: cx - (hx * o.w) / 2, y: cy - (hy * o.h) / 2 }, o),
-              px = p.x - anchor.x,
-              py = p.y - anchor.y,
-              lx = px * Math.cos(a) + py * Math.sin(a),
-              ly = -px * Math.sin(a) + py * Math.cos(a),
-              factor = ev.altKey ? 2 : 1;
-            let w = hx ? Math.max(1, hx * lx * factor) : o.w,
-              h = hy ? Math.max(o.t === "line" ? 0 : 1, hy * ly * factor) : o.h;
-            if (ev.shiftKey && hx && hy && o.h) {
-              const ratio = Math.max(w / o.w, h / o.h);
-              w = o.w * ratio;
-              h = o.h * ratio;
-            }
-            const ox = ev.altKey ? 0 : (hx * w) / 2,
-              oy = ev.altKey ? 0 : (hy * h) / 2;
-            return {
-              ...o,
-              w: Math.round(w),
-              h: Math.round(h),
-              x: Math.round(
-                anchor.x + ox * Math.cos(a) - oy * Math.sin(a) - w / 2,
-              ),
-              y: Math.round(
-                anchor.y + ox * Math.sin(a) + oy * Math.cos(a) - h / 2,
-              ),
-            };
-          }
-          return o;
-        }),
-      },
-      false,
-    );
+    let elements = d.doc.elements.map((o) => {
+      if (d.mode === "move" && d.idSet.has(o.id))
+        return { ...o, x: Math.round(o.x + mx), y: Math.round(o.y + my) };
+      if (o.id !== d.object?.id) return o;
+      const cx = o.x + o.w / 2,
+        cy = o.y + o.h / 2;
+      if (d.mode === "rotate") {
+        let a = (Math.atan2(p.y - cy, p.x - cx) * 180) / Math.PI + 90;
+        if (ev.shiftKey) a = Math.round(a / 15) * 15;
+        return { ...o, rot: Math.round(a) };
+      }
+      if (d.mode === "bend") {
+        const q = rotate(p, o, -1),
+          len = Math.hypot(o.w, o.h) || 1;
+        return {
+          ...o,
+          bend: Math.round(
+            ((q.x - cx) * -o.h) / len + ((q.y - cy) * o.w) / len,
+          ),
+        };
+      }
+      if (d.mode === "resize" && d.handle) {
+        const [hx, hy] = d.handle,
+          a = ((o.rot || 0) * Math.PI) / 180,
+          anchor = ev.altKey
+            ? { x: cx, y: cy }
+            : rotate({ x: cx - (hx * o.w) / 2, y: cy - (hy * o.h) / 2 }, o),
+          px = p.x - anchor.x,
+          py = p.y - anchor.y,
+          lx = px * Math.cos(a) + py * Math.sin(a),
+          ly = -px * Math.sin(a) + py * Math.cos(a),
+          factor = ev.altKey ? 2 : 1;
+        let w = hx ? Math.max(1, hx * lx * factor) : o.w,
+          h = hy ? Math.max(o.t === "line" ? 0 : 1, hy * ly * factor) : o.h;
+        if (ev.shiftKey && hx && hy && o.h) {
+          const ratio = Math.max(w / o.w, h / o.h);
+          w = o.w * ratio;
+          h = o.h * ratio;
+        }
+        const ox = ev.altKey ? 0 : (hx * w) / 2,
+          oy = ev.altKey ? 0 : (hy * h) / 2;
+        return {
+          ...o,
+          w: Math.round(w),
+          h: Math.round(h),
+          x: Math.round(anchor.x + ox * Math.cos(a) - oy * Math.sin(a) - w / 2),
+          y: Math.round(anchor.y + ox * Math.sin(a) + oy * Math.cos(a) - h / 2),
+        };
+      }
+      return o;
+    });
+    if (d.mode === "resize" && d.object?.t === "frame") {
+      const after = elements.find((o) => o.id === d.object!.id)!;
+      elements = resizeFrameLayout(elements, d.object, after);
+    }
+    e.change({ ...d.doc, elements }, false);
   }
   const performMove = useRef(move);
   performMove.current = move;

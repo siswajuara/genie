@@ -620,11 +620,12 @@ export function appendGeneratedFrames(
   templates: Preset[],
   frameData: Partial<Element>[],
   post?: { name: string; caption: string },
+  frameId?: string,
 ) {
   let next = doc;
   const ids: string[] = [];
   templates.forEach((template, index) => {
-    next = applyPreset(next, template);
+    next = applyPreset(next, template, frameId);
     const frame = frames(next).at(-1)!;
     Object.assign(frame, frameData[index]);
     ids.push(frame.id);

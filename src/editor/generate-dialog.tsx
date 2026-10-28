@@ -546,6 +546,7 @@ export function GenerateDialog({
         templates,
         frameData,
         review.result.post,
+        live.frame?.id,
       );
       live.change(appended.document);
       live.select([appended.ids[0]]);
