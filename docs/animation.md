@@ -19,6 +19,10 @@ Select **Animation** in the inspector to edit scene duration, the camera, transi
 - Add keyframes at the playhead. Set their local time, X/Y offsets, scale, rotation, opacity, Y-axis rotation, depth translation, and easing. Drag diamonds to retime them; Delete removes a focused keyframe. Keyframe times are relative to the clip start. Trimmed keys remain recoverable or can be deleted in the inspector.
 - **Reduce motion** defaults to the operating-system preference and keeps visibility timing while suppressing fades and transforms in the editor preview. Playback is explicitly user initiated. Export preserves the authored motion.
 
+Select a frame, open **Animation → Transition**, and filter the effect grid to browse the 128 shader transitions, including glitch, camera motion, 3D/warp, blur, light, film, shapes, and beat styles. Selecting an effect previews the outgoing frame blending into the next visible frame near the end of its timeline; its layers, videos, captions, and audio follow the same overlap timing as the MP4 sequence. The last frame needs a following frame for a transition preview. Use the export dialog to play the complete sequence.
+
+Shader effects use their authored easing unless you choose an override under **Advanced (easing)**. Duration is the requested overlap in seconds, capped at half of each adjacent scene. Beat effects use a fixed 120 BPM visual pulse. Previews and MP4 exports share deterministic shader rendering, so seeking to the same timestamp gives the same effect. Reduced-motion previews use a crossfade; unavailable WebGL2 or a failed shader also falls back to crossfade. No remote slideshow images are loaded.
+
 Layer animations compose in this order: continuous motion, entrance/exit, keyframe offsets/multipliers, then glyph reveals. Keyframes hold their endpoint values outside their keyed interval. Short clips automatically fit entrance and exit durations within their lifetime. Layer visibility is clipped to the scene duration.
 
 ## Text animation
@@ -69,6 +73,8 @@ Limits: 0.1–600 seconds per scene, at most 100 keyframes per element, at most 
 ## Document contract
 
 Optional `scene` belongs to frame elements; optional `animation` belongs to non-frame elements. Frames can also hold `voiceoverDraft`, `audioTracks`, `subtitles`, and `subtitleStyle`; embedded tracks and cue timing remain part of ordinary document JSON. The canvas remains `version: 1`, and its ownership remains canvas → pages → frames. `sidecar/canvas.schema.json` describes these fields, and runtime import validation checks them.
+
+Shader transition IDs use `shader:` followed by the supplied effect name, for example `"transition": { "type": "shader:Digital Glitch", "duration": 0.8 }`. Existing transition IDs keep their behavior. Shader sources, the effect catalog, and the WebGL renderer live in `src/editor/transition-shaders.ts`, `shader-transitions.ts`, and `shader-transition-renderer.ts`. Run `npm run test:ui -- tests/transitions.spec.ts` for compilation, endpoint/orientation, scrubbing, fallback, and document round-trip checks.
 
 ```json
 {

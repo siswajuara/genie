@@ -18,9 +18,17 @@ export function useAnimationPlayback(editor: Editor) {
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   const duration = frame ? sceneDuration(frame) : 5;
-  const audioFrames = useMemo(() => (frame ? [frame] : []), [frame]);
+  const visibleFrames = editor.scene.frames.filter((f) => !f.hide);
+  const frameIndex = visibleFrames.findIndex((f) => f.id === frame?.id);
+  const nextFrame = frameIndex >= 0 ? visibleFrames[frameIndex + 1] : undefined;
+  const previewFrames = useMemo(() => {
+    if (!frame) return [];
+    return nextFrame && frame.scene?.transition && frame.scene.transition.type !== "cut"
+      ? [frame, nextFrame]
+      : [frame];
+  }, [frame, nextFrame]);
   const audioError = useAudioPreview(
-    audioFrames,
+    previewFrames,
     time,
     playing,
     open && preview,
@@ -99,12 +107,21 @@ export function useAnimationPlayback(editor: Editor) {
       setTime(range?.start ?? 0);
     setPlaying(!playing);
   }
+  function playFrom(value: number) {
+    if (!frame) return;
+    setOpen(true);
+    setPreview(true);
+    setTime(clamp(value, 0, duration));
+    setPlaying(true);
+  }
   function edit() {
     setPlaying(false);
     setPreview(false);
   }
   return {
     frame,
+    nextFrame,
+    previewFrames,
     audioError,
     duration,
     open,
@@ -112,6 +129,7 @@ export function useAnimationPlayback(editor: Editor) {
     time,
     playing,
     toggle,
+    playFrom,
     seek,
     loop,
     setLoop,

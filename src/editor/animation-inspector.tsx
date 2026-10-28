@@ -12,6 +12,7 @@ import {
   motions,
   easings,
   transitions,
+  sceneDuration,
   timing,
   keyframePose,
   identity,
@@ -28,6 +29,7 @@ import { Accordion } from "../components/ui/accordion";
 import { textEffects, textUnits, type TextAnimation } from "./text-animation";
 import { EffectGrid } from "./effect-grid";
 import { Icon } from "../components/ui/icon";
+import { shaderTransition } from "./shader-transitions";
 
 const options = (values: readonly string[]) =>
   values.map((value) => ({ value, label: effectLabel(value) }));
@@ -73,9 +75,7 @@ export function AnimationInspector({
       item.t !== "frame" && item.fid === frame.id && !e.scene.isLocked(item),
   );
   function replayAt(time: number) {
-    p.setOpen(true);
-    p.seek(clamp(time, 0, Math.max(0.01, p.duration)));
-    if (!p.playing) p.toggle();
+    p.playFrom(clamp(time, 0, Math.max(0.01, p.duration)));
   }
   function patch(changes: Partial<Animation>) {
     const ids = new Set(selected.map((item) => item.id));
@@ -324,16 +324,25 @@ export function AnimationInspector({
                     kind="transition"
                     reduced={p.reducedMotion}
                     onSelect={(type) => {
+                      const shader = shaderTransition(type);
+                      const duration = scene.transition?.duration ?? (shader ? 0.8 * shader.dur : 0.5);
                       scenePatch({
                         transition: {
                           type: type as (typeof transitions)[number],
-                          duration: scene.transition?.duration ?? 0.5,
+                          duration,
                         },
                       });
-                      if (type !== "cut")
-                        replayAt(Math.max(0, p.duration - 0.6));
+                      if (type !== "cut" && p.nextFrame)
+                        replayAt(Math.max(0, p.duration - Math.min(
+                          duration, p.duration / 2, sceneDuration(p.nextFrame) / 2,
+                        ) - 0.2));
                     }}
                   />
+                  <p className="hint">
+                    {p.nextFrame
+                      ? `Transitions from this frame to ${p.nextFrame.n}. Preview plays near the end of the frame.`
+                      : "Add another frame after this one to preview the transition."}
+                  </p>
                   {(scene.transition?.type ?? "cut") !== "cut" && (
                     <div className="anim-selected">
                       <Field label="Duration">
@@ -355,13 +364,18 @@ export function AnimationInspector({
                         <Field label="Easing">
                           <SelectField
                             label="Transition easing"
-                            value={scene.transition!.easing ?? "ease-in-out"}
-                            options={options(easings)}
+                            value={scene.transition!.easing ?? (shaderTransition(scene.transition!.type) ? "default" : "ease-in-out")}
+                            options={[
+                              ...(shaderTransition(scene.transition!.type)
+                                ? [{ value: "default", label: "Effect default" }]
+                                : []),
+                              ...options(easings),
+                            ]}
                             onChange={(easing) =>
                               scenePatch({
                                 transition: {
                                   ...scene.transition!,
-                                  easing: easing as Easing,
+                                  easing: easing === "default" ? undefined : easing as Easing,
                                 },
                               })
                             }

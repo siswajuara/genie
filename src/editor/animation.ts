@@ -1,5 +1,6 @@
 import type { Element } from "./model";
 import { textEffects, type TextAnimation } from "./text-animation";
+import { shaderTransitions } from "./shader-transitions";
 
 export const effects = [
   "none",
@@ -54,7 +55,7 @@ export const easings = [
   "bounce-out",
   "elastic-out",
 ] as const;
-export const transitions = [
+export const standardTransitions = [
   "cut",
   "crossfade",
   "slide-left",
@@ -79,6 +80,7 @@ export const transitions = [
   "zoom-out",
   "spin",
 ] as const;
+export const transitions = [...standardTransitions, ...shaderTransitions] as const;
 export type Easing = (typeof easings)[number];
 export type Effect = {
   preset: (typeof effects)[number];
@@ -210,7 +212,7 @@ export function syncNarrationTiming(elements: Element[]) {
   return next;
 }
 export const effectLabel = (value: string) =>
-  value
+  value.startsWith("shader:") ? value.slice(7) : value
     .split("-")
     .map((part) =>
       part === "3d" ? "3D" : part[0].toUpperCase() + part.slice(1),

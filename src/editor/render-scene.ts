@@ -7,12 +7,18 @@ import { drawSubtitles } from "./subtitles";
 import {
   drawAnimationFrame,
   type AnimationTextures,
+  type createSequenceRenderer,
 } from "./animation-renderer";
 export type AnimationPreview = {
   frameId: string;
   time: number;
   reducedMotion: boolean;
   textures: AnimationTextures;
+  sequence?: {
+    width: number;
+    height: number;
+    renderer: ReturnType<typeof createSequenceRenderer>;
+  };
 };
 type FrameCache = {
   canvas: HTMLCanvasElement;
@@ -37,7 +43,11 @@ export function renderScene(
 ) {
   const currentFrames = new Set(scene.frames.map((f) => f.id));
   for (const id of cache.keys()) if (!currentFrames.has(id)) cache.delete(id);
-  const image = (o: Element) => imageForElement(images, o);
+  // A visible incoming frame must not seek its video back to zero after the
+  // sequence renderer has sampled it for the transition on the outgoing frame.
+  const image = (o: Element) => imageForElement(
+    images, o, preview?.sequence?.renderer.frameTime(o.fid ?? "", preview.time),
+  );
   function drawFrame(frame: Element) {
     if (
       frame.hide ||
@@ -51,7 +61,11 @@ export function renderScene(
     if (preview?.frameId === frame.id) {
       ctx.save();
       ctx.translate(frame.x, frame.y);
-      drawAnimationFrame(ctx, frame, children, preview.time, images, {
+      if (preview.sequence) {
+        const { width, height, renderer } = preview.sequence;
+        ctx.scale(frame.w / width, frame.h / height);
+        renderer.draw(ctx, preview.time);
+      } else drawAnimationFrame(ctx, frame, children, preview.time, images, {
         width: frame.w,
         height: frame.h,
         reducedMotion: preview.reducedMotion,

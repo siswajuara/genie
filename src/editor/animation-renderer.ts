@@ -14,6 +14,8 @@ import { drawElement } from "./reference-renderer";
 import { createTextAnimation, type GlyphAnimation } from "./text-animation";
 import { timing } from "./animation";
 import { drawSubtitles } from "./subtitles";
+import { shaderEase, shaderTransition } from "./shader-transitions";
+import { createShaderTransitionRenderer } from "./shader-transition-renderer";
 
 type Texture = {
   element: Element;
@@ -358,26 +360,43 @@ export function createSequenceRenderer(
     canvas.width = width;
     canvas.height = height;
   }
+  let shaderRenderer: ReturnType<typeof createShaderTransitionRenderer>;
+  let shaderAttempted = false;
   return {
     duration: sequence.at(-1)?.end ?? 0,
+    frameTime(frameId: string, time: number) {
+      const entry = sequence.find((item) => item.frame.id === frameId);
+      return entry ? clamp(time - entry.start, 0, entry.end - entry.start) : undefined;
+    },
     draw(ctx: CanvasRenderingContext2D, time: number) {
       ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, width, height);
+      ctx.clip();
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
       const active = sequenceAt(sequence, time);
       const transition =
         active.length === 2 ? active[0].frame.scene?.transition : undefined;
+      const shader = transition && !reducedMotion
+        ? shaderTransition(transition.type)
+        : undefined;
+      const raw = active.length === 2
+        ? clamp((time - active[1].start) / active[1].overlap)
+        : 1;
       const progress =
-        active.length === 2
+        shader && !transition?.easing
+          ? shaderEase(shader, raw)
+          : active.length === 2
           ? clamp(
               ease(
-                (time - active[1].start) / active[1].overlap,
+                raw,
                 transition?.easing ?? "ease-in-out",
               ),
             )
           : 1;
-      const transitionType = reducedMotion ? "crossfade" : transition?.type;
+      const transitionType = reducedMotion || shader ? "crossfade" : transition?.type;
       if (
         transitionType === "fade-through-black" ||
         transitionType === "fade-through-white"
@@ -407,6 +426,22 @@ export function createSequenceRenderer(
           { width: w, height: h, textures, reducedMotion },
         );
         raster.restore();
+      }
+      if (shader && active.length === 2) {
+        if (!shaderAttempted) {
+          shaderAttempted = true;
+          shaderRenderer = createShaderTransitionRenderer(width, height);
+        }
+        if (shaderRenderer?.draw(
+          ctx, surfaces[0], surfaces[1], shader, raw, progress,
+          Math.max(0, time - active[1].start),
+        )) {
+          ctx.restore();
+          return;
+        }
+      }
+      for (let i = 0; i < active.length; i++) {
+        const surface = surfaces[i];
         ctx.save();
         if (i === 0 && active.length === 2) {
           if (transitionType === "push-left")
@@ -515,6 +550,7 @@ export function createSequenceRenderer(
       ctx.restore();
     },
     dispose() {
+      shaderRenderer?.dispose();
       surfaces.forEach((canvas) => {
         canvas.width = canvas.height = 1;
       });

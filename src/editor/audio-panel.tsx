@@ -20,6 +20,7 @@ import {
   alignmentToWords,
   defaultSubtitleStyle,
   validateSubtitles,
+  withBackgroundAlpha,
   wordsToCues,
   type SubtitleStyle,
 } from "./subtitles";
@@ -96,12 +97,75 @@ const CAPTION_PRESETS: { name: string; patch: Partial<SubtitleStyle> }[] = [
       position: "bottom",
     },
   },
+  {
+    name: "Neon night",
+    patch: {
+      color: "#ffffff",
+      background: "#00000000",
+      outline: "#0b1020",
+      outlineWidth: 0.12,
+      highlight: "#25f4ee",
+      animation: "karaoke",
+      size: 6.5,
+      position: "center",
+      wordsPerLine: 4,
+    },
+  },
+  {
+    name: "Comic pop",
+    patch: {
+      color: "#ffffff",
+      background: "#00000000",
+      outline: "#000000",
+      outlineWidth: 0.2,
+      highlight: "#ff5c8a",
+      animation: "pop",
+      size: 7,
+      position: "center",
+      wordsPerLine: 3,
+      popScale: 1.3,
+    },
+  },
+  {
+    name: "Minimal",
+    patch: {
+      color: "#ffffff",
+      background: "#00000000",
+      outline: "#000000",
+      outlineWidth: 0,
+      highlight: "#ffffff",
+      animation: "none",
+      size: 3.5,
+      position: "bottom",
+      wordsPerLine: 5,
+    },
+  },
+  {
+    name: "News bar",
+    patch: {
+      color: "#ffffff",
+      background: "#0b1f4de6",
+      outline: "#000000",
+      outlineWidth: 0,
+      highlight: "#ffd60a",
+      animation: "karaoke",
+      size: 4,
+      position: "bottom",
+      wordsPerLine: 6,
+    },
+  },
 ];
 
 function sizeLabel(size: number) {
   if (size < 3.75) return "Small";
   if (size > 5.25) return "Large";
   return "Medium";
+}
+
+function backgroundOpacity(background: string): number {
+  if (/^#[0-9a-f]{8}$/i.test(background))
+    return parseInt(background.slice(7), 16) / 255;
+  return 1;
 }
 
 export function AudioPanel({
@@ -644,7 +708,10 @@ export function AudioPanel({
                         update({
                           subtitleStyle: {
                             ...style,
-                            background: `${ev.target.value}cc`,
+                            background: withBackgroundAlpha(
+                              ev.target.value,
+                              backgroundOpacity(style.background),
+                            ),
                           },
                         })
                       }
@@ -697,6 +764,104 @@ export function AudioPanel({
                   </p>
                 </div>
               </div>
+              <details className="narration-details">
+                <summary>Advanced caption settings</summary>
+                <div className="narration-style-field">
+                  <Label className="audio-field">
+                    <span>
+                      Words per caption · {style.wordsPerLine ?? 4}
+                    </span>
+                    <Slider
+                      aria-label="Words shown per caption line"
+                      min={1}
+                      max={6}
+                      step={1}
+                      value={[style.wordsPerLine ?? 4]}
+                      onValueChange={([value]) =>
+                        update({
+                          subtitleStyle: {
+                            ...style,
+                            wordsPerLine: value,
+                          },
+                        })
+                      }
+                    />
+                  </Label>
+                  <Label className="audio-field">
+                    <span>
+                      Background opacity ·{" "}
+                      {Math.round(
+                        backgroundOpacity(style.background) * 100,
+                      )}
+                      %
+                    </span>
+                    <Slider
+                      aria-label="Caption background opacity"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={[backgroundOpacity(style.background)]}
+                      onValueChange={([value]) =>
+                        update({
+                          subtitleStyle: {
+                            ...style,
+                            background: withBackgroundAlpha(
+                              style.background.slice(0, 7),
+                              value,
+                            ),
+                          },
+                        })
+                      }
+                    />
+                  </Label>
+                  <Label className="audio-field">
+                    <span>
+                      Vertical nudge ·{" "}
+                      {(style.offsetY ?? 0) === 0
+                        ? "Off"
+                        : `${(style.offsetY ?? 0) > 0 ? "+" : ""}${Math.round(style.offsetY ?? 0)}%`}
+                    </span>
+                    <Slider
+                      aria-label="Caption vertical position nudge"
+                      min={-15}
+                      max={15}
+                      step={0.5}
+                      value={[style.offsetY ?? 0]}
+                      onValueChange={([value]) =>
+                        update({
+                          subtitleStyle: {
+                            ...style,
+                            offsetY: value,
+                          },
+                        })
+                      }
+                    />
+                  </Label>
+                  {(style.animation ?? "none") === "pop" && (
+                    <Label className="audio-field">
+                      <span>
+                        Pop strength ·{" "}
+                        {Math.round((style.popScale ?? 1.18) * 100)}%
+                      </span>
+                      <Slider
+                        aria-label="Caption pop animation strength"
+                        min={1}
+                        max={1.6}
+                        step={0.01}
+                        value={[style.popScale ?? 1.18]}
+                        onValueChange={([value]) =>
+                          update({
+                            subtitleStyle: {
+                              ...style,
+                              popScale: value,
+                            },
+                          })
+                        }
+                      />
+                    </Label>
+                  )}
+                </div>
+              </details>
               <div className="narration-style-field">
                 <span className="narration-mini-label" aria-hidden="true">
                   All frames
@@ -712,8 +877,8 @@ export function AudioPanel({
                   Apply style to all {pageFrameIds.length} frames
                 </Button>
                 <p className="hint">
-                  Copies the preset, position, animation, sizes, and colors
-                  above to every frame on this page.
+                  Copies the preset, position, animation, sizes, colors, and
+                  advanced settings above to every frame on this page.
                 </p>
               </div>
             </div>

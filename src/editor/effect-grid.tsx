@@ -3,6 +3,7 @@ import { SelectField } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { effectLabel } from "./animation";
 import { Icon } from "../components/ui/icon";
+import { TRANSITION_CATEGORIES } from "./shader-transitions";
 
 export type GridKind = "effect" | "motion" | "text" | "transition";
 
@@ -94,6 +95,11 @@ const transitionCategories: Category[] = [
       p === "diamond" ||
       p === "spin",
   },
+  ...Object.entries(TRANSITION_CATEGORIES).map(([label, names]) => ({
+    id: `shader:${label}`,
+    label,
+    test: (p: string) => p.startsWith("shader:") && names.includes(p.slice(7)),
+  })),
 ];
 
 function categoriesFor(kind: GridKind, count: number): Category[] | undefined {
@@ -106,6 +112,7 @@ function categoriesFor(kind: GridKind, count: number): Category[] | undefined {
 
 // Distinctive mini-glyph per preset so tiles don't all look identical.
 function glyphFor(preset: string): string | undefined {
+  if (preset.startsWith("shader:")) return "✦";
   if (preset === "none") return undefined;
   if (preset === "cut") return "✂";
   const arrows: Record<string, string> = {
@@ -190,7 +197,7 @@ export function EffectGrid({
     ? visible.filter((p) => p !== "none").length
     : visible.length;
   return (
-    <div className="fx-picker" data-reduced={reduced ? "true" : undefined}>
+    <div className="fx-picker" data-kind={kind} data-reduced={reduced ? "true" : undefined}>
       {categories && (
         <div className="fx-filter-row">
           <SelectField

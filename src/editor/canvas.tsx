@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { prepareVideos, disposeVideos, type MediaImages } from "./video";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { frames, makeElement, type Element } from "./model";
 import { prepareScienceElement, textToEquation } from "./science";
 import { detectLatexSource } from "../../sidecar/science.mjs";
@@ -25,7 +25,7 @@ import {
 } from "./assets";
 import { AssetThumbnail } from "./asset-thumbnail";
 import type { AnimationPlayback } from "./use-animation-playback";
-import type { AnimationTextures } from "./animation-renderer";
+import { createSequenceRenderer, type AnimationTextures } from "./animation-renderer";
 import { Timeline } from "./timeline";
 
 type Point = { x: number; y: number };
@@ -88,6 +88,22 @@ export function Canvas({
   const images = useRef<MediaImages>(new Map());
   const rasters = useRef<RenderCache>(new Map());
   const animationTextures = useRef<AnimationTextures>(new Map());
+  const sequencePreview = useMemo(() => {
+    if (!playback.open || !playback.preview || playback.previewFrames.length < 2)
+      return undefined;
+    const frame = playback.frame!;
+    const scale = Math.min(1, 1280 / Math.max(frame.w, frame.h));
+    const width = Math.max(1, Math.round(frame.w * scale));
+    const height = Math.max(1, Math.round(frame.h * scale));
+    return {
+      width, height,
+      renderer: createSequenceRenderer(
+        playback.previewFrames, e.scene.frameChildren, images.current,
+        width, height, playback.reducedMotion,
+      ),
+    };
+  }, [playback.open, playback.preview, playback.previewFrames, e.scene.frameChildren, playback.reducedMotion]);
+  useEffect(() => () => sequencePreview?.renderer.dispose(), [sequencePreview]);
   const queuedPointer = useRef<PointerEvent | undefined>(undefined);
   const moveFrame = useRef<number | undefined>(undefined);
   const pointer = useRef<Point | undefined>(undefined);
@@ -523,6 +539,7 @@ export function Canvas({
               time: playback.time,
               reducedMotion: playback.reducedMotion,
               textures: animationTextures.current,
+              sequence: sequencePreview,
             }
           : undefined,
       );
@@ -613,6 +630,7 @@ export function Canvas({
     playback.time,
     playback.frame?.id,
     playback.reducedMotion,
+    sequencePreview,
   ]);
   const space = useRef(false);
   useEffect(() => {
