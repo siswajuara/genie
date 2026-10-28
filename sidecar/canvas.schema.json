@@ -276,11 +276,243 @@
         "id": { "type": "string", "minLength": 1 },
         "start": { "type": "number", "minimum": 0, "exclusiveMaximum": 600 },
         "end": { "type": "number", "exclusiveMinimum": 0, "maximum": 600 },
-        "text": { "type": "string", "minLength": 1, "maxLength": 2000 }
+        "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "words": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "required": ["text", "start", "end"],
+            "properties": {
+              "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+              "start": { "type": "number", "minimum": 0 },
+              "end": { "type": "number", "exclusiveMinimum": 0, "maximum": 600 }
+            }
+          }
+        }
       }
     },
     "physicsSpec": {
       "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SD–SMP: muka gelombang bunyi menempuh jarak s=vt, waktu tiba=distance/soundSpeed. Medium homogen; bukan gerak partikel udara bersama bunyi.",
+          "properties": {
+            "kind": {
+              "const": "sound-travel"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "soundSpeed": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 1500
+            },
+            "distance": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1500
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SD–SMA: pemanasan zat satu fase, c tetap, tanpa kehilangan kalor. Q=Pt=mcΔT; berhenti pada kenaikan suhu temperatureRise, tanpa model mendidih atau melebur.",
+          "properties": {
+            "kind": {
+              "const": "heating"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "mass": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 5
+            },
+            "specificHeat": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 4200
+            },
+            "power": {
+              "type": "number",
+              "minimum": 10,
+              "maximum": 2000
+            },
+            "initialTemperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 50
+            },
+            "temperatureRise": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMP–SMA: benda dilepas dari diam, Ep=mgh dan Ek=mv²/2. Energi mekanik tetap sebelum menyentuh tanah; tanpa hambatan udara dan tanpa tumbukan/pantulan.",
+          "properties": {
+            "kind": {
+              "const": "energy-conservation"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "mass": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 20
+            },
+            "gravity": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 30
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMP–SMA: dua resistor paralel dengan sumber ideal. Tegangan cabang sama; I=I₁+I₂, 1/R=1/R₁+1/R₂. Titik menandai arah arus konvensional, bukan laju elektron.",
+          "properties": {
+            "kind": {
+              "const": "parallel-circuit"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "voltage": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 24
+            },
+            "resistance1": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "resistance2": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMA: dua massa titik saling mendekat pada satu sumbu. Momentum dan energi kinetik kekal, tanpa gaya luar. Tumbukan sesaat pada t=distance/(v₁−v₂); berhenti setelah dua kali waktu itu.",
+          "properties": {
+            "kind": {
+              "const": "elastic-collision"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "mass1": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10
+            },
+            "mass2": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10
+            },
+            "velocity1": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10
+            },
+            "velocity2": {
+              "type": "number",
+              "minimum": -10,
+              "maximum": 0
+            },
+            "distance": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMP–SMA: ΔL=αL₀ΔT untuk batang bebas, α konstan. Kenaikan suhu diramp selama 6 detik sebagai ilustrasi, bukan laju pemanasan fisik. Pertambahan panjang pada gambar diperbesar.",
+          "properties": {
+            "kind": {
+              "const": "thermal-expansion"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "length": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10
+            },
+            "expansionCoefficient": {
+              "type": "number",
+              "minimum": 0.000001,
+              "maximum": 0.0001
+            },
+            "temperatureRise": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
         {
           "type": "object",
           "required": ["kind"],
@@ -590,6 +822,229 @@
     },
     "learningSpec": {
       "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SD: total = groups × perGroup. Benda dibagi sama rata tanpa sisa; sorotan menelusuri kelompok tanpa mengubah jumlah.",
+          "properties": {
+            "kind": {
+              "const": "equal-sharing"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "groups": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            "perGroup": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SD: 0≤numerator≤denominator. Kalikan pembilang dan penyebut dengan bilangan yang sama; dua batang menunjukkan bagian utuh yang sama.",
+          "properties": {
+            "kind": {
+              "const": "equivalent-fractions"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "numerator": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            "multiplier": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 4
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMP: segitiga siku-siku dengan dua sisi tegak lurus a dan b dalam cm. Sisi miring c=√(a²+b²); bukan untuk segitiga sembarang.",
+          "properties": {
+            "kind": {
+              "const": "pythagoras"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "legA": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "legB": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMP: y=mx+b pada −4≤x≤4. Sumbu y menyesuaikan rentang; penanda menelusuri grafik tanpa mengubah fungsi atau jawaban.",
+          "properties": {
+            "kind": {
+              "const": "linear-function"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "slope": {
+              "type": "number",
+              "minimum": -3,
+              "maximum": 3
+            },
+            "intercept": {
+              "type": "number",
+              "minimum": -4,
+              "maximum": 4
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMP–SMA: y=a(x−h)²+k, 0,1≤|a|≤3. Puncak (h,k); domain yang ditampilkan h−3≤x≤h+3, skala sumbu tertera.",
+          "properties": {
+            "kind": {
+              "const": "quadratic-function"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "quadraticA": {
+              "type": "number",
+              "minimum": -3,
+              "maximum": 3
+            },
+            "vertexX": {
+              "type": "number",
+              "minimum": -2,
+              "maximum": 2
+            },
+            "vertexY": {
+              "type": "number",
+              "minimum": -4,
+              "maximum": 4
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMA: radius 1, sudut positif berlawanan arah jarum jam dari sumbu x. Titik (cos θ,sin θ) tetap; sorotan menelusuri busur sudut.",
+          "properties": {
+            "kind": {
+              "const": "unit-circle"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "degrees": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 360
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SD–SMP: favorable≤total bola dengan kesempatan terambil sama. P=bola kuning/total. Sorotan bukan percobaan acak atau hasil pengambilan.",
+          "properties": {
+            "kind": {
+              "const": "probability-bag"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "favorable": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 20
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "SMA: dua vektor pada sumbu dengan skala sama, disusun ujung ke pangkal. R=(Ax+Bx,Ay+By), panjang |R|=√(Rx²+Ry²); komponen tanpa satuan.",
+          "properties": {
+            "kind": {
+              "const": "vector-addition"
+            },
+            "animate": {
+              "type": "boolean"
+            },
+            "vectorAX": {
+              "type": "number",
+              "minimum": -4,
+              "maximum": 4
+            },
+            "vectorAY": {
+              "type": "number",
+              "minimum": -4,
+              "maximum": 4
+            },
+            "vectorBX": {
+              "type": "number",
+              "minimum": -4,
+              "maximum": 4
+            },
+            "vectorBY": {
+              "type": "number",
+              "minimum": -4,
+              "maximum": 4
+            }
+          },
+          "additionalProperties": false
+        },
         {
           "type": "object",
           "required": ["kind"],
@@ -1295,7 +1750,17 @@
               "type": "string",
               "pattern": "^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
             },
-            "position": { "enum": ["bottom", "center", "top"] }
+            "position": { "enum": ["bottom", "center", "top"] },
+            "animation": { "enum": ["none", "karaoke", "pop"] },
+            "highlight": {
+              "type": "string",
+              "pattern": "^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            "outline": {
+              "type": "string",
+              "pattern": "^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            "outlineWidth": { "type": "number", "minimum": 0, "maximum": 1 }
           }
         }
       }

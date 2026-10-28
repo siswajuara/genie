@@ -7,6 +7,9 @@ import { defaultChromaKey, importVideoFile } from "./video";
 import { useEffect, useRef, useState } from "react";
 import type { Editor } from "./use-editor";
 import type { Element } from "./model";
+import { uid } from "./model";
+import { detectLatexSource } from "../../sidecar/science.mjs";
+import { textToEquation } from "./science";
 import { LayerTree } from "./layer-tree";
 import { SelectField } from "../components/ui/select";
 import { NumberField } from "../components/ui/number-field";
@@ -460,10 +463,7 @@ export function Inspector({
                     : o.t}
                 </span>
               </div>
-              <Section title="Position & size">
-                <p className="pos-label" id="pos-position">
-                  Position
-                </p>
+              <Section title="">
                 <div
                   className="geometry"
                   role="group"
@@ -473,7 +473,7 @@ export function Inspector({
                 </div>
                 <div className="pos-label-row">
                   <p className="pos-label" id="pos-size">
-                    Size
+                    Size Ratio
                   </p>
                   <Button
                     type="button"
@@ -497,11 +497,8 @@ export function Inspector({
                 >
                   {["w", "h"].map(field)}
                 </div>
-                <p className="pos-label" id="pos-transform">
-                  Transform
-                </p>
                 <div
-                  className="geometry"
+                  className="geometry mt-2"
                   role="group"
                   aria-labelledby="pos-transform"
                 >
@@ -520,6 +517,77 @@ export function Inspector({
                 {main[o.t].filter((key) => key !== "label").map(field)}
                 {o.t === "text" && (
                   <>
+                    {detectLatexSource(o.text || "") && (
+                      <div className="tool-row">
+                        <Button
+                          type="button"
+                          className="primary tool-text-btn"
+                          title="Convert math to a rendered equation. Select part of the text first to convert only that part into a new equation below; otherwise the whole box is converted."
+                          onClick={() => {
+                            const ta = text.current;
+                            const full = o.text || "";
+                            const hasSelection =
+                              !!ta &&
+                              ta.selectionStart !== ta.selectionEnd;
+                            const raw = hasSelection
+                              ? ta!.value.slice(
+                                  ta!.selectionStart,
+                                  ta!.selectionEnd,
+                                )
+                              : full;
+                            const source = detectLatexSource(raw);
+                            if (!source) {
+                              e.notify(
+                                "Select the math part first, or wrap it in $…$ delimiters.",
+                              );
+                              return;
+                            }
+                            if (hasSelection) {
+                              const h = Math.max(
+                                120,
+                                Math.min(300, o.w * 0.3),
+                              );
+                              const base = {
+                                ...o,
+                                id: uid(),
+                                n: "Equation",
+                                w: o.w,
+                                h,
+                              };
+                              void textToEquation(base, source)
+                                .then((ready) =>
+                                  e.add(ready, {
+                                    x: o.x + o.w / 2,
+                                    y: o.y + o.h + 24 + h / 2,
+                                  }),
+                                )
+                                .catch((err) => e.notify(String(err)));
+                              return;
+                            }
+                            void textToEquation(o, source)
+                              .then((ready) =>
+                                e.patch(
+                                  {
+                                    t: "img",
+                                    text: "",
+                                    latex: ready.latex,
+                                    src: ready.src,
+                                    color: ready.color,
+                                    fit: "contain",
+                                  },
+                                  [o.id],
+                                ),
+                              )
+                              .catch((err) => e.notify(String(err)));
+                          }}
+                        >
+                          <span aria-hidden="true" className="style-aa">
+                            fx
+                          </span>
+                          <span>Convert to equation</span>
+                        </Button>
+                      </div>
+                    )}
                     <div
                       className="style-presets"
                       role="group"
@@ -858,7 +926,7 @@ export function Inspector({
                   </Accordion>
                 )
               )}
-              <Section title="Arrange">
+              <Section title="">
                 <p className="arrange-label" id="arrange-align">
                   Align
                 </p>
@@ -943,27 +1011,6 @@ export function Inspector({
                   />
                 </div>
               </Section>
-              <Accordion
-                className="insp-more"
-                title="Advanced"
-                triggerTitle="Advanced: asset identifier"
-              >
-                <IdentifierField key={o.id} element={o} editor={e} />
-                {o.t !== "frame" && (
-                  <SelectField
-                    label="Standard frame role"
-                    value={o.brandRole || "content"}
-                    onChange={(value) =>
-                      e.patch({ brandRole: value as Element["brandRole"] })
-                    }
-                    options={[
-                      { value: "content", label: "Design content" },
-                      { value: "logo", label: "Standard logo" },
-                      { value: "footer", label: "Standard footer" },
-                    ]}
-                  />
-                )}
-              </Accordion>
             </>
           ) : (
             <div className="empty">

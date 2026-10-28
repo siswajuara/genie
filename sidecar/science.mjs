@@ -141,6 +141,41 @@ export function normalizePhysics(raw) {
   validateExtraPhysics(result);
   return result;
 }
+const LATEX_COMMAND =
+  /\\(frac|dfrac|sqrt|int|oint|sum|prod|lim|times|div|cdot|pm|mp|leq|geq|neq|approx|sim|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega|infty|partial|log|ln|lg|sin|cos|tan|exp|max|min|sup|inf|bar|hat|vec|dot|ddot|tilde|overline|underline|binom|left|right|begin|end|text|mathrm|mathbf|mathit|displaystyle|quad|qquad|angle|langle|rangle|cup|cap|in|notin|subset|forall|exists|to|mapsto|circ|bullet|ast|star|ldots|cdots|vdots|ddots|hline)(?![a-zA-Z])/;
+const LATEX_SUBSUP = /[_^]\{[^}]*\}/;
+// Detect math pasted or typed as plain text. Returns the equation source, or
+// null when the text does not look like math. Delimited segments ($…$, \(…\),
+// \[…\]) win over the whole-text heuristic so prose around math is preserved.
+export function detectLatexSource(text) {
+  if (typeof text !== "string") return null;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 2000) return null;
+  const delimited =
+    trimmed.match(/\$\$([\s\S]+?)\$\$/) ||
+    trimmed.match(/\\\(([\s\S]+?)\\\)/) ||
+    trimmed.match(/\\\[([\s\S]+?)\\\]/) ||
+    trimmed.match(/\$([^$\n]+?)\$/);
+  if (delimited) {
+    const source = (delimited[1] || "").trim();
+    if (!source) return null;
+    // A lone $…$ pair is only math for a short identifier or an expression
+    // with math signals; otherwise it is likely a price ("$5 and $6").
+    if (
+      delimited[0].startsWith("$") &&
+      !delimited[0].startsWith("$$") &&
+      source.length > 3 &&
+      !LATEX_COMMAND.test(source) &&
+      !LATEX_SUBSUP.test(source) &&
+      !/[=^_{}]/.test(source)
+    )
+      return null;
+    return source;
+  }
+  if (LATEX_COMMAND.test(trimmed) || LATEX_SUBSUP.test(trimmed))
+    return trimmed;
+  return null;
+}
 export function normalizeLatex(raw) {
   if (
     !raw ||

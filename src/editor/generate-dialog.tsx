@@ -1,4 +1,3 @@
-import { FrameContextPanel } from "./frame-context-panel";
 import { buildFrameContext } from "../../sidecar/frame-context.mjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, Mic, VolumeX, ArrowLeft, LoaderCircle } from "lucide-react";
@@ -28,6 +27,8 @@ import {
 import {
   PROTOTYPE_VOICE_ID,
   PROTOTYPE_VOICE_NAME,
+  ELEVENLABS_VOICES,
+  DEFAULT_VOICE_ID,
 } from "../../sidecar/voice-prototype.mjs";
 import { useAssetLibrary } from "./assets";
 import { loadPresetCatalog, type PresetSummary } from "./preset-catalog";
@@ -123,6 +124,20 @@ function ToggleRow({
   );
 }
 
+const CLOSING_NOTE =
+  "Tutup dengan ajakan yang jelas: pelajari lebih lanjut tentang Tes Kemampuan Akademik sekarang di siswajuara.com.";
+function makeClosingScene(): SceneDraft {
+  return {
+    useCase: "closing",
+    templateId: "",
+    tone: "",
+    seconds: 6,
+    narrate: true,
+    note: CLOSING_NOTE,
+    voiceId: "",
+  };
+}
+
 function GeneratedPreview({
   template,
   content,
@@ -209,15 +224,19 @@ export function GenerateDialog({
     canvasContextText(editor.getDocument(), editor.selection),
   );
   const [content, setContent] = useState(canvasSeed);
-  const [scenes, setScenes] = useState(() => makeScenes(GENERATION_PRESETS[0]));
+  const [scenes, setScenes] = useState(() => [
+    ...makeScenes(GENERATION_PRESETS[0]),
+    makeClosingScene(),
+  ]);
   const [selected, setSelected] = useState(0);
   const [language, setLanguage] = useState("id");
   const [tone, setTone] = useState("warm");
   const [narration, setNarration] = useState(true);
   const [captions, setCaptions] = useState(true);
   const [chosenAccount, setChosenAccount] = useState("");
-  const [voiceId, setVoiceId] = useState<string>(PROTOTYPE_VOICE_ID);
+  const [voiceId, setVoiceId] = useState<string>(DEFAULT_VOICE_ID);
   const [voices, setVoices] = useState<Voice[]>([
+    ...ELEVENLABS_VOICES,
     { id: PROTOTYPE_VOICE_ID, name: PROTOTYPE_VOICE_NAME },
   ]);
   const [voiceBusy, setVoiceBusy] = useState(false);
@@ -227,6 +246,7 @@ export function GenerateDialog({
   const [setup, setSetup] = useState(false);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [review, setReview] = useState<Review>();
   const [audioFailed, setAudioFailed] = useState(false);
   const speechCache = useRef(
@@ -311,8 +331,6 @@ export function GenerateDialog({
     "list",
     "closing",
   ];
-  const closingNote =
-    "Tutup dengan ajakan yang jelas: pelajari lebih lanjut tentang Tes Kemampuan Akademik sekarang di siswajuara.com.";
   const hasClosing = scenes.some((scene) => scene.useCase === "closing");
   function addScene() {
     if (scenes.length >= 10) return;
@@ -332,18 +350,7 @@ export function GenerateDialog({
   }
   function addClosing() {
     if (scenes.length >= 10 || hasClosing) return;
-    setScenes((all) => [
-      ...all,
-      {
-        useCase: "closing",
-        templateId: "",
-        tone: "",
-        seconds: 6,
-        narrate: true,
-        note: closingNote,
-        voiceId: "",
-      },
-    ]);
+    setScenes((all) => [...all, makeClosingScene()]);
     setSelected(scenes.length);
   }
   function patchContent(change: Partial<GeneratedFrame>) {
@@ -389,6 +396,7 @@ export function GenerateDialog({
     running.current = true;
     setBusy("Preparing scene layouts…");
     setError("");
+    setNotice("");
     try {
       const templates = await prepareGenerationTemplates(
         scenes.map((scene) => templateFor(scene)!),
@@ -422,6 +430,7 @@ export function GenerateDialog({
       const parsed = parseGenerationResult(result, request);
       if (!mounted.current) return;
       setReview({ request, templates, result: { ...result, ...parsed } });
+      setNotice((parsed.repaired ?? []).join(" "));
       setSelected(0);
     } catch (error) {
       if (mounted.current)
@@ -702,10 +711,6 @@ export function GenerateDialog({
                   ))}
                 </div>
               </section>
-              <FrameContextPanel
-                document={editor.getDocument()}
-                selection={editor.selection}
-              />
               <section className="generate-section">
                 <div className="generate-section-heading">
                   <span>2</span>
@@ -1238,6 +1243,7 @@ export function GenerateDialog({
               {error}
             </p>
           )}
+          {!busy && !error && notice && <p role="status">{notice}</p>}
         </div>
         <footer className="generate-foot">
           <div>
@@ -1260,6 +1266,7 @@ export function GenerateDialog({
                   onClick={() => {
                     setReview(undefined);
                     setError("");
+                    setNotice("");
                     setAudioFailed(false);
                     speechCache.current.clear();
                   }}

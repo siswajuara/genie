@@ -32,3 +32,19 @@ export async function prepareScienceElement(
   }
   return element;
 }
+// Turn plain text that holds math into a rendered equation element.
+// Throws when the source is not valid math; callers keep the text unchanged.
+export async function textToEquation(
+  base: Element,
+  source: string,
+): Promise<Element> {
+  const latex = normalizeLatex({ source });
+  return prepareScienceElement({
+    ...base,
+    t: "img",
+    text: "",
+    latex,
+    color: base.color || "#112866",
+    fit: "contain",
+  });
+}

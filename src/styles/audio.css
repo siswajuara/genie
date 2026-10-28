@@ -180,7 +180,7 @@
     @apply whitespace-nowrap;
   }
   .narration-body {
-    @apply grid gap-[10px] content-start min-h-0 flex-[1] overflow-auto;
+    @apply grid gap-[8px] content-start min-h-0 flex-[1] overflow-auto;
   }
   .narration-body fieldset {
     @apply grid gap-0;
@@ -190,7 +190,7 @@
   }
   /* Flat groups separated by dividers instead of nested cards. */
   .narration-group {
-    @apply py-[10px] px-0 border-t border-solid border-t-border;
+    @apply py-[8px] px-0 border-t border-solid border-t-border;
   }
   .narration-group:first-child {
     @apply border-t-0 pt-[2px];
@@ -218,14 +218,20 @@
   .narration-group .audio-field textarea {
     @apply min-h-[64px];
   }
-  .narration-account select {
-    @apply w-full;
+  .narration-voice-grid {
+    @apply grid grid-cols-2 gap-[8px];
+  }
+  .narration-voice-grid .audio-field {
+    @apply min-w-0;
+  }
+  .narration-mini-label {
+    @apply text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground;
   }
   .narration-warning {
     @apply border border-solid border-border rounded-[6px] py-[8px] px-[10px] bg-background m-0;
   }
-  .narration-account {
-    @apply flex-[1] min-w-[160px];
+  .narration-voice-grid .select-trigger {
+    @apply min-w-0 text-[12px];
   }
   .narration-toggle {
     @apply text-[12px] p-0;

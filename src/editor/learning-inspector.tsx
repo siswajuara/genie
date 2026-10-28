@@ -67,6 +67,22 @@ const labels: Record<string, string> = {
   setting: "Latar",
   problem: "Masalah",
   solution: "Penyelesaian",
+  groups: "Jumlah kelompok",
+  perGroup: "Benda per kelompok",
+  multiplier: "Faktor pengali",
+  legA: "Sisi siku-siku a (cm)",
+  legB: "Sisi siku-siku b (cm)",
+  slope: "Gradien m",
+  intercept: "Titik potong y",
+  quadraticA: "Koefisien kuadrat a (bukan nol)",
+  vertexX: "Puncak x (h)",
+  vertexY: "Puncak y (k)",
+  favorable: "Bola kuning",
+  total: "Total bola",
+  vectorAX: "Vektor A: x",
+  vectorAY: "Vektor A: y",
+  vectorBX: "Vektor B: x",
+  vectorBY: "Vektor B: y",
 };
 export function LearningFields({
   value,
@@ -111,6 +127,7 @@ export function LearningFields({
           apply(normalizeLearning({ kind: kind as LearningKind }))
         }
       />
+      <p className="muted">{model.description}</p>
       {Object.entries(model.defaults).map(([key, initial]) => (
         <div className="generate-field" key={`${draft.kind}-${key}`}>
           <Label htmlFor={`learning-${key}`}>{labels[key] || key}</Label>

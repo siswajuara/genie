@@ -1435,21 +1435,3 @@
   }
 }
 
-.frame-context-panel {
-  min-width: 0;
-  margin-block: 10px;
-}
-.frame-context-panel summary {
-  cursor: pointer;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-.frame-context-panel p {
-  overflow-wrap: anywhere;
-}
-.frame-context-panel textarea {
-  box-sizing: border-box;
-  max-width: 100%;
-  resize: vertical;
-  font-family: monospace;
-}

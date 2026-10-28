@@ -13,6 +13,7 @@ const useCases = new Set([
   "question",
   "answer",
   "explanation",
+  "closing",
 ]);
 const entries = [],
   identifiers = new Set();

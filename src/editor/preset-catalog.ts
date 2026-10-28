@@ -14,6 +14,7 @@ export const useCases = [
   "question",
   "answer",
   "explanation",
+  "closing",
 ] as const;
 export type PresetSummary = Omit<Preset, "objects"> & {
   identifier: string;

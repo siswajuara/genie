@@ -120,7 +120,7 @@ export function drawDiagram(ctx, element, shapes) {
   for (const s of shapes) {
     ctx.setLineDash(s.dash ? [6, 7] : []);
     ctx.strokeStyle = s.stroke || "transparent";
-    ctx.fillStyle = s.fill || "transparent";
+    ctx.fillStyle = !s.fill || s.fill === "none" ? "transparent" : s.fill;
     ctx.beginPath();
     if (s.t === "line") {
       ctx.moveTo(s.x1, s.y1);

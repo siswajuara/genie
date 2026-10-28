@@ -38,7 +38,15 @@ export type LearningKind =
   | "punctuation"
   | "affix"
   | "cause-effect"
-  | "story-map";
+  | "story-map"
+  | "equal-sharing"
+  | "equivalent-fractions"
+  | "pythagoras"
+  | "linear-function"
+  | "quadratic-function"
+  | "unit-circle"
+  | "probability-bag"
+  | "vector-addition";
 export type LearningSpec = {
   kind: LearningKind;
   animate?: boolean;

@@ -49,6 +49,7 @@ export type GenerationResult = {
     completionTokens: number;
     totalTokens: number;
   } | null;
+  repaired?: string[];
 };
 export function validateGenerationRequest(
   request: GenerationRequest,
@@ -61,4 +62,4 @@ export function buildScriptPrompt(request: GenerationRequest): {
 export function parseGenerationResult(
   value: unknown,
   request: GenerationRequest,
-): Pick<GenerationResult, "frames" | "post">;
+): Pick<GenerationResult, "frames" | "post"> & { repaired: string[] };

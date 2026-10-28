@@ -8,7 +8,7 @@ export async function learningPresets(root) {
       path.join(root, "design-references/learning-presets.json"),
       "utf8",
     ),
-  );
+  ).concat(JSON.parse(await fs.readFile(path.join(root, "design-references/stem-presets.json"), "utf8")));
   return source.map((s) => {
     const wrap = (value, width, size) => {
       const limit = Math.floor(width / (size * 0.6)),
@@ -68,7 +68,9 @@ export async function learningPresets(root) {
       text(
         "series",
         "Series label",
-        s.subject === "indonesian"
+        s.level
+          ? `${s.physics ? "FISIKA" : "MATEMATIKA"} • ${s.level.toUpperCase()}`
+          : s.subject === "indonesian"
           ? "BAHASA INDONESIA • SD–SMP"
           : s.physics
             ? "FISIKA • SD–SMP"
@@ -151,10 +153,10 @@ export async function learningPresets(root) {
       H: 1402,
       branding: "siswa-juara",
       motion: "auto",
-      collection: "SD & SMP",
+      collection: s.level ? "STEM SD–SMA" : "SD & SMP",
       scene: { duration: 8, transition: { type: "cut", duration: 0.4 } },
       useCases: [s.useCase],
-      tags: ["education", "science", "SD", "SMP", ...(s.tags || [])],
+      tags: ["education", "science", ...(s.level ? [s.level, "animation"] : ["SD", "SMP"]), ...(s.tags || [])],
       description: s.description || s.body,
       ...(!s.learning && !s.physics
         ? { teachingArea: { x: 84, y: 540, w: 954, h: 530 } }

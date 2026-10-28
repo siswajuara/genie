@@ -69,7 +69,7 @@ This is a structural example: the returned frame count, use cases, and text IDs 
 | Post `name`, `caption`               | Current page document's `metadata.post`, alongside locally assigned `frameIds` |
 | Canvas/page/frame IDs and timestamps | Assigned or preserved by the local editor                                      |
 
-Validation rejects missing/reordered scenes, missing or duplicated slot IDs, overflowing copy, repeated headlines, missing/unfinished narration, invalid LaTeX, and unsupported physics parameters or changed model kinds. The prompt requires complete question/answer reasoning, consistent SI units, and distinct scene purposes. Review remains editable before any canvas mutation. Existing animation and template geometry stay under app control.
+Validation rejects missing/reordered scenes, missing or duplicated slot IDs, overflowing copy, repeated headlines, missing/unfinished narration, invalid LaTeX, unsupported physics parameters or changed model kinds. If the model omits a physics or learning echo, the template's current diagram settings are kept and the review notes which scene was repaired; anything the model did return is still checked strictly. The prompt requires complete question/answer reasoning, consistent SI units, and distinct scene purposes. Review remains editable before any canvas mutation. Existing animation and template geometry stay under app control.
 
 ## Narration and usage
 
@@ -84,6 +84,7 @@ The current OpenCode one-shot response reports text only. Genie returns `usage:n
 ```sh
 node tests/generate.check.mjs
 node tests/narration.check.mjs
+node tests/subtitles.check.mjs
 node tests/science.check.mjs
 npm run build
 npm run sidecar:prepare
@@ -95,4 +96,4 @@ The generation checks use the actual SDK with a mocked HTTP service. They cover 
 
 SDK/API references: [OpenCode client](https://dev.opencode.ai/v2/docs/build/client/) and [API reference](https://dev.opencode.ai/v2/docs/api).
 
-Generate and narration also receive a full semantic frame context, including hidden/locked layers, diagram results, SVG labels, captions, and media descriptions. Pixel/audio contents are not inferred from filenames. Inspect **AI frame context** before generating; see [frame context and media limits](frame-context.md).
+Generate and narration also receive a full semantic frame context, including hidden/locked layers, diagram results, SVG labels, captions, and media descriptions. Pixel/audio contents are not inferred from filenames; see [frame context and media limits](frame-context.md).

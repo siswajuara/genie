@@ -54,7 +54,7 @@ export const GENERATION_PRESETS = [
   },
   {
     id: "school-lesson",
-    name: "SD–SMP lesson",
+    name: "SD–SMA lesson",
     description:
       "Visual matematika, fisika, atau Bahasa Indonesia sesuai materi.",
     frames: ["cover", "content", "question", "answer", "explanation"],
@@ -97,7 +97,7 @@ export const makeScenes = (
     narrate: true,
     note:
       preset.id === "school-lesson"
-        ? "Pelajaran SD atau SMP; tambahkan visual pembelajaran yang sesuai bila diperlukan."
+        ? "Pelajaran SD, SMP, atau SMA; sesuaikan kedalaman materi dengan kelas dan tambahkan visual pembelajaran bila diperlukan."
         : preset.id === "math-steps"
           ? "Use editable LaTeX equations for this step."
           : preset.id === "physics-demo"
@@ -109,7 +109,7 @@ export const sceneLabel = (value: string) =>
   value[0].toUpperCase() + value.slice(1);
 
 const educationalContext = (context: string) =>
-  /\bSD\b|\bSMP\b|matematika|\bmath\b|fisika|physics|bangun|geometri|geometry|kubus|balok|tabung|kerucut|persegi|segitiga|lingkaran|limas|prisma|bola|pecahan|fraction|garis bilangan|koordinat|diagram batang|kalimat|bahasa indonesia|suku kata|sinonim|antonim|ide pokok|urutan cerita|bandul|pendulum|pegas|spring|projectile|parabola|katrol|tuas|apung|massa jenis|gelombang|wave|rangkaian|circuit|cahaya|pemantulan|sudut|nilai tempat|jam analog|jaring|perkalian|perbandingan|imbuhan|tanda baca|sebab|akibat|cerita|hidrolik|tekanan|pembiasan|gesekan|glbb/i.test(
+  /\bSD\b|\bSMP\b|\bSMA\b|elementary|middle school|high school|trigonometri|trigonometry|pythagoras|vektor|vector|kuadrat|quadratic|peluang|probability|kalor|pemuaian|tumbukan|matematika|\bmath\b|fisika|physics|bangun|geometri|geometry|kubus|balok|tabung|kerucut|persegi|segitiga|lingkaran|limas|prisma|bola|pecahan|fraction|garis bilangan|koordinat|diagram batang|kalimat|bahasa indonesia|suku kata|sinonim|antonim|ide pokok|urutan cerita|bandul|pendulum|pegas|spring|projectile|parabola|katrol|tuas|apung|massa jenis|gelombang|wave|rangkaian|circuit|cahaya|pemantulan|sudut|nilai tempat|jam analog|jaring|perkalian|perbandingan|imbuhan|tanda baca|sebab|akibat|cerita|hidrolik|tekanan|pembiasan|gesekan|glbb/i.test(
     context,
   );
 export function rankedSceneTemplates(

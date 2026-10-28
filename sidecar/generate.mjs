@@ -170,10 +170,10 @@ export function buildScriptPrompt(request) {
       "Plan the entire sequence before writing: hook → context or example → exploration or question → resolution → recap and one practical next step, adapting to the actual scene order. A single scene must contain a complete useful message. Each scene must add something new. Resolve every question by the end; finish the final scene with a summary and a concrete action. Do not introduce unsupported characters or facts as though they came from the source.",
       "Follow each scene's purpose. Lists must have the requested number of parallel items, one per item slot or line. When a list's numbering is already fixed in the template, supply only the item text. Finish visible thoughts; avoid dangling clauses or cut-off phrases.",
       "This project creates local editable frames, not images or executable animation code. The selected template defines the existing layers. A scene with allowVisual=true also reserves space for one optional new typed teaching visual chosen by you. Ordinary text slots are plain prose: do not put raw LaTeX in them. Slots with role=latex require math-only LaTeX source (JSON-escape backslashes), without dollar delimiters, Markdown, document commands, URLs, or external packages. Supported: fractions, powers, roots, aligned equations, matrices, sums, integrals, and standard AMS notation. Keep each equation concise enough to read in its visual box. Equation layers already have reveal animations; preserve their IDs and purposes.",
-      "For scenes with diagrams, also return physics:[{id,settings}] with exactly one entry per supplied diagram. Keep its existing kind and use only that model's allowed parameter keys and ranges. The app supplies deterministic models: pendulum (small angle, at most 30 degrees), damped spring, projectile (no air resistance, equal launch/landing heights), uniform circular motion, constant-speed linear motion, free fall from rest, balanced ideal lever, ideal pulley support-force schematic, static buoyancy, transverse sine wave, ideal DC circuit with one resistor, reflection from a plane mirror, positive constant acceleration, frictionless inclined plane, balanced kinetic friction at constant speed, ideal hydraulics, gauge hydrostatic pressure, Snell refraction (including total internal reflection), longitudinal particle waves, and two series resistors. Use each catalog model description and constraints. Buoyancy is an equilibrium/full-submersion diagram, not a fluid dynamics solver; pulley is a support-force schematic rather than a complete rope-routing simulation. This is not a general physics engine or a gravity-orbit solver. Use SI units and make equations, numerical answers, diagram parameters, reasoning, and narration agree. For scenes without diagrams, omit physics or return an empty array. Never invent image generation, arbitrary simulations, JavaScript, TikZ, or a Manim pipeline.",
-      "For supplied learning slots return learning:[{id,settings}], exactly one per slot with the same ID and kind. These are editable mathematics and Indonesian-language diagrams. Geometry parameters use centimetres, square centimetres and cubic centimetres. The triangle and triangular-prism models specifically have right-triangle bases; regular-polygon with three sides is equilateral; trapezoids are isosceles and square pyramids are right pyramids. Solid diagrams are illustrative projections. Use the supplied metrics and model rules; do not confuse height with slant height or diagonal. Fractions have equal parts, graph axes start at zero, coordinates are (x,y). Indonesian examples: use correct S-P-O-K roles in transitive sentences, syllables that join to the word, suitable synonyms/antonyms, coherent story order, and supporting details that match the main idea. Do not invent real survey data.",
-      "When allowVisual=true, decide whether a diagram helps this particular scene. If useful, add visual:{type:'learning',settings:{kind,...}} or visual:{type:'physics',settings:{kind,...}} or visual:{type:'latex',source:string}, using ONLY the supplied teachingCatalog kinds, fields, defaults and ranges. This creates a NEW editable element in the reserved teaching area, even when the template initially has no diagram. Do not return position, size, IDs, SVG, HTML, URLs, JavaScript, or extra layers. Omit visual or use null if unnecessary. Never return visual for allowVisual=false/absent. Keep the diagram, copy, numerical reasoning, and narration consistent. Prefer simple concrete diagrams for SD and appropriate concepts for SMP; use no calculus unless explicitly requested. Avoid redundant diagrams on cover/recap scenes.",
-      "Use the audience and subject in the user's context. Keep primary-school examples age appropriate; use advanced notation only when requested. For Q&A, state given values and units, pose one solvable question, then answer that same question and show the calculation or evidence before the recap. Narration speaks equations naturally; do not read LaTeX command names or audio tags aloud.",
+      "For scenes with diagrams, also return physics:[{id,settings}] with exactly one entry per supplied diagram. Keep its existing kind and use only that model's allowed parameter keys and ranges. The app supplies deterministic models: pendulum (small angle, at most 30 degrees), damped spring, projectile (no air resistance, equal launch/landing heights), uniform circular motion, constant-speed linear motion, free fall from rest, balanced ideal lever, ideal pulley support-force schematic, static buoyancy, transverse sine wave, ideal DC circuit with one resistor, reflection from a plane mirror, positive constant acceleration, frictionless inclined plane, balanced kinetic friction at constant speed, ideal hydraulics, gauge hydrostatic pressure, Snell refraction (including total internal reflection), longitudinal particle waves, two series resistors, sound travel, ideal single-phase heating, falling-body energy conversion, two parallel resistors, one-dimensional elastic collisions, and linear thermal expansion. Use each catalog model description and constraints. Buoyancy is an equilibrium/full-submersion diagram, not a fluid dynamics solver; pulley is a support-force schematic rather than a complete rope-routing simulation. This is not a general physics engine or a gravity-orbit solver. Use SI units and make equations, numerical answers, diagram parameters, reasoning, and narration agree. For scenes without diagrams, omit physics or return an empty array. Never invent image generation, arbitrary simulations, JavaScript, TikZ, or a Manim pipeline.",
+      "For supplied learning slots return learning:[{id,settings}], exactly one per slot with the same ID and kind. These are editable mathematics and Indonesian-language diagrams. Geometry parameters use centimetres, square centimetres and cubic centimetres. The triangle and triangular-prism models specifically have right-triangle bases; regular-polygon with three sides is equilateral; trapezoids are isosceles and square pyramids are right pyramids. Solid diagrams are illustrative projections. Use the supplied metrics and model rules; do not confuse height with slant height or diagonal. Fractions have equal parts. Bar/line data-chart y axes start at zero; function graphs use the labeled signed axis ranges. Unit-circle radius is one, vector components are unitless, and coordinates are (x,y). Indonesian examples: use correct S-P-O-K roles in transitive sentences, syllables that join to the word, suitable synonyms/antonyms, coherent story order, and supporting details that match the main idea. Do not invent real survey data.",
+      "When allowVisual=true, decide whether a diagram helps this particular scene. If useful, add visual:{type:'learning',settings:{kind,...}} or visual:{type:'physics',settings:{kind,...}} or visual:{type:'latex',source:string}, using ONLY the supplied teachingCatalog kinds, fields, defaults and ranges. This creates a NEW editable element in the reserved teaching area, even when the template initially has no diagram. Do not return position, size, IDs, SVG, HTML, URLs, JavaScript, or extra layers. Omit visual or use null if unnecessary. Never return visual for allowVisual=false/absent. Keep the diagram, copy, numerical reasoning, and narration consistent. Prefer simple concrete diagrams for SD, appropriate concepts for SMP, and graphs, trigonometry, vectors or conservation laws for SMA when requested; use no calculus unless explicitly requested. Avoid redundant diagrams on cover/recap scenes.",
+      "Use the audience and subject in the user's context. Keep primary-school examples age appropriate; use advanced notation only when requested. For Q&A, state given values and units, pose one solvable question, then answer that same question and show the calculation or evidence before the recap. Narration speaks equations naturally; do not read LaTeX command names or audio tags aloud. Write web domains with (dot) instead of a period, e.g. siswajuara dot com, so each part is spoken.",
       request.narration
         ? "For each narrated scene, target about 2 words per second within its narrationWords range, excluding audio tags. Use at most 2 of that scene's English ElevenLabs audio tags per sentence. Narration must complement the visible copy, develop a complete thought, and end with sentence punctuation. Connect naturally to the next scene without requiring a separate CTA on every scene. The final scene must resolve the topic and offer a concrete next step. Scenes with narrate=false must have an empty narration string."
         : "Return an empty narration string for every frame.",
@@ -230,6 +230,9 @@ export function parseGenerationResult(value, request) {
   )
     throw Error("AI returned an incomplete scene sequence. Generate again.");
   const headlines = new Map();
+  const repaired = [];
+  const omitted = (value) =>
+    value === undefined || (Array.isArray(value) && value.length === 0);
   const frames = value.frames.map((frame, index) => {
     const scene = request.scenes[index];
     if (
@@ -294,55 +297,77 @@ export function parseGenerationResult(value, request) {
         );
     }
     const diagrams = scene.diagrams || [];
-    if (
-      (diagrams.length &&
-        (!Array.isArray(frame.physics) ||
-          frame.physics.length !== diagrams.length)) ||
-      (frame.physics !== undefined &&
-        (!Array.isArray(frame.physics) ||
-          frame.physics.length !== diagrams.length))
-    )
-      throw Error(
-        `AI returned invalid physics for scene ${index + 1}. Generate again.`,
+    let physics;
+    if (diagrams.length > 0 && omitted(frame.physics)) {
+      // The model dropped the echo: keep the template's current settings so
+      // one missing key does not discard the whole sequence. Entries the
+      // model did return are still checked strictly below.
+      physics = diagrams.map((diagram) => ({
+        id: diagram.id,
+        settings: normalizePhysics(diagram.example),
+      }));
+      repaired.push(
+        `Scene ${index + 1}: kept template physics diagrams (AI omitted them).`,
       );
-    const seen = new Set();
-    const physics = (frame.physics || []).map((entry) => {
-      const slot = diagrams.find((diagram) => diagram.id === entry?.id);
+    } else {
       if (
-        !slot ||
-        seen.has(entry.id) ||
-        entry.settings?.kind !== slot.example.kind
+        frame.physics !== undefined &&
+        (!Array.isArray(frame.physics) ||
+          frame.physics.length !== diagrams.length)
       )
         throw Error(
-          `AI changed a physics diagram in scene ${index + 1}. Keep its ID and model.`,
+          `AI returned invalid physics for scene ${index + 1}. Generate again.`,
         );
-      seen.add(entry.id);
-      return { id: entry.id, settings: normalizePhysics(entry.settings) };
-    });
-    const learningSlots = scene.learning || [],
-      seenLearning = new Set();
-    if (
-      (learningSlots.length && !Array.isArray(frame.learning)) ||
-      (frame.learning !== undefined &&
+      const seen = new Set();
+      physics = (frame.physics || []).map((entry) => {
+        const slot = diagrams.find((diagram) => diagram.id === entry?.id);
+        if (
+          !slot ||
+          seen.has(entry.id) ||
+          entry.settings?.kind !== slot.example.kind
+        )
+          throw Error(
+            `AI changed a physics diagram in scene ${index + 1}. Keep its ID and model.`,
+          );
+        seen.add(entry.id);
+        return { id: entry.id, settings: normalizePhysics(entry.settings) };
+      });
+    }
+    const learningSlots = scene.learning || [];
+    let learning;
+    if (learningSlots.length > 0 && omitted(frame.learning)) {
+      // Same repair as physics above: keep template settings on omission.
+      learning = learningSlots.map((slot) => ({
+        id: slot.id,
+        settings: normalizeLearning(slot.example),
+      }));
+      repaired.push(
+        `Scene ${index + 1}: kept template learning diagrams (AI omitted them).`,
+      );
+    } else {
+      if (
+        frame.learning !== undefined &&
         (!Array.isArray(frame.learning) ||
-          frame.learning.length !== learningSlots.length))
-    )
-      throw Error(
-        `AI returned invalid learning diagrams for scene ${index + 1}.`,
-      );
-    const learning = (frame.learning || []).map((entry) => {
-      const slot = learningSlots.find((slot) => slot.id === entry?.id);
-      if (
-        !slot ||
-        seenLearning.has(entry.id) ||
-        entry.settings?.kind !== slot.example.kind
+          frame.learning.length !== learningSlots.length)
       )
         throw Error(
-          `AI changed a learning diagram in scene ${index + 1}. Keep its ID and model.`,
+          `AI returned invalid learning diagrams for scene ${index + 1}.`,
         );
-      seenLearning.add(entry.id);
-      return { id: entry.id, settings: normalizeLearning(entry.settings) };
-    });
+      const seenLearning = new Set();
+      learning = (frame.learning || []).map((entry) => {
+        const slot = learningSlots.find((slot) => slot.id === entry?.id);
+        if (
+          !slot ||
+          seenLearning.has(entry.id) ||
+          entry.settings?.kind !== slot.example.kind
+        )
+          throw Error(
+            `AI changed a learning diagram in scene ${index + 1}. Keep its ID and model.`,
+          );
+        seenLearning.add(entry.id);
+        return { id: entry.id, settings: normalizeLearning(entry.settings) };
+      });
+    }
     let visual;
     if (frame.visual != null) {
       if (
@@ -387,5 +412,6 @@ export function parseGenerationResult(value, request) {
   return {
     frames,
     post: { name: value.post.name.trim(), caption: value.post.caption.trim() },
+    repaired,
   };
 }

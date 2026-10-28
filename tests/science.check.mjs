@@ -3,7 +3,9 @@ import {
   normalizePhysics,
   normalizeLatex,
   physicsState,
+  detectLatexSource,
 } from "../sidecar/science.mjs";
+import { textToEquation } from "../src/editor/science.ts";
 import { renderLatex } from "../src/editor/latex-renderer.mjs";
 import {
   buildScriptPrompt,
@@ -123,7 +125,6 @@ assert.equal(
   10,
 );
 for (const physics of [
-  [],
   [{ id: "unknown", settings: projectile }],
   [{ id: "diagram", settings: { kind: "orbit" } }],
   [{ id: "diagram", settings: { ...projectile, velocity: -1 } }],
@@ -135,6 +136,32 @@ for (const physics of [
     ),
   );
 }
+// An omitted echo is repaired from the template instead of failing.
+const repaired = parseGenerationResult(
+  { ...result, frames: [{ ...result.frames[0], physics: [] }] },
+  request,
+);
+assert.equal(repaired.frames[0].physics[0].settings.velocity, 10);
+assert.match(repaired.repaired.join(" "), /Scene 1.*physics/);
+// Plain-text math detection for the Convert to equation flow.
+assert.equal(detectLatexSource("A_n = A_0 e^{-knT}"), "A_n = A_0 e^{-knT}");
+assert.equal(detectLatexSource("Lihat \\frac12 dari kue"), "Lihat \\frac12 dari kue");
+assert.equal(detectLatexSource("$x$"), "x");
+assert.equal(detectLatexSource("$$a^2+b^2$$"), "a^2+b^2");
+assert.equal(detectLatexSource("\\(\\int_0^1 x\\,dx\\)"), "\\int_0^1 x\\,dx");
+assert.equal(detectLatexSource("Halo apa kabar?"), null);
+assert.equal(detectLatexSource("file_name test"), null);
+assert.equal(detectLatexSource("costs $5 and $6 total"), null);
+assert.equal(detectLatexSource(""), null);
+assert.equal(detectLatexSource("C:\\new folder"), null);
+const converted = await textToEquation(
+  { id: "t", t: "text", n: "T", x: 0, y: 0, w: 600, h: 130, text: "A_n" },
+  detectLatexSource("Diketahui A_n = A_0 e^{-knT}."),
+);
+assert.equal(converted.t, "img");
+assert.equal(converted.text, "");
+assert.equal(converted.latex.source, "Diketahui A_n = A_0 e^{-knT}.");
+assert.match(converted.src, /^data:image\/svg\+xml/);
 console.log(
   "PASS: analytical physics, SI parameter bounds, local LaTeX SVG, invalid math, and science generation contracts; no provider calls.",
 );

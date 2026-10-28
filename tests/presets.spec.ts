@@ -74,16 +74,16 @@ test("catalog is metadata only; browsing is lazy, searchable, filtered, and pagi
     ),
   ).toEqual(["catalog.json"]);
   await expect(
-    library.getByText("110 templates", { exact: true }),
+    library.getByText("132 templates", { exact: true }),
   ).toBeVisible();
   await library.getByRole("button", { name: "Next template page" }).click();
   await expect(library.locator(".template-card")).toHaveCount(20);
-  await expect(library.getByText("Page 2 of 6", { exact: true })).toBeVisible();
-  for (let next = 0; next < 4; next++)
+  await expect(library.getByText("Page 2 of 7", { exact: true })).toBeVisible();
+  for (let next = 0; next < 5; next++)
     await library.getByRole("button", { name: "Next template page" }).click();
-  await expect(library.locator(".template-card")).toHaveCount(10);
+  await expect(library.locator(".template-card")).toHaveCount(12);
   await library.getByRole("button", { name: "Question", exact: true }).click();
-  await expect(library.locator(".template-card")).toHaveCount(9);
+  await expect(library.locator(".template-card")).toHaveCount(11);
   await library
     .getByRole("textbox", { name: "Search templates" })
     .fill("studio question where");
@@ -305,10 +305,11 @@ test("all catalog files validate and groups remain local", async ({ page }) => {
         .map((o) => o.fill),
     };
   });
-  expect(result.count).toBe(110);
+  expect(result.count).toBe(132);
   expect(result.references).toEqual([]);
   expect(result.cases.sort()).toEqual([
     "answer",
+    "closing",
     "content",
     "cover",
     "explanation",
@@ -403,7 +404,7 @@ test("remove unsuitable library presets, persist the choice, and restore without
   await page.reload();
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
   await expect(
-    library.getByText("108 templates", { exact: true }),
+    library.getByText("110 templates", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".footer-meta")).toContainText("1 frame");
   await library.getByRole("combobox", { name: "Template collection" }).click();
@@ -442,7 +443,7 @@ test("remove unsuitable library presets, persist the choice, and restore without
     }),
   ).toBeVisible();
   await expect(library.locator(".template-library-heading > span")).toHaveText(
-    "110",
+    "132",
   );
   await expect(page.locator(".footer-meta")).toContainText("1 frame");
 });
@@ -483,7 +484,7 @@ test("every library design inherits the supplied logo and footer as independent 
         .map((p) => p.name),
     };
   });
-  expect(result.count).toBe(110);
+  expect(result.count).toBe(132);
   const branding = source.objects.filter(
     (o) =>
       /^siswa-juara-logo-|^social-/.test(o.identifier) ||
@@ -609,7 +610,7 @@ test("pack contains no reconstructed reference artwork", async () => {
       "utf8",
     ),
   );
-  expect(catalog.presets).toHaveLength(110);
+  expect(catalog.presets).toHaveLength(132);
   expect(
     catalog.presets.some(
       (p) => p.reference || p.identifier.startsWith("reference-"),
@@ -880,10 +881,12 @@ test("Studio presets fit their copy, resolve separate artwork, animate, and gene
       frames: portable.elements.filter((o) => o.t === "frame").length,
     };
   });
-  expect(result.count).toBe(14);
+  expect(result.count).toBe(16);
   expect(result.cases).toEqual([
     "answer",
     "answer",
+    "closing",
+    "closing",
     "content",
     "content",
     "cover",
@@ -904,5 +907,5 @@ test("Studio presets fit their copy, resolve separate artwork, animate, and gene
   expect(result.animated).toBe(true);
   expect(result.placeholders).toBe(2);
   expect(result.fixed).toBe(true);
-  expect(result.frames).toBe(14);
+  expect(result.frames).toBe(16);
 });

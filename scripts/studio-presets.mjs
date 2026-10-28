@@ -401,6 +401,37 @@ export async function studioPresets(root) {
           cta("Siapkan bacaan. Nikmati percakapannya."),
         );
         break;
+      case "closing":
+        add(
+          headline(s.headline, { size: 72, h: 300 }),
+          text("Encouragement", s.body, 70, 520, 980, 130, 34),
+          rect("CTA card", 64, 680, 994, 300, C.navy, 36),
+          text("Call to action", s.detail, 100, 740, 920, 180, 46, {
+            color: C.white,
+            align: "center",
+          }),
+          mascot(s.art, 331, 1010, 460, 350),
+        );
+        break;
+      case "closing-next":
+        add(
+          rect("CTA panel", 64, 170, 994, 400, C.gold, 36),
+          headline(s.headline, {
+            x: 100,
+            y: 210,
+            w: 920,
+            h: 220,
+            size: 72,
+          }),
+          text("Encouragement", s.body, 70, 610, 980, 130, 34),
+          rect("Link card", 64, 780, 994, 220, C.navy, 36),
+          text("Call to action", s.detail, 100, 820, 920, 140, 44, {
+            color: C.white,
+            align: "center",
+          }),
+          mascot(s.art, 391, 1030, 340, 330),
+        );
+        break;
       default:
         throw Error(`Unknown Studio layout: ${s.layout}`);
     }

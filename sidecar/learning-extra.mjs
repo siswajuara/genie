@@ -21,6 +21,57 @@ const prose = (label, defaults, fields, description) => ({
   description,
 });
 export const extraLearningModels = {
+  "equal-sharing": numeric(
+    "Pembagian sama rata",
+    { groups: 3, perGroup: 4 },
+    { groups: [1, 6], perGroup: [1, 8] },
+    "SD: total = groups × perGroup. Benda dibagi sama rata tanpa sisa; sorotan menelusuri kelompok tanpa mengubah jumlah.",
+    ["groups", "perGroup"],
+  ),
+  "equivalent-fractions": numeric(
+    "Pecahan senilai",
+    { numerator: 1, denominator: 3, multiplier: 2 },
+    { numerator: [0, 6], denominator: [1, 6], multiplier: [2, 4] },
+    "SD: 0≤numerator≤denominator. Kalikan pembilang dan penyebut dengan bilangan yang sama; dua batang menunjukkan bagian utuh yang sama.",
+    ["numerator", "denominator", "multiplier"],
+  ),
+  pythagoras: numeric(
+    "Teorema Pythagoras",
+    { legA: 3, legB: 4 },
+    { legA: [1, 12], legB: [1, 12] },
+    "SMP: segitiga siku-siku dengan dua sisi tegak lurus a dan b dalam cm. Sisi miring c=√(a²+b²); bukan untuk segitiga sembarang.",
+  ),
+  "linear-function": numeric(
+    "Grafik fungsi linear",
+    { slope: 1, intercept: 1 },
+    { slope: [-3, 3], intercept: [-4, 4] },
+    "SMP: y=mx+b pada −4≤x≤4. Sumbu y menyesuaikan rentang; penanda menelusuri grafik tanpa mengubah fungsi atau jawaban.",
+  ),
+  "quadratic-function": numeric(
+    "Grafik fungsi kuadrat",
+    { quadraticA: 1, vertexX: 0, vertexY: -2 },
+    { quadraticA: [-3, 3], vertexX: [-2, 2], vertexY: [-4, 4] },
+    "SMP–SMA: y=a(x−h)²+k, 0,1≤|a|≤3. Puncak (h,k); domain yang ditampilkan h−3≤x≤h+3, skala sumbu tertera.",
+  ),
+  "unit-circle": numeric(
+    "Trigonometri lingkaran satuan",
+    { degrees: 60 },
+    { degrees: [0, 360] },
+    "SMA: radius 1, sudut positif berlawanan arah jarum jam dari sumbu x. Titik (cos θ,sin θ) tetap; sorotan menelusuri busur sudut.",
+  ),
+  "probability-bag": numeric(
+    "Peluang mengambil bola",
+    { favorable: 3, total: 8 },
+    { favorable: [0, 20], total: [1, 20] },
+    "SD–SMP: favorable≤total bola dengan kesempatan terambil sama. P=bola kuning/total. Sorotan bukan percobaan acak atau hasil pengambilan.",
+    ["favorable", "total"],
+  ),
+  "vector-addition": numeric(
+    "Penjumlahan vektor",
+    { vectorAX: 3, vectorAY: 1, vectorBX: -1, vectorBY: 2 },
+    { vectorAX: [-4, 4], vectorAY: [-4, 4], vectorBX: [-4, 4], vectorBY: [-4, 4] },
+    "SMA: dua vektor pada sumbu dengan skala sama, disusun ujung ke pangkal. R=(Ax+Bx,Ay+By), panjang |R|=√(Rx²+Ry²); komponen tanpa satuan.",
+  ),
   angle: numeric(
     "Sudut dan jenisnya",
     { degrees: 60 },
@@ -234,6 +285,12 @@ function fieldValue(value, schema) {
 export function validateExtraLearning(p) {
   const m = extraLearningModels[p.kind];
   if (!m) return;
+  if (p.kind === "equivalent-fractions" && p.numerator > p.denominator)
+    throw Error("Use a fraction between zero and one.");
+  if (p.kind === "quadratic-function" && Math.abs(p.quadraticA) < 0.1)
+    throw Error("Use a quadratic coefficient with magnitude at least 0.1.");
+  if (p.kind === "probability-bag" && p.favorable > p.total)
+    throw Error("Favorable outcomes must not exceed the total.");
   for (const [key, schema] of Object.entries(m.fields || {}))
     if (!fieldValue(p[key], schema))
       throw Error(`Invalid ${key} for ${m.label}.`);
@@ -267,6 +324,24 @@ export function validateExtraLearning(p) {
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 export function extraLearningMetrics(p) {
   switch (p.kind) {
+    case "equal-sharing":
+      return { total: p.groups * p.perGroup, quotient: p.perGroup };
+    case "equivalent-fractions":
+      return { numerator: p.numerator * p.multiplier, denominator: p.denominator * p.multiplier };
+    case "pythagoras":
+      return { hypotenuse: Math.hypot(p.legA, p.legB), area: p.legA * p.legB / 2 };
+    case "linear-function":
+      return { slope: p.slope, intercept: p.intercept };
+    case "quadratic-function":
+      return { vertexX: p.vertexX, vertexY: p.vertexY, axis: p.vertexX };
+    case "unit-circle":
+      return { cosine: Math.cos(p.degrees * Math.PI / 180), sine: Math.sin(p.degrees * Math.PI / 180) };
+    case "probability-bag":
+      return { probability: p.favorable / p.total };
+    case "vector-addition": {
+      const resultX = p.vectorAX + p.vectorBX, resultY = p.vectorAY + p.vectorBY;
+      return { resultX, resultY, magnitude: Math.hypot(resultX, resultY) };
+    }
     case "angle":
       return { degrees: p.degrees };
     case "regular-polygon":

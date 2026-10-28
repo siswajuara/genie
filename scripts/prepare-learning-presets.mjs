@@ -51,5 +51,5 @@ for (const raw of presets) {
 await fs.writeFile(filename, JSON.stringify(catalog, null, 2) + "\n");
 await indexPackPresets(pack);
 console.log(
-  `Prepared ${presets.length} SD–SMP learning presets; ${catalog.presets.length} templates available.`,
+  `Prepared ${presets.length} SD–SMA learning presets; ${catalog.presets.length} templates available.`,
 );

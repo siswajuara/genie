@@ -5,7 +5,83 @@ export function drawExtraPhysics(d, p, s) {
   if (!extraPhysicsModels[p.kind]) return false;
   const { line, path, rect, ellipse, label, arrow, color, ink, soft } = d,
     t = s.time;
-  if (p.kind === "accelerated-motion") {
+  if (p.kind === "sound-travel") {
+    const x = 120 + 650 * s.progress;
+    rect(65, 190, 55, 100, color); label("Sumber", 45, 335, 24);
+    line(120, 240, 770, 240, soft, true);
+    path(Array.from({ length: 41 }, (_, i) => { const a = -0.8 + 1.6 * i / 40; return [120 + 650 * s.progress * Math.cos(a), 240 + 150 * Math.sin(a)]; }), color);
+    ellipse(x, 240, 9, 9, "#ffcf25");
+    rect(770, 200, 45, 80, s.progress >= 1 ? "#ffcf25" : "#e7f0ff");
+    label("Penerima", 725, 335, 23);
+    label(`v = ${n(p.soundSpeed)} m/s; jarak = ${n(p.distance)} m`, 35, 85, 25);
+    label(`t = ${n(t)} s; s = ${n(s.x)} m; tiba pada ${n(s.duration)} s`, 35, 430, 25);
+    label("Muka gelombang merambat; medium tidak ikut berpindah.", 35, 475, 24);
+  } else if (p.kind === "heating") {
+    rect(150, 150, 340, 210, focusColor(0, 2, t, "#e7f0ff", "#ffe58d"));
+    label("Zat satu fase", 320, 245, 29, ink, "center");
+    rect(150, 365, 340, 20, "#d89300"); arrow(320, 440, 0, -45, "#d89300");
+    rect(650, 130, 40, 255, "#ffffff");
+    rect(654, 380 - 245 * s.progress, 32, 5 + 245 * s.progress, "#d89300", "#d89300", 0);
+    label(`${n(s.temperature)} °C`, 600, 105, 28);
+    label(`m = ${n(p.mass)} kg; c = ${n(p.specificHeat)} J/(kg·K)`, 35, 75, 24);
+    label(`Q = Pt = mcΔT ≈ ${n(s.heat)} J`, 35, 435, 26);
+    label(`P = ${n(p.power)} W; t = ${n(t)} s • tanpa perubahan fase`, 35, 480, 23);
+  } else if (p.kind === "energy-conservation") {
+    const y = 115 + 230 * (1 - s.y / p.height);
+    line(80, 370, 330, 370); line(205, 90, 205, 350, soft, true);
+    ellipse(205, y, 22, 22, color);
+    label(`h = ${n(s.y)} m`, 75, 410, 24);
+    const fractions = [s.potential / s.totalEnergy, s.kinetic / s.totalEnergy, 1],
+      names = ["Ep", "Ek", "Ep + Ek"], colors = [color, "#d89300", "#269475"];
+    fractions.forEach((f, i) => {
+      rect(430 + i * 135, 115, 75, 250, "#ffffff", soft, 0);
+      rect(430 + i * 135, 365 - 250 * f, 75, 250 * f, colors[i], colors[i], 0);
+      label(names[i], 468 + i * 135, 400, 24, ink, "center");
+    });
+    label(`Ep ≈ ${n(s.potential)} J; Ek ≈ ${n(s.kinetic)} J`, 35, 450, 25);
+    label(`Energi total = ${n(s.totalEnergy)} J • sebelum tumbukan`, 35, 485, 24);
+  } else if (p.kind === "parallel-circuit") {
+    line(140, 150, 140, 350); line(760, 150, 760, 350);
+    for (let i = 0; i < 2; i++) {
+      const y = 150 + i * 100, current = i ? s.current2 : s.current1;
+      line(140, y, 405, y, color); line(495, y, 760, y, color);
+      rect(405, y - 17, 90, 34, "#ffffff", color, 0);
+      const phase = (t * current * 0.35) % 1;
+      ellipse(140 + 620 * phase, y, 8, 8, "#ffcf25");
+      arrow(250, y - 28, 70, 0);
+      label(`R${i + 1} = ${n(i ? p.resistance2 : p.resistance1)} Ω; I${i + 1} = ${n(current)} A`, 315, y - 45, 23);
+    }
+    line(140, 350, 430, 350); line(470, 350, 760, 350);
+    line(430, 320, 430, 380); line(470, 333, 470, 367);
+    label("+", 400, 400, 24); label("−", 465, 400, 24);
+    label(`U = ${n(p.voltage)} V pada setiap cabang`, 35, 75, 25);
+    label(`I total = I₁ + I₂ = ${n(s.current)} A; R total ≈ ${n(s.resistance)} Ω`, 35, 450, 24);
+    label("Arus konvensional: + → resistor → −", 35, 485, 23);
+  } else if (p.kind === "elastic-collision") {
+    const tc = s.collisionTime, hit = -p.distance / 2 + p.velocity1 * tc,
+      endpoints = [-p.distance / 2, p.distance / 2, hit + s.finalVelocity1 * tc, hit + s.finalVelocity2 * tc],
+      lo = Math.min(...endpoints), hi = Math.max(...endpoints),
+      X = (x) => 120 + 660 * (x - lo) / (hi - lo),
+      x1 = X(s.x) - 15, x2 = X(s.x2) + 15;
+    line(70, 290, 835, 290); line(X(hit), 170, X(hit), 310, soft, true);
+    ellipse(x1, 265, 14, 14, color); ellipse(x2, 265, 14, 14, "#d89300", "#d89300");
+    if (Math.abs(s.v1) > 1e-10) arrow(x1, 215, 55 * Math.sign(s.v1), 0);
+    if (Math.abs(s.v2) > 1e-10) arrow(x2, 335, 55 * Math.sign(s.v2), 0, "#d89300");
+    label(`m₁ = ${n(p.mass1)} kg; m₂ = ${n(p.mass2)} kg`, 35, 85, 25);
+    label(`v₁ = ${n(s.v1)} m/s; v₂ = ${n(s.v2)} m/s`, 35, 135, 25);
+    label(`t = ${n(t)} s; tumbukan pada ${n(tc)} s`, 35, 395, 25);
+    label(`Momentum = ${n(s.momentum)} kg·m/s; Ek = ${n(s.kinetic)} J`, 35, 440, 24);
+    label("Dua massa titik • gaya luar nol • lenting sempurna", 35, 480, 23);
+  } else if (p.kind === "thermal-expansion") {
+    rect(100, 155, 540, 45, "#98bcff"); label("Panjang awal L₀", 100, 130, 24);
+    rect(100, 290, 540, 45, "#98bcff");
+    rect(640, 290, 150 * s.progress, 45, "#ffcf25", "#d89300", 0);
+    line(640, 210, 640, 365, soft, true);
+    label("ΔL diperbesar pada gambar", 100, 380, 24);
+    label(`L₀ = ${n(p.length)} m; α = ${p.expansionCoefficient.toExponential(2)} K⁻¹`, 35, 75, 24);
+    label(`ΔT = ${n(s.temperatureRise)} K; ΔL ≈ ${n(s.expansion * 1000)} mm`, 35, 435, 25);
+    label("ΔL = αL₀ΔT • ramp suhu ilustratif selama 6 s", 35, 480, 24);
+  } else if (p.kind === "accelerated-motion") {
     line(70, 330, 830, 330);
     const x = 85 + (720 * s.x) / p.distance;
     rect(x - 23, 245, 46, 80, color);

@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { prepareVideos, disposeVideos, type MediaImages } from "./video";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { frames, makeElement, type Element } from "./model";
-import { prepareScienceElement } from "./science";
+import { prepareScienceElement, textToEquation } from "./science";
+import { detectLatexSource } from "../../sidecar/science.mjs";
 import { bounds, hitElements, intersects, reparentOnDrop } from "./scene";
 import { renderScene, type RenderCache } from "./render-scene";
 import type { Editor } from "./use-editor";
@@ -110,20 +111,26 @@ export function Canvas({
     if (!value.trim()) return;
     const text = value.replace(/\r\n?/g, "\n"),
       o = makeElement("Text");
-    e.add(
-      {
-        ...o,
-        n: text.split("\n")[0].slice(0, 40) || "Text",
-        text,
-        align: "left",
-        w: Math.min(
-          800,
-          Math.max(160, ...text.split("\n").map((line) => line.length * 26)),
-        ),
-        h: Math.max(64, text.split("\n").length * 52),
-      },
-      at,
-    );
+    const sized = {
+      ...o,
+      n: text.split("\n")[0].slice(0, 40) || "Text",
+      text,
+      align: "left",
+      w: Math.min(
+        800,
+        Math.max(160, ...text.split("\n").map((line) => line.length * 26)),
+      ),
+      h: Math.max(64, text.split("\n").length * 52),
+    };
+    const math = detectLatexSource(text);
+    if (math) {
+      // Pasted math becomes a rendered equation instead of literal text.
+      void textToEquation(sized, math)
+        .then((ready) => e.add(ready, at))
+        .catch(() => e.add(sized, at));
+      return;
+    }
+    e.add(sized, at);
   }
   async function placeTransfer(
     data: DataTransfer,

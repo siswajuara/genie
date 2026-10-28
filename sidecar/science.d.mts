@@ -18,7 +18,13 @@ export type PhysicsKind =
   | "hydrostatic-pressure"
   | "refraction"
   | "longitudinal-wave"
-  | "series-circuit";
+  | "series-circuit"
+  | "sound-travel"
+  | "heating"
+  | "energy-conservation"
+  | "parallel-circuit"
+  | "elastic-collision"
+  | "thermal-expansion";
 export type PhysicsSpec = {
   kind: PhysicsKind;
   gravity?: number;
@@ -57,6 +63,16 @@ export type PhysicsSpec = {
   index2?: number;
   resistance1?: number;
   resistance2?: number;
+  soundSpeed?: number;
+  specificHeat?: number;
+  power?: number;
+  initialTemperature?: number;
+  temperatureRise?: number;
+  mass1?: number;
+  mass2?: number;
+  velocity1?: number;
+  velocity2?: number;
+  expansionCoefficient?: number;
 };
 export type LatexSpec = { source: string; displayMode?: boolean };
 export const physicsModels: Record<
@@ -71,6 +87,7 @@ export const physicsModels: Record<
 >;
 export function normalizePhysics(raw: unknown): PhysicsSpec;
 export function normalizeLatex(raw: unknown): Required<LatexSpec>;
+export function detectLatexSource(text: unknown): string | null;
 export function physicsState(
   raw: PhysicsSpec,
   seconds: number,

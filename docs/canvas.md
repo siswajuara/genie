@@ -61,7 +61,7 @@ Changing stack order keeps a layer in its frame. Use **Properties → Arrange �
 The editor calls reusable frame presets **Templates**. The supplied Siswa Juara pack currently contains 18: 10 Classic layouts, seven Essentials layouts, and the standard frame. Another pack may have a different catalog.
 
 1. Connect the pack in **Setting → Assets**. Desktop remembers the folder in local `config.json`; browser folder selections last for the session. In development, a prepared local pack connects automatically.
-2. Open **Templates**. Search names, topics, or tags; combine use case, collection, and format filters. Use cases include Cover, List, Content, Image, Question, Answer, and Explanation.
+2. Open **Templates**. Search names, topics, or tags; combine use case, collection, and format filters. Use cases include Cover, List, Content, Image, Question, Answer, Explanation, and Closing.
 3. Preview a template. **Add frame** creates another frame; **Replace selected frame** replaces the selected frame's design layers and applies the template's dimensions and scene settings. Save a version before replacing a scene you have already edited.
 4. Review the result in context. Templates keep text, panels, ornaments, and artwork as separate layers. **Compare original reference** is no longer offered: the reconstructed reference conversions were removed after visible seams were found across characters and background panels.
 
@@ -111,7 +111,7 @@ Narration belongs to the selected frame. Select its frame or a layer inside it, 
 
 Open **Setting → Audio**, add an ElevenLabs account name and API key, and enable it. **Refresh credits** reads the provider's actual account allowance and usage. If the key lacks permission to read credits, follow the returned permission message. Keys remain in local `config.json` and are excluded from canvas exports.
 
-Return to the frame and choose **Voice account**. The current editor uses the fixed **Roger** voice; this selector chooses the billed account. **Check rotation** in Setting checks account selection and credits without generating speech; narration generation uses the account you explicitly choose in its panel. Soniox is reserved in configuration and is not a current narration option.
+Return to the frame and choose **Voice account** and **Narration voice** (Default/Story/News, Male/Female; older drafts may still use Roger). The account selector chooses the billed account. **Check rotation** in Setting checks account selection and credits without generating speech; narration generation uses the account you explicitly choose in its panel. Soniox is reserved in configuration and is not a current narration option.
 
 ### Generate and review a voice clip
 
@@ -254,7 +254,7 @@ Large embedded media increases canvas and backup size. Keep editable JSON or lib
 
 Choose **Generate** beside Export. Writing uses **Beam Free via OpenCode**. Install OpenCode 2 and connect OpenCode Go. With no service URL configured, Genie starts or reuses the local service when you generate. **Setting → AI generation** (also available in the dialog) supports an optional service URL, token, model override, and an explicit **Load models** check. Credentials stay in local config.json. See [AI setup and generation contract](ai-generation.md).
 
-Enter context and adjust each scene: pick its type, template, tone, length, and note, and add scenes up to 10. **Add closing** appends a pre-defined closing scene that points to the Tes Kemampuan Akademik at siswajuara.com; remove it like any other scene if you don't need it. Templates are ranked from the connected pack by scene purpose and context. **Template** opens a searchable, scrollable picker for the entire catalog; each scene can use a different layout. Only chosen layouts and media are loaded into the canvas.
+Enter context and adjust each scene: pick its type, template, tone, length, and note, and add scenes up to 10. Every new sequence ends with a pre-defined closing scene that points to the Tes Kemampuan Akademik at siswajuara.com; remove it like any other scene if you don't need it, or re-add it with **Add closing**. Templates are ranked from the connected pack by scene purpose and context. **Template** opens a searchable, scrollable picker for the entire catalog; each scene can use a different layout. Only chosen layouts and media are loaded into the canvas.
 
 **Generate frames** writes the scene text, narration scripts, post name, and post caption. Review and edit the result, then add frames. Optional voice generation uses the chosen ElevenLabs account and default/per-scene voices; matching captions come from speech timings. ElevenLabs character costs are shown only when reported by the provider. OpenCode’s current one-shot response supplies text, so Genie does not estimate writing token usage.
 

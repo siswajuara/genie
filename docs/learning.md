@@ -1,6 +1,6 @@
-# Model pembelajaran SD–SMP
+# Model pembelajaran SD–SMA
 
-Genie menyediakan **20 model fisika** dan **40 model pembelajaran matematika/Bahasa Indonesia**. Elemen tersimpan lokal sebagai parameter yang bisa diedit, dengan SVG mandiri untuk portabilitas. Pemutaran timeline dan ekspor memakai renderer lokal yang sama; tidak memerlukan gambar atau kode simulasi dari AI.
+Genie menyediakan **26 model fisika** dan **48 model pembelajaran matematika/Bahasa Indonesia**. Elemen tersimpan lokal sebagai parameter yang bisa diedit, dengan SVG mandiri untuk portabilitas. Pemutaran timeline dan ekspor memakai renderer lokal yang sama; tidak memerlukan gambar atau kode simulasi dari AI.
 
 ## Menambahkan dan mengedit
 
@@ -40,7 +40,7 @@ Parameter fisika menggunakan SI. Tuas, gaya apung, dan pemantulan menjelaskan hu
 
 ## AI dapat menambahkan elemen baru
 
-Pilih **Generate → SD–SMP lesson**, atau masukkan materi seperti “volume kubus kelas 6 SD” dan “subjek predikat kelas 4 SD”. Rekomendasi template mengutamakan layout pelajaran dengan area visual. Keenam **Pelajaran Visual** menyediakan area untuk satu diagram baru, termasuk bila template awal belum memiliki elemen matematika/fisika/bahasa.
+Pilih **Generate → SD–SMA lesson**, atau masukkan materi seperti “volume kubus kelas 6 SD”, “subjek predikat kelas 4 SD”, atau “trigonometri kelas 10 SMA”. Rekomendasi template mengutamakan layout pelajaran dengan area visual. Keenam **Pelajaran Visual** menyediakan area untuk satu diagram baru, termasuk bila template awal belum memiliki elemen matematika/fisika/bahasa.
 
 Request scene mengirim `allowVisual:true` hanya jika template memiliki `teachingArea`. Prompt menyertakan katalog jenis, parameter, rentang, contoh, dan aturan materi. AI dapat mengembalikan satu `visual`:
 
@@ -56,7 +56,7 @@ Pada review, periksa **Added teaching visual**, ubah model/parameter/teks, atau 
 
 ## Preset dan pengujian
 
-Koleksi eksternal **SD & SMP** berisi **62 preset**: 40 contoh pembelajaran, 16 contoh fisika tambahan, dan enam layout visual adaptif. Ditambah koleksi lama, pustaka berisi 110 template. Data sumber: `design-references/learning-presets.json`; persiapan: `scripts/learning-presets.mjs`. Semua mengikuti standar logo/footer dan panduan preset dalam `design-references/README.md`.
+Koleksi eksternal **SD & SMP** berisi **62 preset**: 40 contoh pembelajaran, 16 contoh fisika tambahan, dan enam layout visual adaptif. Koleksi **STEM SD–SMA** menambah **20 preset** berlabel tingkat kelas; jumlah seluruh pustaka menjadi **132 template**. Sumber: `design-references/learning-presets.json` dan `design-references/stem-presets.json`; persiapan: `scripts/learning-presets.mjs`. Semua mengikuti standar logo/footer dan panduan preset dalam `design-references/README.md`.
 
 ```sh
 npm run presets:learning
@@ -74,6 +74,25 @@ Enam belas model learning tambahan: sudut, segi banyak beraturan (3–10 sisi), 
 
 Delapan model fisika tambahan: GLBB satu arah dengan percepatan positif, bidang miring tanpa gesekan, gesekan kinetik pada kecepatan tetap, hidrolik ideal, tekanan hidrostatis ukur, pembiasan/pantulan internal total, gelombang longitudinal, dan dua resistor seri. Asumsi dan batas parameter setiap model ikut dikirim dalam katalog AI. Imbuhan hanya memakai penggabungan langsung tanpa perubahan bunyi; jam analog mempertahankan waktu pelajaran saat animasi menyorot jarum; jaring kubus menelusuri sisi, bukan simulasi lipatan 3D.
 
-Animasi learning memakai penekanan warna/penanda yang halus berdasarkan waktu scene, tanpa timer atau acak. Isi, label, dan jawaban matematika tetap sama sepanjang animasi. Scrub, preview, dan ekspor memakai fungsi yang sama; Animate emphasis=false dan reduced motion menghasilkan keadaan diam. Pemeriksaan meliputi semua 40 model di beberapa waktu, konsistensi teks, nilai yang diketahui, dan render canvas sebenarnya.
+Animasi learning memakai penekanan warna/penanda yang halus berdasarkan waktu scene, tanpa timer atau acak. Isi, label, dan jawaban matematika tetap sama sepanjang animasi. Scrub, preview, dan ekspor memakai fungsi yang sama; Animate emphasis=false dan reduced motion menghasilkan keadaan diam. Pemeriksaan meliputi semua 48 model di beberapa waktu, konsistensi teks, nilai yang diketahui, dan render canvas sebenarnya.
 
 AI kini menerima konteks seluruh layer, bukan hanya teks yang dipilih untuk ringkasan. Lihat [pembacaan frame dan batas media](frame-context.md) untuk persamaan, hasil hitung, SVG, caption, media, dan deskripsi yang tersimpan lokal.
+
+## Animasi STEM dari SD sampai SMA
+
+Buka **Templates → STEM SD–SMA**, lalu cari `SD`, `SMP`, `SMA`, tingkat kelas, atau topik dalam bahasa Indonesia/Inggris. Label kelas adalah contoh tingkat penyajian, bukan pernyataan kurikulum atau kebijakan ujian. Diagram juga tersedia langsung melalui **Elements → Learning diagram / Physics diagram**. Deskripsi model di Properties menjelaskan asumsi dan batas konsep.
+
+| Tingkat contoh | Model baru |
+| --- | --- |
+| SD awal | Pembagian sama rata dalam 1–6 kelompok, tanpa sisa |
+| SD lanjut | Pecahan senilai, peluang bola dengan kesempatan sama, perambatan bunyi, pemanasan satu fase |
+| SMP | Pythagoras pada segitiga siku-siku, grafik linear dengan gradien positif/negatif, kekekalan energi jatuh bebas, resistor paralel |
+| SMA | Grafik kuadrat dalam bentuk puncak, sinus/kosinus lingkaran satuan, vektor ujung-ke-pangkal, tumbukan lenting sempurna 1D, pemuaian panjang |
+
+Grafik fungsi menampilkan skala sumbu sendiri dan penanda yang menelusuri fungsi tetap. Lingkaran satuan mempertahankan sudut yang dipilih; sorotan bergerak di busurnya. Peluang bola adalah perhitungan teoretis, bukan undian acak. Model vektor memakai komponen tanpa satuan dengan skala kedua sumbu sama.
+
+Fisika menggunakan waktu analitis dan parameter SI. Matikan **Continue motion** agar model menahan keadaan akhir. Pemanasan memakai Q=Pt=mcΔT dengan kalor jenis tetap, tanpa kehilangan kalor atau perubahan fase. Energi jatuh bebas berhenti tepat sebelum tumbukan. Dua resistor paralel mempunyai tegangan cabang sama. Tumbukan dua massa titik mempertahankan momentum dan energi kinetik; tidak ada gaya luar. Pemuaian memakai ΔL=αL₀ΔT, ramp suhu ilustratif enam detik, dan pertambahan panjang pada gambar diperbesar. Koefisien di Properties ditulis dalam ×10⁻⁶ K⁻¹: nilai `12` berarti `0,000012 K⁻¹` pada dokumen.
+
+Dasar konsep: OpenStax [fungsi kuadrat](https://openstax.org/books/algebra-and-trigonometry-2e/pages/5-1-quadratic-functions), [lingkaran satuan](https://openstax.org/books/algebra-and-trigonometry-2e/pages/7-3-unit-circle), [kalor jenis](https://openstax.org/books/physics/pages/11-2-heat-specific-heat-and-heat-transfer), [rangkaian paralel](https://openstax.org/books/physics/pages/19-3-parallel-circuits), [tumbukan](https://openstax.org/books/physics/pages/8-3-elastic-and-inelastic-collisions), dan [pemuaian](https://openstax.org/books/university-physics-volume-2/pages/1-3-thermal-expansion).
+
+Verifikasi tambahan: `node tests/stem.check.mjs` dan `npm run test:ui -- tests/stem.spec.ts tests/teaching-expanded.spec.ts`. Pemeriksaan mencakup jawaban numerik, hukum kekekalan, batas parameter, berhenti/loop, skema backup, keterbacaan 20 template, parameter tersimpan, dan PNG animasi untuk semua 14 model baru. Seluruhnya lokal, tanpa panggilan provider.

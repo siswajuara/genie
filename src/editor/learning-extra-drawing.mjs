@@ -3,7 +3,10 @@ import {
   extraLearningMetrics,
 } from "../../sidecar/learning-extra.mjs";
 import { focusColor, focusWeight } from "./teaching-motion.mjs";
-const num = (v) => Number(v.toFixed(2)).toLocaleString("id-ID");
+const num = (v) => {
+  const rounded = Number(v.toFixed(2));
+  return (Object.is(rounded, -0) ? 0 : rounded).toLocaleString("id-ID");
+};
 export function drawExtraLearning(d, p, time) {
   if (!extraLearningModels[p.kind]) return false;
   const { line, path, rect, ellipse, label, arrow, wrapped, color, ink, soft } =
@@ -11,7 +14,104 @@ export function drawExtraLearning(d, p, time) {
     m = extraLearningMetrics(p);
   const box = (i, count, x, y, w, h) =>
     rect(x, y, w, h, focusColor(i, count, time));
-  if (p.kind === "angle") {
+  if (p.kind === "equal-sharing") {
+    const width = 800 / p.groups;
+    for (let group = 0; group < p.groups; group++) {
+      const x = 50 + group * width;
+      rect(x + 5, 130, width - 10, 220, focusColor(group, p.groups, time));
+      for (let i = 0; i < p.perGroup; i++)
+        ellipse(x + width * (i % 2 ? 0.7 : 0.3), 165 + Math.floor(i / 2) * 45, 11, 11, color);
+      label(group + 1, x + width / 2, 390, 23, ink, "center");
+    }
+    label(`${m.total} ÷ ${p.groups} = ${m.quotient} benda tiap kelompok`, 450, 455, 28, ink, "center");
+  } else if (p.kind === "equivalent-fractions") {
+    for (let row = 0; row < 2; row++) {
+      const count = row ? m.denominator : p.denominator, filled = row ? m.numerator : p.numerator;
+      for (let i = 0; i < count; i++)
+        rect(90 + i * 720 / count, 120 + row * 155, 720 / count, 85,
+          i < filled ? focusColor(row, 2, time, "#98bcff", "#ffcf25") : "#ffffff", color, 0);
+      label(`${filled}/${count}`, 450, 245 + row * 155, 27, ink, "center");
+    }
+    label(`Pembilang dan penyebut × ${p.multiplier}: nilainya tetap sama`, 450, 465, 25, ink, "center");
+  } else if (p.kind === "pythagoras") {
+    const scale = Math.min(520 / p.legA, 260 / p.legB), x = 190, y = 365,
+      w = p.legA * scale, h = p.legB * scale;
+    path([[x, y], [x + w, y], [x, y - h]], color, "#e7f0ff", true);
+    const pts = [[x, y], [x + w, y], [x, y - h]];
+    pts.forEach((pt, i) => line(...pt, ...pts[(i + 1) % 3], focusColor(i, 3, time, color, "#d89300")));
+    path([[x, y - 22], [x + 22, y - 22], [x + 22, y]], ink);
+    label(`a = ${num(p.legA)} cm`, x + w / 2, 402, 24, ink, "center");
+    label(`b = ${num(p.legB)}`, 35, y - h / 2, 23);
+    label(`c ≈ ${num(m.hypotenuse)} cm`, x + w / 2 + 40, y - h / 2 - 20, 25);
+    label(`c² = a² + b² = ${num(p.legA ** 2)} + ${num(p.legB ** 2)}`, 450, 470, 28, ink, "center");
+  } else if (["linear-function", "quadratic-function"].includes(p.kind)) {
+    const quadratic = p.kind === "quadratic-function",
+      xmin = quadratic ? p.vertexX - 3 : -4, xmax = quadratic ? p.vertexX + 3 : 4,
+      f = (x) => quadratic ? p.quadraticA * (x - p.vertexX) ** 2 + p.vertexY : p.slope * x + p.intercept,
+      ymin = Math.min(0, f(xmin), f(xmax), quadratic ? p.vertexY : 0) - 1,
+      ymax = Math.max(0, f(xmin), f(xmax), quadratic ? p.vertexY : 0) + 1,
+      X = (x) => 110 + 680 * (x - xmin) / (xmax - xmin),
+      Y = (y) => 365 - 250 * (y - ymin) / (ymax - ymin);
+    for (let i = 0; i <= 4; i++) {
+      const x = xmin + (xmax - xmin) * i / 4, y = ymin + (ymax - ymin) * i / 4;
+      line(X(x), 115, X(x), 365, soft);
+      line(110, Y(y), 790, Y(y), soft);
+      label(num(x), X(x), 395, 18, ink, "center");
+      label(num(y), 35, Y(y) + 6, 18);
+    }
+    line(110, Y(0), 805, Y(0)); line(X(0), 100, X(0), 365);
+    label("x", 820, Y(0) + 8, 20); label("y", X(0) + 12, 96, 20);
+    path(Array.from({ length: 121 }, (_, i) => { const x = xmin + (xmax - xmin) * i / 120; return [X(x), Y(f(x))]; }), color);
+    const progress = (1 - Math.cos(time * Math.PI / 2.6)) / 2, x = xmin + (xmax - xmin) * progress;
+    ellipse(X(x), Y(f(x)), 8, 8, "#ffcf25");
+    if (quadratic) {
+      ellipse(X(p.vertexX), Y(p.vertexY), 6, 6, color);
+      label(`y = ${num(p.quadraticA)}(x − (${num(p.vertexX)}))² + (${num(p.vertexY)})`, 450, 440, 25, ink, "center");
+      label(`Puncak (${num(p.vertexX)}, ${num(p.vertexY)}); sumbu x = ${num(p.vertexX)}`, 450, 480, 24, ink, "center");
+    } else {
+      label(`y = ${num(p.slope)}x + (${num(p.intercept)})`, 450, 440, 28, ink, "center");
+      label(`Gradien = ${num(p.slope)}; titik potong y = ${num(p.intercept)}`, 450, 480, 24, ink, "center");
+    }
+  } else if (p.kind === "unit-circle") {
+    const cx = 320, cy = 255, r = 150, a = p.degrees * Math.PI / 180,
+      x = cx + r * m.cosine, y = cy - r * m.sine;
+    ellipse(cx, cy, r, r); line(140, cy, 500, cy, soft); line(cx, 75, cx, 425, soft);
+    label("1", 478, cy + 25, 20); label("−1", 140, cy + 25, 20); label("1", cx + 10, 98, 20);
+    line(cx, cy, x, y, color); line(x, cy, x, y, "#d89300"); line(cx, cy, x, cy, "#d89300");
+    path(Array.from({ length: 65 }, (_, i) => [cx + 55 * Math.cos(a * i / 64), cy - 55 * Math.sin(a * i / 64)]), soft);
+    const sweep = a * (1 - Math.cos(time * Math.PI / 2.6)) / 2;
+    ellipse(cx + 55 * Math.cos(sweep), cy - 55 * Math.sin(sweep), 7, 7, "#ffcf25");
+    ellipse(x, y, 8, 8, color);
+    label(`θ = ${num(p.degrees)}°`, 560, 160, 28);
+    label(`cos θ ≈ ${num(m.cosine)}`, 560, 225, 27);
+    label(`sin θ ≈ ${num(m.sine)}`, 560, 285, 27);
+    label("x² + y² = 1", 560, 350, 27);
+    label("Titik pada lingkaran: (cos θ, sin θ)", 450, 475, 27, ink, "center");
+  } else if (p.kind === "probability-bag") {
+    for (let i = 0; i < p.total; i++) {
+      const x = 90 + (i % 10) * 80, y = 170 + Math.floor(i / 10) * 110;
+      ellipse(x, y, 25, 25, i < p.favorable ? "#ffcf25" : "#98bcff");
+      ellipse(x, y, 33, 33, "none", focusColor(i, p.total, time, soft, ink));
+    }
+    label(`P(kuning) = ${p.favorable}/${p.total} ≈ ${num(m.probability * 100)}%`, 450, 410, 29, ink, "center");
+    label("Setiap bola punya kesempatan sama; sorotan bukan undian.", 450, 465, 24, ink, "center");
+  } else if (p.kind === "vector-addition") {
+    const extent = Math.max(1, Math.abs(p.vectorAX), Math.abs(p.vectorAY), Math.abs(m.resultX), Math.abs(m.resultY)),
+      scale = 125 / extent, X = (x) => 435 + scale * x, Y = (y) => 245 - scale * y;
+    line(230, 245, 640, 245, soft); line(435, 90, 435, 400, soft);
+    if (p.vectorAX || p.vectorAY)
+      arrow(X(0), Y(0), p.vectorAX * scale, -p.vectorAY * scale, focusColor(0, 3, time, color, "#d89300"));
+    if (p.vectorBX || p.vectorBY)
+      arrow(X(p.vectorAX), Y(p.vectorAY), p.vectorBX * scale, -p.vectorBY * scale, focusColor(1, 3, time, "#269475", "#d89300"));
+    if (m.resultX || m.resultY)
+      arrow(X(0), Y(0), m.resultX * scale, -m.resultY * scale, focusColor(2, 3, time, ink, "#d89300"));
+    label("A", X(p.vectorAX / 2) + 12, Y(p.vectorAY / 2) + 24, 23, color);
+    label("B", X(p.vectorAX + p.vectorBX / 2) + 12, Y(p.vectorAY + p.vectorBY / 2), 23, "#269475");
+    label("R", X(m.resultX / 2) - 25, Y(m.resultY / 2), 23, ink);
+    label(`A = (${num(p.vectorAX)}, ${num(p.vectorAY)}); B = (${num(p.vectorBX)}, ${num(p.vectorBY)})`, 450, 70, 24, ink, "center");
+    label(`R = (${num(m.resultX)}, ${num(m.resultY)}); |R| ≈ ${num(m.magnitude)}`, 450, 440, 28, ink, "center");
+    label(`Skala: 1 satuan = ${num(scale)} px • ujung ke pangkal`, 450, 480, 23, ink, "center");
+  } else if (p.kind === "angle") {
     const a = (p.degrees * Math.PI) / 180,
       cx = 300,
       cy = 340,

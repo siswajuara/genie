@@ -201,7 +201,7 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   const picker = page.locator(".generate-template-picker");
   await expect(
     picker.getByRole("textbox", { name: "Search all templates" }),
-  ).toHaveAttribute("placeholder", "Search 110 templates…");
+  ).toHaveAttribute("placeholder", "Search 112 templates…");
   await picker
     .getByRole("textbox", { name: "Search all templates" })
     .fill("essentials cover");
@@ -694,7 +694,7 @@ for (const width of [1440, 900, 650, 390]) {
     await page.getByRole("button", { name: "New Canvas", exact: true }).click();
     await page.getByRole("button", { name: "Generate", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog.locator(".generate-scene-card")).toHaveCount(5);
+    await expect(dialog.locator(".generate-scene-card")).toHaveCount(6);
     for (const count of [5, 8]) {
       const geometry = await dialog.evaluate((el, count) => {
         const list = el.querySelector(".generate-scene-list")!;

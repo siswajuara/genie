@@ -36,7 +36,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "New Canvas", exact: true }).click();
 });
-test("all 40 learning models animate on the real canvas without changing their lesson text", async ({
+test("all 48 learning models animate on the real canvas without changing their lesson text", async ({
   page,
 }) => {
   const result = await page.evaluate(async () => {
@@ -134,8 +134,8 @@ test("all 40 learning models animate on the real canvas without changing their l
       issues,
     };
   });
-  expect(result.learning).toBe(40);
-  expect(result.physics).toBe(20);
+  expect(result.learning).toBe(48);
+  expect(result.physics).toBe(26);
   expect(result.issues).toEqual([]);
 });
 test("full frame context and visible text reach Generate and narration, and survive reload", async ({
@@ -211,24 +211,6 @@ test("full frame context and visible text reach Generate and narration, and surv
     .fill("Foto tumbuhan dengan akar, batang, dan daun.");
   await page.getByRole("button", { name: "Generate", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.locator(".frame-context-panel summary").click();
-  const context = JSON.parse(
-    await dialog
-      .getByRole("textbox", { name: "Full AI frame context" })
-      .inputValue(),
-  );
-  expect(context.frames).toHaveLength(1);
-  expect(
-    context.frames[0].layers.some(
-      (o: any) =>
-        o.learning?.kind === "cube" && o.teaching.metrics.volume === 64,
-    ),
-  ).toBe(true);
-  expect(
-    context.frames[0].layers.some((o: any) =>
-      o.readableText?.includes("akar, batang"),
-    ),
-  ).toBe(true);
   await dialog
     .getByRole("switch", { name: "Narration", exact: true })
     .uncheck();
@@ -244,7 +226,18 @@ test("full frame context and visible text reach Generate and narration, and surv
   ).toBeVisible();
   const sent = requests.find((r) => r.action === "ai.generate").payload
     .frameContext;
-  expect(sent.frames[0].layers.length).toBe(context.frames[0].layers.length);
+  expect(sent.frames).toHaveLength(1);
+  expect(
+    sent.frames[0].layers.some(
+      (o: any) =>
+        o.learning?.kind === "cube" && o.teaching.metrics.volume === 64,
+    ),
+  ).toBe(true);
+  expect(
+    sent.frames[0].layers.some((o: any) =>
+      o.readableText?.includes("akar, batang"),
+    ),
+  ).toBe(true);
   expect(JSON.stringify(sent)).not.toContain("data:image/");
   await dialog
     .getByRole("button", { name: "Close Generate dialog", exact: true })
@@ -261,7 +254,7 @@ test("full frame context and visible text reach Generate and narration, and surv
   ).toHaveValue(/akar membantu/);
   const spoken = requests.find((r) => r.action === "ai.narration").payload
     .frameContext;
-  expect(spoken.frames[0].layers.length).toBe(context.frames[0].layers.length);
+  expect(spoken.frames[0].layers.length).toBe(sent.frames[0].layers.length);
   expect(
     spoken.frames[0].layers.some((o: any) =>
       o.readableText?.includes("akar, batang"),

@@ -34,7 +34,6 @@ A prepared local pack is available automatically in Vite development. For prepar
 | [Canvas user guide](docs/canvas.md)                 | Pages, frames, presets, branding, assets, narration, captions, shortcuts, export, troubleshooting |
 | [Animation and export reference](docs/animation.md) | Timeline, effects, keyframes, scene transitions, rendering, document fields                       |
 | [AI generation](docs/ai-generation.md)              | OpenCode setup, Beam Free selection, ordered scene metadata, and mocked verification              |
-| [AI frame context](docs/frame-context.md)           | All layer types, diagram data, captions, descriptions, and media availability                     |
 | [SD–SMP learning models](docs/learning.md)          | Geometry, fractions, graphs, Indonesian language, physics, and AI-added diagrams                  |
 | [LaTeX and physics](docs/science.md)                | Editable equations, simulation parameters, worked examples, and AI generation                     |
 | [Preset authoring](design-references/README.md)     | Editable template files, source references, cutouts, catalog and preview preparation              |

@@ -154,6 +154,37 @@ assert.throws(
   () => parseGenerationResult(duplicate, duplicateRequest),
   /repeats a headline/,
 );
+// Omitted physics echoes are repaired from the template; corrupt ones fail.
+const withDiagram = {
+  ...request,
+  scenes: [
+    {
+      ...request.scenes[0],
+      diagrams: [{ id: "swing", example: { kind: "pendulum" } }],
+    },
+    request.scenes[1],
+  ],
+};
+const repairedPhysics = parseGenerationResult(result, withDiagram);
+assert.equal(repairedPhysics.frames[0].physics.length, 1);
+assert.equal(repairedPhysics.frames[0].physics[0].id, "swing");
+assert.equal(repairedPhysics.frames[0].physics[0].settings.kind, "pendulum");
+assert.match(repairedPhysics.repaired.join(" "), /Scene 1.*physics/);
+for (const physics of [
+  [{ id: "swing", settings: { kind: "spring", mass: 1 } }],
+  "not-an-array",
+])
+  assert.throws(
+    () =>
+      parseGenerationResult(
+        {
+          ...result,
+          frames: [{ ...result.frames[0], physics }, result.frames[1]],
+        },
+        withDiagram,
+      ),
+    /AI changed|invalid physics/,
+  );
 
 const calls = [];
 const catalog = [

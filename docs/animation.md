@@ -31,7 +31,7 @@ Scene camera motion uses frame-centered pan/zoom and perspective dolly. Positive
 
 ## Templates
 
-Templates come from the connected external asset pack. The supplied catalog currently includes 48 templates across Classic, Essentials, Studio, Math & Physics, and Standard. Each preset can declare static motion (`motion: "none"`), automatic choreography (`motion: "auto"`), an explicit scene, or per-layer animation. Do not assume every template has the same duration or reveals.
+Templates come from the connected external asset pack. The supplied catalog includes 132 templates across Classic, Essentials, Studio, Math & Physics, SD & SMP, STEM SD–SMA, and Standard. STEM SD–SMA adds 20 lessons using 14 new editable math and physics models, with class-level tags from elementary through high school; see [learning models](learning.md). Each preset can declare static motion (`motion: "none"`), automatic choreography (`motion: "auto"`), an explicit scene, or per-layer animation. Do not assume every template has the same duration or reveals.
 
 Automatic choreography lives in `src/editor/template-animation.ts`; absent an explicit duration, it uses a six-second scene. Presets live in `asset-packs/siswa-juara/pack/presets/`, with metadata in `catalog.json`. Applying a template copies its scene settings and layer animations into the document. Later pack edits do not rewrite placed designs.
 
@@ -39,11 +39,13 @@ Saved frame templates retain scene and layer-animation settings, but omit frame-
 
 ## Narration, audio, and captions
 
-Select a frame or one of its layers and open the inspector's **Narration** tab. Draft a script, select the billed ElevenLabs account, and optionally enable matching captions before generating. Configure accounts in **Setting → Audio**. The current voice is fixed to Roger. Generation and transcription use provider credits; local imports, editing, preview, WAV mixing, and media export require no generation request.
+Select a frame or one of its layers and open the inspector's **Narration** tab. Draft a script, pick a voice (Default/Story/News, Male/Female), select the billed ElevenLabs account, and optionally enable matching captions before generating. Configure accounts in **Setting → Audio**. Generation and transcription use provider credits; local imports, editing, preview, WAV mixing, and media export require no generation request.
 
 Narration, music, and sound effects are saved as embedded frame audio tracks. Import recordings under **Music**, then change their role and turn off Loop for speech. The same section exposes exact start/end, source trim, fades, level, and mute controls for all tracks. A visual video layer plays muted; **Extract audio from …** creates a separate track when the source contains audio.
 
 **Captions** edits frame-relative cue text and timing. **Files & transcription** imports/exports SRT and transcribes non-looping tracks. Generation, transcription, and SRT import append cues; remove unwanted prior cues when replacing a take. Audio and captions have separate timings, so check synchronization after trimming or moving tracks.
+
+Write web domains in narration with `(dot)`, e.g. `siswajuara(dot)com`, so speech reads each part; captions render the real period again. Caption **Style** offers Static, Karaoke (word-by-word highlight), and Pop animations, five presets including TikTok, plus highlight color, text outline color/width, size, position, and background. Karaoke timing comes from speech alignment for generated voice, or evenly spread timings for manual/SRT cues.
 
 Timeline and export sequence previews play audible tracks. MP4 mixes them into an AAC soundtrack when encoding is supported, with scene overlaps matching transitions. Captions burn into video; SRT is an optional separate export. Preview ranges and playback speed do not trim or retime the final export. See the [narration instructions](canvas.md#add-narration-and-matching-captions) for the complete workflow.
 

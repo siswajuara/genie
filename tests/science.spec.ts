@@ -403,3 +403,68 @@ test("all science examples have readable native copy, portable equations, and th
   expect(result.starts[2]).toBeLessThan(6);
   expect(result.thumbnails).toBe(true);
 });
+
+test("plain-text math converts to a rendered equation", async ({ page }) => {
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  const box = page.getByRole("textbox", { name: "Text", exact: true });
+  await expect(box).toHaveValue("Your text");
+  await expect(
+    page.getByRole("button", { name: "Convert to equation", exact: true }),
+  ).toHaveCount(0);
+  await box.fill("A_n = A_0 e^{-knT}");
+  await page
+    .getByRole("button", { name: "Convert to equation", exact: true })
+    .click();
+  let el: any;
+  await expect
+    .poll(
+      async () => {
+        el = (await savedDocument(page)).elements.find((o: any) => o.latex);
+        return !!el;
+      },
+      { timeout: 30000 },
+    )
+    .toBe(true);
+  expect(el.t).toBe("img");
+  expect(el.text).toBe("");
+  expect(el.latex.source).toBe("A_n = A_0 e^{-knT}");
+  expect(el.src.startsWith("data:image/svg+xml")).toBe(true);
+});
+
+test("selected math becomes a new equation below the text", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  const box = page.getByRole("textbox", { name: "Text", exact: true });
+  await box.fill("Diketahui hasil A_n = A_0 e^{-knT} untuk n.");
+  await page.evaluate(() => {
+    const ta = document.querySelector(
+      'textarea[aria-label="Text"]',
+    ) as HTMLTextAreaElement | null;
+    if (!ta) throw new Error("text box missing");
+    const start = ta.value.indexOf("A_n");
+    ta.focus();
+    ta.setSelectionRange(start, start + "A_n = A_0 e^{-knT}".length);
+  });
+  await page
+    .getByRole("button", { name: "Convert to equation", exact: true })
+    .click();
+  let doc: any;
+  await expect
+    .poll(
+      async () => {
+        doc = await savedDocument(page);
+        return doc.elements.some((o: any) => o.latex);
+      },
+      { timeout: 30000 },
+    )
+    .toBe(true);
+  const original = doc.elements.find(
+    (o: any) => o.t === "text" && o.text.includes("Diketahui"),
+  );
+  const equation = doc.elements.find((o: any) => o.latex);
+  expect(original.text).toBe("Diketahui hasil A_n = A_0 e^{-knT} untuk n.");
+  expect(equation.latex.source).toBe("A_n = A_0 e^{-knT}");
+  expect(equation.y).toBeGreaterThan(original.y);
+  expect(equation.src.startsWith("data:image/svg+xml")).toBe(true);
+});

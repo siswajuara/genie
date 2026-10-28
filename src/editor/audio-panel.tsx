@@ -1,4 +1,3 @@
-import { FrameContextPanel } from "./frame-context-panel";
 import { buildFrameContext } from "../../sidecar/frame-context.mjs";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +38,8 @@ import { Accordion } from "../components/ui/accordion";
 import {
   PROTOTYPE_VOICE_ID,
   PROTOTYPE_VOICE_NAME,
+  ELEVENLABS_VOICES,
+  DEFAULT_VOICE_ID,
 } from "../../sidecar/voice-prototype.mjs";
 
 /** Kept for compatibility; the panel is now a single Narration flow. */
@@ -75,6 +76,32 @@ const CAPTION_PRESETS: { name: string; patch: Partial<SubtitleStyle> }[] = [
       color: "#ffffff",
       background: "#101828e6",
       size: 4,
+      position: "bottom",
+    },
+  },
+  {
+    name: "TikTok",
+    patch: {
+      color: "#ffffff",
+      background: "#00000000",
+      outline: "#000000",
+      outlineWidth: 0.14,
+      highlight: "#ffe14d",
+      animation: "karaoke",
+      size: 6,
+      position: "center",
+    },
+  },
+  {
+    name: "Karaoke pop",
+    patch: {
+      color: "#ffffff",
+      background: "#000000cc",
+      outline: "#000000",
+      outlineWidth: 0.08,
+      highlight: "#25f4ee",
+      animation: "pop",
+      size: 5,
       position: "bottom",
     },
   },
@@ -143,12 +170,13 @@ export function AudioPanel({
   );
   const draft = frame?.voiceoverDraft ?? {
     script: "",
-    voiceId: PROTOTYPE_VOICE_ID,
+    voiceId: DEFAULT_VOICE_ID,
     accountId: accounts[0]?.id ?? "",
     language: "id",
     subtitles: true,
   };
   const { script, language, subtitles: showCaptions } = draft;
+  const voiceId = draft.voiceId || PROTOTYPE_VOICE_ID;
   const accountId = draft.accountId || accounts[0]?.id || "";
   const [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
@@ -188,8 +216,8 @@ export function AudioPanel({
       voiceoverDraft: {
         ...draft,
         accountId,
+        voiceId,
         ...patch,
-        voiceId: PROTOTYPE_VOICE_ID,
       },
     });
   }
@@ -348,7 +376,7 @@ export function AudioPanel({
     await run("Generating narration…", async () => {
       const result = await socialRequest<Speech>("elevenlabs.speech", {
         accountId,
-        voiceId: PROTOTYPE_VOICE_ID,
+        voiceId,
         text: script,
         confirmed: true,
       });
@@ -461,7 +489,6 @@ export function AudioPanel({
       aria-label={`Narration for ${frame.n}`}
       onKeyDown={(ev) => ev.stopPropagation()}
     >
-      <FrameContextPanel document={e.getDocument()} selection={[frame.id]} />
       <header className="audio-panel-header narration-head flex items-center justify-between w-full">
         <div>
           <strong>Narration</strong>
@@ -509,7 +536,7 @@ export function AudioPanel({
               <span className="sr-only">Narration script</span>
               <Textarea
                 aria-label="Narration script"
-                rows={3}
+                rows={4}
                 maxLength={5000}
                 value={script}
                 onChange={(ev) => setDraft({ script: ev.target.value })}
@@ -524,30 +551,45 @@ export function AudioPanel({
             className="narration-step narration-group"
             aria-label="Voice"
           >
-            <div className="narration-label-row">
-              <span className="narration-label">Voice</span>
-              <small className="narration-step-hint">
-                {PROTOTYPE_VOICE_NAME} · fixed
-              </small>
+            <div className="narration-voice-grid">
+              <Label className="audio-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  Voice
+                </span>
+                <SelectField
+                  label="Narration voice"
+                  value={voiceId}
+                  onChange={(voiceId) => setDraft({ voiceId })}
+                  options={[
+                    ...ELEVENLABS_VOICES.map((voice) => ({
+                      value: voice.id,
+                      label: voice.name,
+                    })),
+                    {
+                      value: PROTOTYPE_VOICE_ID,
+                      label: PROTOTYPE_VOICE_NAME,
+                    },
+                  ]}
+                />
+              </Label>
+              <Label className="audio-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  Account
+                </span>
+                <SelectField
+                  label="Voice account"
+                  value={accountId}
+                  onChange={(accountId) => setDraft({ accountId })}
+                  options={[
+                    { value: "", label: "Choose billing account…" },
+                    ...accounts.map((account) => ({
+                      value: account.id,
+                      label: account.name,
+                    })),
+                  ]}
+                />
+              </Label>
             </div>
-            <Label className="audio-field narration-account">
-              <span className="sr-only">Voice account (billed)</span>
-              <SelectField
-                label="Voice account"
-                value={accountId}
-                onChange={(accountId) => setDraft({ accountId })}
-                options={[
-                  { value: "", label: "Choose billing account…" },
-                  ...accounts.map((account) => ({
-                    value: account.id,
-                    label: account.name,
-                  })),
-                ]}
-              />
-            </Label>
-            <p className="hint narration-tip">
-              Billed to this ElevenLabs account.
-            </p>
           </section>
           <section
             className="narration-step narration-group"
@@ -587,7 +629,11 @@ export function AudioPanel({
                       className="narration-preset"
                       style={{
                         color: preset.patch.color,
-                        background: preset.patch.background,
+                        background:
+                          preset.patch.background &&
+                          !/^#00000000$/i.test(preset.patch.background)
+                            ? preset.patch.background
+                            : "#3a4669",
                       }}
                       title={`Apply the ${preset.name} caption style`}
                       onClick={() =>
@@ -625,6 +671,41 @@ export function AudioPanel({
                     </Button>
                   ))}
                 </div>
+                <div
+                  className="narration-segment"
+                  role="group"
+                  aria-label="Caption animation"
+                >
+                  {(
+                    [
+                      ["none", "Static"],
+                      ["karaoke", "Karaoke"],
+                      ["pop", "Pop"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      aria-pressed={
+                        (style.animation ?? "none") === value
+                      }
+                      title={
+                        value === "none"
+                          ? "Plain captions without word highlighting"
+                          : value === "karaoke"
+                            ? "Highlight each word as it is spoken"
+                            : "Pop each word as it is spoken"
+                      }
+                      onClick={() =>
+                        update({
+                          subtitleStyle: { ...style, animation: value },
+                        })
+                      }
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
                 <Label className="audio-field">
                   <span>Caption size · {sizeLabel(style.size)}</span>
                   <Slider
@@ -638,6 +719,29 @@ export function AudioPanel({
                         subtitleStyle: {
                           ...style,
                           size: value,
+                        },
+                      })
+                    }
+                  />
+                </Label>
+                <Label className="audio-field">
+                  <span>
+                    Outline width ·{" "}
+                    {(style.outlineWidth ?? 0) === 0
+                      ? "Off"
+                      : `${Math.round((style.outlineWidth ?? 0) * 100)}%`}
+                  </span>
+                  <Slider
+                    aria-label="Caption outline width"
+                    min={0}
+                    max={0.3}
+                    step={0.01}
+                    value={[style.outlineWidth ?? 0]}
+                    onValueChange={([value]) =>
+                      update({
+                        subtitleStyle: {
+                          ...style,
+                          outlineWidth: value,
                         },
                       })
                     }
@@ -673,11 +777,46 @@ export function AudioPanel({
                       }
                     />
                   </Label>
+                  <Label className="audio-field">
+                    <span>Highlight</span>
+                    <Input
+                      type="color"
+                      aria-label="Caption highlight color"
+                      value={(style.highlight ?? "#ffe14d").slice(0, 7)}
+                      onChange={(ev) =>
+                        update({
+                          subtitleStyle: {
+                            ...style,
+                            highlight: ev.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Label>
+                  <Label className="audio-field">
+                    <span>Outline</span>
+                    <Input
+                      type="color"
+                      aria-label="Caption outline color"
+                      value={(style.outline ?? "#000000").slice(0, 7)}
+                      onChange={(ev) =>
+                        update({
+                          subtitleStyle: {
+                            ...style,
+                            outline: ev.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Label>
                   <p className="narration-preview" aria-hidden="true">
                     <span
                       style={{
                         color: style.color,
                         background: style.background,
+                        WebkitTextStroke: `${
+                          (style.outlineWidth ?? 0) > 0 ? 1 : 0
+                        }px ${style.outline ?? "#000000"}`,
                       }}
                     >
                       Captions look like this
@@ -759,7 +898,10 @@ export function AudioPanel({
             title={`Music${musicTracks.length ? ` · ${musicTracks.length}` : ""}`}
           >
             <div className="audio-actions">
-              <Button onClick={() => audioInput.current?.click()}>
+              <Button
+                onClick={() => audioInput.current?.click()}
+                title="MP3, WAV, M4A, OGG, FLAC · up to 25 MB · starts at 20% volume"
+              >
                 <Icon name="upload" size={15} /> Import audio
               </Button>
               <Button
@@ -785,7 +927,7 @@ export function AudioPanel({
                 Export audio mix
               </Button>
               <span className="hint">
-                MP3, WAV, M4A, OGG, FLAC · up to 25 MB. Starts at 20% volume.
+                MP3, WAV, M4A, OGG, FLAC · up to 25 MB.
               </span>
             </div>
             <Input
@@ -862,7 +1004,7 @@ export function AudioPanel({
                         targetId,
                       );
                       setMessage(
-                        "Video audio added as a voice track. Transcribe it under More options if you need captions.",
+                        "Video audio added as a voice track. Transcribe it under Files & transcription if you need captions.",
                       );
                     });
                   }}
@@ -872,7 +1014,7 @@ export function AudioPanel({
               ))}
             {!tracks.length && (
               <p className="audio-empty">
-                Plays with the timeline and is included in MP4 exports.
+                Plays with the timeline and MP4 exports.
               </p>
             )}
             {tracks.map((track) => (
@@ -1028,8 +1170,7 @@ export function AudioPanel({
             </div>
             {!cues.length && (
               <p className="audio-empty">
-                Generated with narration, or added manually. Previews on canvas
-                and burns into video exports.
+                Auto-filled when you generate narration.
               </p>
             )}
             <div className="subtitle-cues">
@@ -1132,15 +1273,13 @@ export function AudioPanel({
                   }
                 />
               </Label>
-              <span className="hint">
-                Transcription sends audio to ElevenLabs and uses credits.
-              </span>
               {tracks
                 .filter((track) => !track.loop)
                 .map((track) => (
                   <Button
                     key={track.id}
                     disabled={!accountId}
+                    title={`Transcribe ${track.name} (uses ElevenLabs credits)`}
                     onClick={() =>
                       void run("Transcribing audio…", () => transcribe(track))
                     }
@@ -1150,7 +1289,7 @@ export function AudioPanel({
                 ))}
               {!tracks.some((track) => !track.loop) && (
                 <p className="hint">
-                  Needs a voice recording with Loop turned off.
+                  Add a recording with Loop off to enable transcription.
                 </p>
               )}
             </div>

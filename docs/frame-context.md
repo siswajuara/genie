@@ -15,7 +15,7 @@ Konteks mencakup seluruh layer milik frame, termasuk layer terkunci, tersembunyi
 
 Koordinat canvas adalah **pixel**, bukan cm atau meter. Parameter bangun geometri dan fisika tetap memakai satuan model masing-masing. `sampleTime` saat ini bernilai nol: AI menerima keadaan analitis awal serta semua parameter/timing untuk memahami geraknya, bukan rekaman yang sedang diputar. Angka dan label diagram dihitung lokal; AI tidak perlu menebak gambar diagram dari nama file.
 
-Buka **AI frame context** pada Generate atau Narration untuk memeriksa JSON yang akan dikirim. Konteks tidak dipotong diam-diam. Jika ukurannya melebihi 120.000 karakter, permintaan berhenti sebelum inference; pilih lebih sedikit frame. Teks awal pada kotak context tetap berupa ringkasan editable maksimal 12.000 karakter, sedangkan `frameContext` lengkap dikirim terpisah.
+Konteks tidak dipotong diam-diam. Jika ukurannya melebihi 120.000 karakter, permintaan berhenti sebelum inference; pilih lebih sedikit frame. Teks awal pada kotak context tetap berupa ringkasan editable maksimal 12.000 karakter, sedangkan `frameContext` lengkap dikirim terpisah.
 
 ## Foto, video, dan suara
 
@@ -23,7 +23,7 @@ Jalur OpenCode satu-permintaan yang digunakan aplikasi menerima prompt teks. API
 
 Karena itu, mengirim nama file atau string base64 tidak membuat AI melihat foto atau mendengar audio. Aplikasi menandai media tanpa keterangan sebagai `needs-description`, SVG yang hanya memiliki teks sebagai `vector-text-only`, dan audio tanpa draf/transkrip sebagai `needs-transcript`. Prompt melarang AI mengarang isi yang belum tersedia.
 
-Untuk memberi AI isi foto/video, tambahkan teks terlihat pada frame yang sama — misalnya layer Text yang menjelaskan isi, label, makna, atau bagian penting — atau gunakan caption/transkrip untuk ucapan pada video/audio, lalu buka panel konteks untuk memeriksa cakupan. Seluruh teks terlihat pada frame otomatis menjadi konteks tambahan saat Generate dan penulisan narasi.
+Untuk memberi AI isi foto/video, tambahkan teks terlihat pada frame yang sama — misalnya layer Text yang menjelaskan isi, label, makna, atau bagian penting — atau gunakan caption/transkrip untuk ucapan pada video/audio. Seluruh teks terlihat pada frame otomatis menjadi konteks tambahan saat Generate dan penulisan narasi.
 
 Tanpa teks terlihat/deskripsi/transkrip, AI mengetahui keberadaan serta pengaturan media itu, tetapi tidak mengetahui piksel/ucapannya. Pembacaan piksel otomatis membutuhkan jalur vision/OCR tersendiri; fitur tersebut tidak diklaim oleh pembaca konteks ini.
 

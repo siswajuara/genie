@@ -8,6 +8,8 @@ LaTeX uses the locally bundled MathJax renderer and TeX font data. The engine lo
 
 Supported examples include fractions, roots, powers, aligned equations, matrices, sums, and integrals. Math source is limited to 2,000 characters and the base, AMS, and newcommand packages. Full LaTeX documents, TikZ, external-content commands, and Manim scripts are outside this renderer. Optional dollar or math delimiters are removed before typesetting.
 
+Pasting text that is entirely math (for example `$A_n = A_0 e^{-knT}`) creates a rendered equation instead of a text box. In Properties, a text box holding math shows **Convert to equation**: with no selection the whole box converts in place, and with part of the text selected only that part becomes a new equation below the original. Plain prose is never converted.
+
 | Example         | Source or result                                 |
 | --------------- | ------------------------------------------------ |
 | Fractions       | `\frac12+\frac14=\frac34`                        |
@@ -28,7 +30,7 @@ Physics diagrams draw from analytical state at the requested timeline time. Scru
 
 **Continue motion** keeps the analytical motion running; a projectile repeats its launch after landing. Turning it off holds the projectile after landing or the other diagrams after one natural period. **Show path / reference** toggles the path or equilibrium guide. Changing a diagram manually does not rewrite a separate equation layer; update both when changing the underlying example.
 
-The external **Math & Physics** collection contains 16 presets: six equation examples, four simulation demonstrations, and three paired Q&A sets (fractions, pendulum period, projectile flight time). The earlier 14 Studio presets remain available, alongside the new SD & SMP collection. Source data lives in `design-references/science-presets.json`, with native construction in `scripts/science-presets.mjs`. Run `npm run presets:science`, `npm run presets:index`, and `npm run presets:previews` to rebuild this collection and its thumbnails. No science catalog is imported into the application bundle.
+The external **Math & Physics** collection contains 16 presets: six equation examples, four simulation demonstrations, and three paired Q&A sets (fractions, pendulum period, projectile flight time). The earlier 16 Studio presets remain available, alongside the new SD & SMP collection. Source data lives in `design-references/science-presets.json`, with native construction in `scripts/science-presets.mjs`. Run `npm run presets:science`, `npm run presets:index`, and `npm run presets:previews` to rebuild this collection and its thumbnails. No science catalog is imported into the application bundle.
 
 Generation has **Equation walkthrough** and **Physics demonstration** structures. Requests send equation slots with `role: "latex"` and diagram slots with their exact IDs, current model, and SI parameters. The server prompt supplies the supported models and bounds, asks for the same question to be answered across scenes, and requires numerical answers, equations, diagrams, reasoning, and narration to agree. Ordinary copy slots stay plain prose. Scientific templates are picked automatically for relevant contexts or these explicit structures, and remain selectable manually.
 

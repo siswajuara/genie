@@ -54,6 +54,16 @@ const labels: Record<string, string> = {
   index2: "Refractive index 2",
   resistance1: "Resistance 1 (Ω)",
   resistance2: "Resistance 2 (Ω)",
+  soundSpeed: "Sound speed (m/s)",
+  specificHeat: "Specific heat (J/(kg·K))",
+  power: "Heating power (W)",
+  initialTemperature: "Initial temperature (°C)",
+  temperatureRise: "Temperature rise (K)",
+  mass1: "Mass 1 (kg)",
+  mass2: "Mass 2 (kg)",
+  velocity1: "Initial velocity 1 (m/s)",
+  velocity2: "Initial velocity 2 (m/s)",
+  expansionCoefficient: "Expansion coefficient (×10⁻⁶ K⁻¹)",
 };
 export function PhysicsFields({
   value,
@@ -83,23 +93,26 @@ export function PhysicsFields({
           onChange(normalizePhysics({ kind: kind as PhysicsKind }))
         }
       />
+      {model.description && <p className="muted">{model.description}</p>}
       {Object.entries(model.ranges).map(([key, [min, max]]) => (
         <div className="property" key={key}>
           <span>{labels[key]}</span>
           <NumberField
             label={labels[key]}
-            value={p[key as keyof PhysicsSpec] as number}
-            min={min}
-            max={max}
+            value={(p[key as keyof PhysicsSpec] as number) * (key === "expansionCoefficient" ? 1e6 : 1)}
+            min={min * (key === "expansionCoefficient" ? 1e6 : 1)}
+            max={max * (key === "expansionCoefficient" ? 1e6 : 1)}
             step={
-              key === "angle" || key === "supportingRopes"
+              key === "expansionCoefficient"
+                ? 1
+                : key === "angle" || key === "supportingRopes"
                 ? 1
                 : ["volume", "area1", "area2"].includes(key)
                   ? 0.0001
                   : 0.1
             }
             onChange={(number) =>
-              onChange(normalizePhysics({ ...p, [key]: number }))
+              onChange(normalizePhysics({ ...p, [key]: key === "expansionCoefficient" ? number / 1e6 : number }))
             }
           />
         </div>
@@ -119,6 +132,12 @@ export function PhysicsFields({
         "refraction",
         "longitudinal-wave",
         "series-circuit",
+        "sound-travel",
+        "heating",
+        "energy-conservation",
+        "parallel-circuit",
+        "elastic-collision",
+        "thermal-expansion",
       ].includes(p.kind) && (
         <Label className="science-checkbox">
           <Checkbox

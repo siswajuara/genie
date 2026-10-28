@@ -211,7 +211,7 @@ assert.match(prompt.system, /NEW editable element/);
 assert.match(prompt.system, /S-P-O-K/);
 assert.equal(
   Object.keys(JSON.parse(prompt.user).teachingCatalog.learning).length,
-  40,
+  48,
 );
 assert.deepEqual(
   JSON.parse(prompt.user).teachingCatalog.learning["word-family"].fields
@@ -256,10 +256,31 @@ const withSlot = {
     },
   ],
 };
-assert.throws(
-  () => parseGenerationResult(result, withSlot),
-  /invalid learning/,
-);
+// Omitted diagram echoes are repaired from the template instead of
+// discarding the whole sequence.
+const repaired = parseGenerationResult(result, withSlot);
+assert.equal(repaired.frames[0].learning.length, 1);
+assert.equal(repaired.frames[0].learning[0].id, "lesson");
+assert.equal(repaired.frames[0].learning[0].settings.kind, "sentence");
+assert.match(repaired.repaired.join(" "), /Scene 1.*learning/);
+// Corrupt echoes still fail loudly.
+for (const learning of [
+  [{ id: "lesson", settings: { kind: "cube" } }],
+  [{ id: "other", settings: { kind: "sentence" } }],
+  "not-an-array",
+  [
+    { id: "lesson", settings: { kind: "sentence" } },
+    { id: "lesson", settings: { kind: "sentence" } },
+  ],
+])
+  assert.throws(
+    () =>
+      parseGenerationResult(
+        { ...result, frames: [{ ...result.frames[0], learning }] },
+        withSlot,
+      ),
+    /AI changed|invalid learning/,
+  );
 assert.equal(
   parseGenerationResult(
     {
@@ -276,5 +297,5 @@ assert.equal(
   "Siti",
 );
 console.log(
-  "PASS: 60 teaching models, known numeric answers, bounds, safe SVG, deterministic emphasis, and AI-added visual permissions. No provider calls.",
+  "PASS: 74 teaching models, known numeric answers, bounds, safe SVG, deterministic emphasis, and AI-added visual permissions. No provider calls.",
 );
