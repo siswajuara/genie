@@ -63,10 +63,11 @@ export function useAnimationPlayback(editor: Editor) {
   useEffect(() => {
     if (!playing || !open || !frame) return;
     let request = 0,
-      previous: number | undefined;
+      previous = performance.now();
     const tick = (now: number) => {
-      const delta =
-        previous === undefined ? 0 : Math.min((now - previous) / 1000, 0.1);
+      // Audio advances in real time even when a visual frame is expensive.
+      // Dropping elapsed time here makes the audio player seek backwards.
+      const delta = Math.max(0, (now - previous) / 1000);
       previous = now;
       setTime((t) => {
         const next = t + delta * speed,

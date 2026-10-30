@@ -137,6 +137,28 @@ export const clamp = (n: number, lo = 0, hi = 1) =>
 export const sceneDuration = (frame: Element) =>
   frame.scene?.duration ?? DEFAULT_DURATION;
 
+/** Scene cameras move content media; teaching and layout layers stay anchored. */
+export function receivesCameraMotion(element: Element): boolean {
+  if (
+    (element.t !== "img" && element.t !== "video") ||
+    element.latex ||
+    element.physics ||
+    element.learning ||
+    element.brandRole === "logo" ||
+    element.brandRole === "footer" ||
+    element.generationRole === "fixed" ||
+    element.generationRole === "page-number"
+  )
+    return false;
+  // Older canvases can predate semantic branding roles. Recognize their layer
+  // names and identifiers as well, without changing any saved canvas data.
+  const identity = `${element.identifier || ""} ${element.n}`;
+  return !(
+    /(?:^|[\s_-])(?:logo|header|footer|page[\s_-]?(?:number|no)|nomor[\s_-]?halaman)(?=$|[\s_.-])/i.test(identity) ||
+    /^(?:website|handle|divider-[12]|social-(?:tiktok|instagram|facebook|youtube|threads))(?:$|[\s_-])/i.test(identity.trim())
+  );
+}
+
 /** Keep scene-spanning content visible when speech extends a scene. */
 export function resizeFrameTiming(
   elements: Element[],

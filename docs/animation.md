@@ -31,7 +31,7 @@ Select an editable text layer and open **Animation → Text reveal**. Choose typ
 
 The renderer measures the complete text before revealing glyphs. Center/right alignment, inline colors, outlines, curved text, and line breaks retain their positions throughout playback and export. Unicode grapheme segmentation keeps combining accents and emoji sequences together; word segmentation uses language-aware browser segmentation. Text remains one editable layer with its full original string. Reduced-motion editor previews show the complete text.
 
-Scene camera motion uses frame-centered pan/zoom and perspective dolly. Positive layer depth increases parallax. Perspective zoom/flip and Y rotation project editable 2D layers as textured planes; these are not imported 3D meshes.
+Scene camera motion uses frame-centered pan/zoom and perspective dolly on content images and videos only. Text (including curved text), LaTeX, physics/learning diagrams, shapes, logos, headers, footers, page numbers, and fixed template layers stay anchored. Branding roles and legacy branding names/identifiers are respected, including for image/video layers. Positive media layer depth increases parallax. Each layer's own animation and diagram playback still follow their authored timing. Camera targeting is shared by editor playback, sequence previews, and image/video export, and applies to existing local canvases without migrating their data. Perspective zoom/flip and Y rotation project editable 2D layers as textured planes; these are not imported 3D meshes.
 
 ## Templates
 
@@ -46,6 +46,8 @@ Saved frame templates retain scene and layer-animation settings, but omit frame-
 Select a frame or one of its layers and open the inspector's **Narration** tab. Draft a script, pick a voice (Default/Story/News, Male/Female), select the billed ElevenLabs account, and optionally enable matching captions before generating. Configure accounts in **Setting → Audio**. Generation and transcription use provider credits; local imports, editing, preview, WAV mixing, and media export require no generation request.
 
 Narration, music, and sound effects are saved as embedded frame audio tracks. Import recordings under **Music**, then change their role and turn off Loop for speech. The same section exposes exact start/end, source trim, fades, level, and mute controls for all tracks. A visual video layer plays muted; **Extract audio from …** creates a separate track when the source contains audio.
+
+Timeline, scene preview, and export preview advance by real elapsed time even when visual rendering slows down. This keeps audio from being repeatedly rewound to a delayed playhead. Pending audio play requests are allowed to complete before seeking; playback failures retry when Play is pressed again. Preview playback pauses when the app tab is hidden.
 
 **Captions** edits frame-relative cue text and timing. **Files & transcription** imports/exports SRT and transcribes non-looping tracks. Generation, transcription, and SRT import append cues; remove unwanted prior cues when replacing a take. Audio and captions have separate timings, so check synchronization after trimming or moving tracks.
 

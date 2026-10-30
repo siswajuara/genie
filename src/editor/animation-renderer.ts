@@ -6,6 +6,7 @@ import {
   ease,
   evaluateAnimation,
   motionPose,
+  receivesCameraMotion,
   sceneDuration,
   type Pose,
   type SequenceEntry,
@@ -227,7 +228,7 @@ export function drawAnimationFrame(
     pose.opacity *= frame.op ?? 1;
     let cx = element.x + element.w / 2 - frame.x + pose.x,
       cy = element.y + element.h / 2 - frame.y + pose.y;
-    if (camera) {
+    if (camera && receivesCameraMotion(element)) {
       const depth = element.animation?.depth ?? 0;
       const perspective =
         1600 / Math.max(200, 1600 - camera.z * (1 + depth / 500));

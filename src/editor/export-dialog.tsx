@@ -217,10 +217,9 @@ export function ExportDialog({
   useEffect(() => {
     if (!playing || busy || format !== "mp4") return;
     let request = 0,
-      previous: number | undefined;
+      previous = performance.now();
     const tick = (now: number) => {
-      const delta =
-        previous === undefined ? 0 : Math.min(0.1, (now - previous) / 1000);
+      const delta = Math.max(0, (now - previous) / 1000);
       previous = now;
       setPreviewTime((time) => {
         const next = time + delta;
@@ -232,8 +231,15 @@ export function ExportDialog({
       });
       request = requestAnimationFrame(tick);
     };
+    const visibility = () => {
+      if (document.hidden) setPlaying(false);
+    };
+    document.addEventListener("visibilitychange", visibility);
     request = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(request);
+    return () => {
+      cancelAnimationFrame(request);
+      document.removeEventListener("visibilitychange", visibility);
+    };
   }, [playing, duration, busy, format]);
   function reorder(index: number, direction: number) {
     const next = [...ids],

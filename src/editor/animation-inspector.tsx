@@ -265,6 +265,7 @@ export function AnimationInspector({
               </div>
               {sceneSlot === "camera" ? (
                 <>
+                  <p className="muted">Camera motion applies to content images and videos. Text, diagrams, and branding stay anchored.</p>
                   <EffectGrid
                     options={motions}
                     value={scene.camera?.preset ?? "none"}
