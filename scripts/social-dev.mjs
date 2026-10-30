@@ -1,10 +1,11 @@
 import { createSocialService, publicConfig } from "../sidecar/social-core.mjs";
 import path from "node:path";
+import fs from "node:fs/promises";
 import { readConfig, jsonWriter } from "../sidecar/local-json.mjs";
 import { saveElevenLabsAccount } from "../sidecar/elevenlabs-config.mjs";
 import { saveOpenCodeConfig } from "../sidecar/opencode-config.mjs";
 export function socialDevPlugin() {
-  const service = createSocialService();
+  let service;
   let configPath, persistConfig;
   let pending = Promise.resolve();
   return {
@@ -12,6 +13,14 @@ export function socialDevPlugin() {
     configResolved(config) {
       configPath = path.join(config.root, "config.json");
       persistConfig = jsonWriter(configPath);
+      const statePath = path.join(config.root, ".genie-social", "requests.json");
+      service = (async () => {
+        let state = {};
+        try { state = JSON.parse(await fs.readFile(statePath, "utf8")); }
+        catch (error) { if (error.code !== "ENOENT") throw Error("Could not read social request history."); }
+        return createSocialService({ state, persist: jsonWriter(statePath) });
+      })();
+      service.catch(() => {});
     },
     configureServer(server) {
       server.middlewares.use("/api/genie-social", async (req, res) => {
@@ -50,7 +59,7 @@ export function socialDevPlugin() {
           if (req.url === "/settings") {
             if (body.provider) {
               if (
-                !["buffer", "zernio", "elevenlabs", "opencode"].includes(
+                !["tebar", "elevenlabs", "opencode"].includes(
                   body.provider,
                 )
               )
@@ -72,9 +81,12 @@ export function socialDevPlugin() {
                     throw Error("Enter a valid API key.");
                   provider.key = body.key.trim();
                 }
-                for (const key of ["organizationId", "profileId"])
+                for (const key of ["profileId"])
                   if (typeof body[key] === "string")
-                    provider[key] = body[key].slice(0, 300);
+                    {
+                    if (body[key].length > 300 || /[\r\n\0]/.test(body[key])) throw Error("Enter a valid workspace ID.");
+                    provider[key] = body[key].trim();
+                  }
               }
               await persistConfig(config);
             }
@@ -84,7 +96,7 @@ export function socialDevPlugin() {
           if (req.url !== "/request") throw Error("Unknown social endpoint.");
           res.end(
             JSON.stringify({
-              data: await service.dispatch(
+              data: await (await service).dispatch(
                 config,
                 body.action,
                 body.payload || {},

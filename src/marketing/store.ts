@@ -13,6 +13,9 @@ export const platforms: {
   { id: "youtube", name: "YouTube", color: "#c42b30" },
   { id: "x", name: "X", color: "#424252" },
   { id: "threads", name: "Threads", color: "#424252" },
+  { id: "telegram", name: "Telegram", color: "#229ed9" },
+  { id: "discord", name: "Discord", color: "#5865f2" },
+  { id: "pinterest", name: "Pinterest", color: "#bd081c" },
 ];
 export type Media = {
   id: string;
@@ -32,9 +35,11 @@ export type Post = {
   media: Media[];
   platforms: string[];
   accountKeys?: string[];
+  accountOptions?: Record<string, Record<string, string | boolean>>;
   submissionId?: string;
   delivery?: {
-    provider: "buffer" | "zernio";
+    // Historical receipts remain readable after changing integrations.
+    provider: string;
     accountKey: string;
     accountName: string;
     success: boolean;
@@ -49,14 +54,7 @@ export type Post = {
   status: "draft" | "planned";
   updatedAt: string;
 };
-export type BrandSettings = {
-  name: string;
-  description: string;
-  website: string;
-  timezone: string;
-  weekStart: string;
-  theme: string;
-};
+export type WorkspacePreferences = { theme: string };
 export function useLocalState<T>(
   key: string,
   initial: T,
@@ -97,11 +95,6 @@ export function emptyPost(projectId: string): Post {
     updatedAt: new Date().toISOString(),
   };
 }
-export const initialSettings: BrandSettings = {
-  name: "Siswa Juara",
-  description: "",
-  website: "",
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  weekStart: "monday",
+export const initialPreferences: WorkspacePreferences = {
   theme: localStore.getItem("genie.theme") || "light",
 };

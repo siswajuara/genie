@@ -10,7 +10,7 @@ Start with the [canvas user guide](docs/canvas.md) for the complete workflow: pr
 2. Create a canvas, add a frame from Templates or Elements, and edit its layers.
 3. Select a frame and open **Narration** for voice generation, recordings, music, and editable captions. Configure ElevenLabs in **Setting → Audio**; generation and transcription use provider credits.
 4. Set scene timing in **Animation** and **Timeline**, then export PNG/JPG images, a ZIP of slides, or an MP4 with frame audio and captions.
-5. Save checkpoints in **Versions** and editable backups in **Canvas settings**. Publish or schedule through Buffer/Zernio separately when ready.
+5. Save checkpoints in **Versions** and editable backups in **Canvas settings**. Publish or schedule through Tebar separately when ready.
 
 Supplied templates and media are external packs under `asset-packs/`; they are excluded from application builds. Only placed media embeds in designs. Desktop remembers the selected folder in local `config.json`; browser folder selections last for the session.
 
@@ -39,9 +39,9 @@ A prepared local pack is available automatically in Vite development. For prepar
 | [Preset authoring](design-references/README.md)     | Editable template files, source references, cutouts, catalog and preview preparation              |
 | [External asset packs](asset-packs/README.md)       | Folder connection, media preparation, manifest, packaging                                         |
 | [Storage and recovery](docs/storage.md)             | Local saving, library backups, migration, recovery                                                |
-| [Publishing and scheduling](docs/social.md)         | Buffer/Zernio connections, local drafts, confirmed submissions, actual usage                      |
+| [Publishing and scheduling](docs/social.md)         | Tebar connections, local drafts, confirmed submissions, actual usage                      |
 | [Editor implementation](src/README.md)              | JSON contract, ownership, rendering, local integrations                                           |
 | [Desktop builds](docs/builds.md)                    | Installers, build workflow, signing                                                               |
 | [Versioning and updates](docs/updates.md)           | Release scripts, updater setup, signed updates                                                    |
 
-AI generation uses OpenCode’s stateless API and keeps canvas/page/frame metadata local; see [generation setup and contract](docs/ai-generation.md). Provider keys and related settings live in local `config.json`, outside canvas exports. Social publishing calls Buffer and Zernio directly. Narration calls ElevenLabs when requested; Soniox remains reserved in configuration. No siswajuara.com social API or website social tables are used.
+AI generation uses OpenCode’s stateless API and keeps canvas/page/frame metadata local; see [generation setup and contract](docs/ai-generation.md). Provider keys and related settings live in local `config.json`, outside canvas exports. Social publishing calls Tebar directly. Narration calls ElevenLabs when requested; Soniox remains reserved in configuration. No siswajuara.com social API or website social tables are used.

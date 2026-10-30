@@ -12,16 +12,17 @@ test.beforeEach(async ({ page }) => {
         json: {
           data: {
             storage: "file",
-            buffer: { configured: false, organizationId: "" },
-            zernio: { configured: false, profileId: "" },
+            tebar: { configured: false, profileId: "" },
             elevenlabs: { configured: false, accounts: [] },
           },
         },
       });
+    } else if (body.action === "usage.cached") {
+      await route.fulfill({ json: { data: { providers: {} } } });
     } else if (["accounts", "elevenlabs.cached"].includes(body.action)) {
       await route.fulfill({
         json: {
-          data: { accounts: [], organizations: [], profiles: [], issues: [] },
+          data: { accounts: [], profiles: [], ownerKey: false, issues: [] },
         },
       });
     } else {

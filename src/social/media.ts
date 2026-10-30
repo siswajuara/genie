@@ -7,14 +7,10 @@ import { socialRequest } from "./client";
 export async function prepareSocialMedia(
   media: Media,
   workspace: Workspace,
-  zernioConfigured: boolean,
-): Promise<{ url: string; type: "image" | "video" }> {
+  profileId?: string,
+): Promise<{ id: string; type: "image" | "video" }> {
   if (media.kind !== "frame" && media.src?.startsWith("https://"))
-    return { url: media.src, type: media.kind === "video" ? "video" : "image" };
-  if (!zernioConfigured)
-    throw Error(
-      "Add a Zernio API key in Setting to upload Canvas designs or local files. Buffer requires a public media URL.",
-    );
+    return socialRequest("upload", { url: media.src, profileId, confirmed: true });
   let blob: Blob;
   if (media.kind === "frame") {
     const page = workspace.projects
@@ -77,8 +73,9 @@ export async function prepareSocialMedia(
       throw Error("Choose a valid uploaded image or video.");
     blob = await (await fetch(media.src)).blob();
   }
-  if (blob.size > 32 * 1024 * 1024)
-    throw Error("Media uploads must be under 32 MB.");
+  const limit = blob.type.startsWith("image/") ? 8 : 32;
+  if (blob.size > limit * 1024 * 1024)
+    throw Error(`Tebar images must be under 8 MB; composer videos under 32 MB.`);
   const data = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",")[1]);
@@ -89,5 +86,7 @@ export async function prepareSocialMedia(
     data,
     filename: media.kind === "frame" ? `${media.name}.png` : media.name,
     contentType: blob.type,
+    profileId,
+    confirmed: true,
   });
 }

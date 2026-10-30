@@ -5,7 +5,7 @@ import type { Projects } from "../editor/projects";
 import type { Editor } from "../editor/use-editor";
 import { Icon, type IconName } from "../components/ui/icon";
 import { Dialog } from "./shared";
-import { emptyPost, initialSettings, useLocalState, type Post } from "./store";
+import { emptyPost, initialPreferences, useLocalState, type Post } from "./store";
 import { Publish } from "./publish";
 import { Canvases } from "./canvases";
 import { Setting } from "./modules";
@@ -35,7 +35,7 @@ export function MarketingWorkspace({
 }) {
   const [settings, setSettings, settingsError] = useLocalState(
     "genie.marketing.settings",
-    initialSettings,
+    initialPreferences,
   );
   const [posts, setPosts, postsError] = useLocalState<Post[]>(
     "genie.marketing.posts",
@@ -246,7 +246,6 @@ export function MarketingWorkspace({
               projects={p}
               draft={draft}
               setDraft={setDraft}
-              settings={settings}
               onSave={savePost}
               onRecord={recordPost}
               onCanvas={startCanvas}
@@ -264,7 +263,7 @@ export function MarketingWorkspace({
               <Schedule
                 posts={posts}
                 workspace={p.workspace}
-                timezone={settings.timezone}
+                timezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
                 onCreate={() => {
                   setDraft(emptyPost(p.project.id));
                   navigate("Publish");
@@ -334,9 +333,8 @@ export function MarketingWorkspace({
               <strong>Keep track in Schedule.</strong>
               <p>
                 Drafts and dated plans are saved on this device. Plans do not
-                publish automatically. View Buffer and Zernio free-tier limits
-                in Setting and confirm publishing through connected providers in
-                Publish.
+                publish automatically. Check Tebar usage in Setting and confirm
+                publishing through your connected accounts in Publish.
               </p>
             </li>
           </ol>

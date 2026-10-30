@@ -66,8 +66,7 @@ async function mockProviders(
     const config = {
       storage: "file",
       opencode: { url: "", model: "", tokenConfigured: false, mode: "local" },
-      buffer: { configured: false },
-      zernio: { configured: false },
+      tebar: { configured: false, profileId: "" },
       elevenlabs: {
         configured: options.audioConfigured !== false,
         accounts:
@@ -148,7 +147,7 @@ async function mockProviders(
     }
     return route.fulfill({
       json: {
-        data: { accounts: [], organizations: [], profiles: [], issues: [] },
+        data: { accounts: [], profiles: [], ownerKey: false, issues: [] },
       },
     });
   });

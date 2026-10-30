@@ -8,8 +8,7 @@ import { createSocialService } from "../sidecar/social-core.mjs";
 
 const config = {
   opencode: { url: "http://127.0.0.1:4096", token: "test-token" },
-  buffer: { key: "" },
-  zernio: { key: "" },
+  tebar: { key: "" },
   elevenlabs: { accounts: [] },
 };
 const request = {

@@ -3,14 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NumberField } from "@/components/ui/number-field";
-import { SelectField } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
   normalizeLearning,
   learningModels,
   type LearningSpec,
-  type LearningKind,
 } from "../../sidecar/learning.mjs";
 const labels: Record<string, string> = {
   side: "Sisi (cm)",
@@ -88,7 +85,6 @@ export function LearningFields({
   value,
   onChange,
   disabled = false,
-  allowModelChange = true,
 }: {
   value: LearningSpec;
   onChange: (value: LearningSpec) => void;

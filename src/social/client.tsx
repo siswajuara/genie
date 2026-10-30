@@ -8,8 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-export type Provider = "buffer" | "zernio";
-type Account = {
+export type Provider = "tebar";
+export type Account = {
   id: string;
   key: string;
   provider: Provider;
@@ -17,7 +17,6 @@ type Account = {
   name: string;
   username: string;
   active: boolean;
-  organizationId?: string;
   profileId?: string;
 };
 export type Issue = { provider: Provider; message: string };
@@ -30,13 +29,13 @@ export type Config = {
     mode: "url" | "local";
   };
   elevenlabs: { configured: boolean; accounts: AudioAccount[] };
-  buffer: { configured: boolean; organizationId: string };
-  zernio: { configured: boolean; profileId: string };
+  tebar: { configured: boolean; profileId: string };
 };
 export type AccountsResult = {
   accounts: Account[];
-  organizations: { id: string; name: string }[];
-  profiles: { _id?: string; id?: string; name: string }[];
+  profiles: { id: string; name: string; is_default?: boolean }[];
+  ownerKey: boolean;
+  scopes?: string[];
   issues: Issue[];
 };
 export type AudioAccount = {
@@ -51,7 +50,6 @@ type SaveValues = {
   model?: string;
   token?: string;
   removeToken?: boolean;
-  organizationId?: string;
   profileId?: string;
   removeKey?: boolean;
   accountId?: string;
@@ -59,7 +57,7 @@ type SaveValues = {
   enabled?: boolean;
 };
 export type PublishResult = {
-  provider: Provider;
+  provider: string;
   accountKey: string;
   accountName: string;
   success: boolean;
@@ -99,8 +97,8 @@ async function transport<T>(endpoint: string, body: unknown): Promise<T> {
 type SocialContextValue = {
   config: Config;
   accounts: Account[];
-  organizations: AccountsResult["organizations"];
   profiles: AccountsResult["profiles"];
+  ownerKey: boolean;
   issues: Issue[];
   busy: boolean;
   error: string;
@@ -118,14 +116,13 @@ const initial: Config = {
   storage: "file",
   opencode: { url: "", model: "", tokenConfigured: false, mode: "local" },
   elevenlabs: { configured: false, accounts: [] },
-  buffer: { configured: false, organizationId: "" },
-  zernio: { configured: false, profileId: "" },
+  tebar: { configured: false, profileId: "" },
 };
 export function SocialProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState(initial),
     [data, setData] = useState<AccountsResult>({
       accounts: [],
-      organizations: [],
+      ownerKey: false,
       profiles: [],
       issues: [],
     }),
@@ -160,6 +157,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         ...old,
         accounts: old.accounts.filter((a) => a.provider !== provider),
         issues: old.issues.filter((i) => i.provider !== provider),
+        ...(provider === "tebar" ? { profiles: [], ownerKey: false } : {}),
       }));
       setRevision((n) => n + 1);
     },
@@ -172,9 +170,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         ...old.accounts.filter((a) => a.provider !== provider),
         ...result.accounts,
       ],
-      organizations:
-        provider === "buffer" ? result.organizations : old.organizations,
-      profiles: provider === "zernio" ? result.profiles : old.profiles,
+      profiles: result.profiles,
+      ownerKey: result.ownerKey,
       issues: old.issues.filter((i) => i.provider !== provider),
     }));
     setRevision((n) => n + 1);

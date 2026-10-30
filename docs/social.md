@@ -1,43 +1,31 @@
-# Direct social connections and local ownership
+# Tebar publishing and local ownership
 
-Genie connects directly to Buffer and Zernio. It does not call the siswajuara.com API or save to website social tables. Connect provider keys under **Setting → Social accounts**, save and test, then choose a Buffer organization or Zernio profile. Channel authorization opens the provider flow in your browser.
+Tebar is Genie's only social provider. Under **Setting → Social accounts**, save a Tebar API key and choose **Save & test**. Create a key in the Tebar account menu → API key; publishing requires read and write access. A read-only key can browse accounts and posts. Genie calls `https://api.tebar.app/v1` from the Node sidecar with `Authorization: Bearer …`. See the [official API introduction](https://docs.tebar.app/api/) and [OpenAPI specification](https://api.tebar.app/v1/openapi.json).
 
-Desktop keys and provider settings live in `config.json` in the application data directory (on macOS, `~/Library/Application Support/com.siswajuara.genie/config.json`). Browser development uses `config.json` at the project root through the same-origin localhost Vite middleware, and persists settings across restarts. Copy `config.example.json` for the format. Both files use top-level `buffer`, `zernio`, `elevenlabs`, and `soniox` sections. Buffer, Zernio, and the reserved Soniox section use a `key` field; ElevenLabs supports named accounts in an `accounts` array with each account's key and enabled state. Unrelated configuration is preserved when social settings are saved. ElevenLabs supports narration, matching captions, transcription, and on-demand credit checks through **Setting → Audio** and the canvas **Narration** inspector. Speech and transcription use the explicitly selected billing account. Soniox remains reserved. See the [canvas narration guide](canvas.md#add-narration-and-matching-captions). Public settings expose configured flags, never keys. The OS credential vault is no longer accessed; re-enter previously saved keys once. The Node sidecar makes provider requests. Production static previews need the desktop app for connections.
+## Configuration and workspaces
 
-## Local data and publishing
+Keys and settings live in local `config.json`: the application data directory on desktop (`~/Library/Application Support/com.siswajuara.genie/config.json` on macOS), or the project root through same-origin localhost Vite middleware during browser development. Use `config.example.json`. The social section is `tebar: { key, profileId }`; OpenCode, ElevenLabs, reserved Soniox, and unrelated settings remain intact. Public settings expose configured flags, never keys. Keys are excluded from canvas exports and the library database; the OS credential vault is not used. Static production previews need the desktop app for provider access.
 
-Canvases, versions, drafts, dated content plans, and delivery results stay in the local library (SQLite on desktop, IndexedDB in browser development). Drafts use `genie.marketing.posts`. Saving a draft or plan sends no provider request and uploads no media. Canvas media keeps its project/page/frame reference; keep that source canvas available.
+Owner keys can list and create workspaces (called profiles in the API). Selecting a workspace adds `Tebar-Profile` to scoped requests. Without selection, discovery sees all workspaces; a submission must use up to 10 accounts from a single workspace, and media and post creation use that workspace. Workspace keys already have their scope and cannot list or create profiles; that permission limit does not prevent account discovery or publishing.
 
-Publish requires connected channels and a confirmation before sending directly to a provider. Local plans do not publish automatically; confirmed provider schedules run on the provider even when Genie is closed. Delivery outcomes and submission IDs are saved locally. Native request history in `social/requests.json` holds cached discovery, usage observations, and duplicate-submission receipts, outside project exports. An uncertain write is not automatically retried. Check the provider before starting another submission.
+**Connect account** creates a single-use Tebar connect link for the selected or default workspace with an owner key. It expires after 30 minutes. No redirect URL is needed; Tebar shows its completion page. Workspace keys open the Tebar dashboard instead. Complete authorization there, then explicitly **Refresh accounts** in Genie. No callback query is treated as proof of connection. Expired, revoked, or plan-suspended accounts cannot be selected for publication. See [profiles](https://docs.tebar.app/api/profile/) and [connect links](https://docs.tebar.app/api/connect-link/).
 
-Local media and rendered frames upload through Zernio's presigned storage API when confirming publication. Buffer accepts public media URLs, so Buffer-only setups need a stable public HTTPS media link. Website storage and social tables are not involved. Provider queues and API usage are read directly; provider permissions and plan capabilities still apply. Insight analytics and Community comments/replies are outside the current workflow. Existing remote website jobs are not cancelled or imported.
+## Drafts, media, and confirmation
 
-## Fetching actual usage
+Canvases, versions, drafts, dated content plans, and delivery receipts stay in the local library (SQLite on desktop and IndexedDB in the browser). Drafts use `genie.marketing.posts`. Saving a local draft or plan sends no provider request and uploads no media. Canvas references retain their canvas/page/frame ownership; keep the source canvas available.
 
-Each provider card has **Fetch usage**, which makes one read request for that provider:
+Publishing and provider scheduling require confirmation. Only then does Genie render Canvas frames, send local file bytes to `POST /media/upload`, or import public HTTPS references with `POST /media/from-url`. Every media item becomes a Tebar media ID in the original order. JPEG/PNG images are limited to 8 MB. The current local file picker accepts files up to 8 MB, and the backend accepts videos up to 32 MB, below Tebar's direct-upload ceiling. MP4/MOV video encoding and platform-specific media limits still apply. Genie does not implement chunked uploads. See [media](https://docs.tebar.app/api/media/).
 
-- **Buffer:** a small `account { id }` query to `https://api.buffer.com`; `RateLimit` and `RateLimit-Policy` headers report remaining requests, quotas, window lengths, and reset timing. All ordinary Buffer responses also update these observations.
-- **Zernio:** `GET https://zernio.com/api/v1/usage` without metering parameters returns the plan/quota/usage snapshot. Genie shows connected accounts, uploads/profiles and their reported limits, and current-period spend when supplied. `X-RateLimit-*` response headers supply request throughput; analytics windows are kept separately.
+`POST /posts` receives `content`, `media_ids`, `targets[].account_id`, any per-account `options`, and `scheduled_at` for schedules. YouTube requires an explicit audience choice and title; TikTok visibility choices are fetched on demand and explicitly selected; Pinterest requires a board ID or name. See [platform options](https://docs.tebar.app/api/posts/). Local drafts are never uploaded as provider drafts. Confirmed schedules run on Tebar even when Genie is closed; local plans do not run automatically.
 
-Values are timestamped observations, not a continuously live counter. Other integrations consume shared quotas too. Missing headers are shown as unavailable. Known exhausted windows and `Retry-After` cooldowns prevent premature requests. Cache reads cost no provider calls. Discovery is reused for five minutes; **Refresh accounts** and **Save & test** explicitly re-fetch. There is no recurring social polling.
+A Tebar post can initially be publishing or pending: acceptance does not mean every platform has published it. **Schedule → Published & scheduled** reads target delivery status, errors, and published links directly from Tebar with cursor pagination and manual refresh. Genie's saved receipt records the submission outcome. There is no background delivery polling.
 
-## Free account reference
+Desktop request history in `social/requests.json` holds discovery cache, usage observations, and submission receipts outside canvas exports. Browser development uses `.genie-social/requests.json` for the same history. Post creation sends a stable `Idempotency-Key`; receipts prevent accidental duplicate writes and reject reused IDs with different content. Uncertain writes are not automatically retried. Check Tebar posts before starting another submission. Existing local drafts and historical delivery labels remain readable; old account selections must be replaced with connected Tebar accounts. Switching providers does not cancel schedules already created elsewhere.
 
-Checked October 25, 2026; actual response headers and account plan take precedence.
+## Usage and quota
 
-| Provider    | Request windows                                            | Account/post limits                                             |
-| ----------- | ---------------------------------------------------------- | --------------------------------------------------------------- |
-| Buffer Free | 100 / 15 minutes, 250 / 24 hours, 3,000 / 30 days, rolling | 3 channels, 10 queued posts per channel                         |
-| Zernio Free | 60 / minute; analytics 6 / second                          | 2 connected accounts; hourly and platform daily publishing caps |
+**Fetch usage** makes one read request to `GET /me`. Tebar's response headers `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` supply request throughput; reset is seconds from the response. `Retry-After` and known exhausted windows block premature calls. Values are timestamped observations shared across all the account's keys, REST, and MCP; other clients can consume them too. Missing quota headers show unavailable values. **Check posting quota** separately requests `GET /accounts/{id}/publishing-limit` for an account's platform limit. Genie does not invent a plan, spend estimate, or free-tier quota.
 
-Buffer personal keys share a pool. Zernio legacy plans can differ; extra accounts and metered services can incur charges. Reads use requests too: one request each minute would consume 1,440/day, exceeding Buffer Free's daily budget.
+Account discovery is reused for five minutes. **Refresh accounts** and **Save & test** explicitly refetch. Cached usage reads cost no provider call. No recurring provider polling, website social tables, or siswajuara.com API is used. Analytics, inbox, comments, and webhooks are outside the current workflow.
 
-Official references:
-
-- [Buffer response headers and rate limits](https://developers.buffer.com/guides/api-limits.html)
-- [Buffer free plan](https://buffer.com/pricing)
-- [Zernio usage snapshot](https://docs.zernio.com/usage/get-usage)
-- [Zernio request/posting limits](https://docs.zernio.com/guides/rate-limits)
-- [Zernio media upload contract](https://docs.zernio.com/media/get-media-presigned-url)
-
-Verification uses mocked provider responses, including publishing, media uploads, and quota exhaustion. Do not make live provider mutations as a code test.
+Verification uses mocked Tebar responses for discovery, workspace scoping, raw media uploads, publishing, schedules, cursor pagination, quotas, errors, and duplicate prevention. Do not use live publishing or provider mutations as ordinary code tests.

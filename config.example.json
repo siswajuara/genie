@@ -1,7 +1,6 @@
 {
   "opencode": { "url": "", "token": "", "model": "" },
-  "buffer": { "key": "", "organizationId": "" },
-  "zernio": { "key": "", "profileId": "" },
+  "tebar": { "key": "", "profileId": "" },
   "elevenlabs": {
     "accounts": [
       { "id": "studio", "name": "Studio account", "key": "", "enabled": true },

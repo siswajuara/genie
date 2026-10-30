@@ -25,7 +25,7 @@ pub(crate) fn load(app: &tauri::AppHandle) -> Result<Value, String> {
     if !config.is_object() {
         return Err("config.json must contain an object.".into());
     }
-    for provider in ["buffer", "zernio", "elevenlabs", "soniox", "opencode"] {
+    for provider in ["tebar", "elevenlabs", "soniox", "opencode"] {
         if config.get(provider).is_none() {
             config[provider] = if provider == "opencode" { json!({"url":"","token":"","model":""}) } else { json!({"key":""}) };
         }
@@ -50,7 +50,7 @@ pub(crate) fn save(app: &tauri::AppHandle, config: &Value) -> Result<(), String>
 }
 fn public(config: &Value) -> Value {
     let accounts: Vec<Value> = audio_accounts(config).iter().map(|account| json!({"id":account["id"],"name":account["name"],"configured":!account["key"].as_str().unwrap_or("").is_empty(),"enabled":account["enabled"].as_bool().unwrap_or(true)})).collect();
-    json!({"storage":"file","opencode":{"url":config["opencode"]["url"].as_str().unwrap_or(""),"model":config["opencode"]["model"].as_str().unwrap_or(""),"tokenConfigured":!config["opencode"]["token"].as_str().unwrap_or("").is_empty(),"mode":if config["opencode"]["url"].as_str().unwrap_or("").is_empty() {"local"} else {"url"}},"elevenlabs":{"configured":accounts.iter().any(|account| account["configured"] == true),"accounts":accounts},"buffer":{"configured":!config["buffer"]["key"].as_str().unwrap_or("").is_empty(),"organizationId":config["buffer"]["organizationId"].as_str().unwrap_or("")},"zernio":{"configured":!config["zernio"]["key"].as_str().unwrap_or("").is_empty(),"profileId":config["zernio"]["profileId"].as_str().unwrap_or("")}})
+    json!({"storage":"file","opencode":{"url":config["opencode"]["url"].as_str().unwrap_or(""),"model":config["opencode"]["model"].as_str().unwrap_or(""),"tokenConfigured":!config["opencode"]["token"].as_str().unwrap_or("").is_empty(),"mode":if config["opencode"]["url"].as_str().unwrap_or("").is_empty() {"local"} else {"url"}},"elevenlabs":{"configured":accounts.iter().any(|account| account["configured"] == true),"accounts":accounts},"tebar":{"configured":!config["tebar"]["key"].as_str().unwrap_or("").is_empty(),"profileId":config["tebar"]["profileId"].as_str().unwrap_or("")}})
 }
 fn audio_accounts(config: &Value) -> Vec<Value> {
     let mut accounts = config["elevenlabs"]["accounts"]
@@ -215,7 +215,7 @@ pub async fn social_settings(
         let mut config = load(&app)?;
         if let Some(payload) = payload.filter(|value| value.get("provider").is_some()) {
             let provider = payload["provider"].as_str().ok_or("Choose a provider.")?;
-            if !["buffer", "zernio", "elevenlabs", "opencode"].contains(&provider) {
+            if !["tebar", "elevenlabs", "opencode"].contains(&provider) {
                 return Err("Unknown social provider.".into());
             }
             if provider == "elevenlabs" {
@@ -231,12 +231,12 @@ pub async fn social_settings(
                     }
                     config[provider]["key"] = json!(key.trim());
                 }
-                for field in ["organizationId", "profileId"] {
+                for field in ["profileId"] {
                     if let Some(value) = payload[field].as_str() {
-                        if value.len() > 300 {
+                        if value.len() > 300 || value.contains(['\r', '\n', '\0']) {
                             return Err("The selected resource ID is too long.".into());
                         }
-                        config[provider][field] = json!(value);
+                        config[provider][field] = json!(value.trim());
                     }
                 }
             }
@@ -266,6 +266,8 @@ pub async fn social_request(
         "elevenlabs.transcribe",
         "usage",
         "usage.cached",
+        "publishingLimit",
+        "accountOptions",
         "accounts",
         "test",
         "connect",
@@ -308,7 +310,7 @@ mod opencode_tests {
 
     #[test]
     fn opencode_settings_keep_tokens_local_and_support_local_mode() {
-        let mut config = json!({"opencode": {}, "elevenlabs": {}, "buffer": {}, "zernio": {}});
+        let mut config = json!({"opencode": {}, "elevenlabs": {}, "tebar": {}});
         save_opencode(&mut config, &json!({"url":"http://localhost:4096/", "token":"private-service-token", "model":"opencode-go/beam-free"})).unwrap();
         assert_eq!(config["opencode"]["url"], "http://localhost:4096");
         assert_eq!(public(&config)["opencode"]["tokenConfigured"], true);

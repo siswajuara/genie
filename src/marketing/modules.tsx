@@ -2,7 +2,6 @@ import { Segments } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Connections } from "../social/connections";
 import { AudioConnections } from "../social/audio-connections";
@@ -17,7 +16,7 @@ import { SelectField } from "../components/ui/select";
 import { dateISO } from "../components/ui/date";
 import { Dialog, EmptyState, PageIntro, PlatformIcon } from "./shared";
 import { MediaPreview } from "./frame-preview";
-import { platforms, type BrandSettings, type Post } from "./store";
+import { platforms, type WorkspacePreferences, type Post } from "./store";
 
 export function Schedule({
   posts,
@@ -268,8 +267,8 @@ export function Setting({
   settings,
   setSettings,
 }: {
-  settings: BrandSettings;
-  setSettings: Dispatch<SetStateAction<BrandSettings>>;
+  settings: WorkspacePreferences;
+  setSettings: Dispatch<SetStateAction<WorkspacePreferences>>;
 }) {
   const [section, setSection] = useState(() =>
     window.location.hash.toLowerCase().includes("assets")
@@ -295,7 +294,7 @@ export function Setting({
         openAssets as EventListener,
       );
   }, []);
-  const update = (key: keyof BrandSettings, value: string) => {
+  const update = (key: keyof WorkspacePreferences, value: string) => {
     setSettings((old) => ({ ...old, [key]: value }));
     if (key === "theme") localStorage.setItem("genie.theme", value);
   };
@@ -303,7 +302,7 @@ export function Setting({
     <>
       <PageIntro
         title="Your preferences and connections."
-        description="Manage your social accounts, brand details, and preferences."
+        description="Manage your social accounts, assets, and preferences."
       />
       <div className="settings-layout">
         <nav className="settings-nav" aria-label="Settings sections">
@@ -318,7 +317,6 @@ export function Setting({
               icon: "link" as const,
               hint: "ElevenLabs & credits",
             },
-            { name: "Brand", icon: "heading" as const, hint: "Name & voice" },
             {
               name: "AI generation",
               icon: "settings" as const,
@@ -358,53 +356,6 @@ export function Setting({
           {section === "AI generation" && <AIConnection />}
           {section === "Assets" && <AssetPackSettings />}
           {section === "Storage" && <StorageSettings />}
-          {section === "Brand" && (
-            <div className="settings-stack">
-              <div className="panel-heading settings-panel-head">
-                <div>
-                  <p className="settings-eyebrow">Brand</p>
-                  <h2>Your brand</h2>
-                  <p>Give your workspace a familiar name and voice.</p>
-                </div>
-                <span className="storage-status storage-status--ready">
-                  <span className="storage-status-dot" aria-hidden="true" />
-                  Auto-saves
-                </span>
-              </div>
-              <section className="settings-card" aria-label="Brand details">
-                <Label className="marketing-field settings-field">
-                  Brand name
-                  <Input
-                    value={settings.name}
-                    onChange={(ev) => update("name", ev.target.value)}
-                    placeholder="Your brand or business"
-                  />
-                </Label>
-                <Label className="marketing-field settings-field">
-                  About your brand
-                  <Textarea
-                    rows={4}
-                    value={settings.description}
-                    onChange={(ev) => update("description", ev.target.value)}
-                    placeholder="Who do you help, and what makes your brand different?"
-                  />
-                </Label>
-                <Label className="marketing-field settings-field">
-                  Website
-                  <Input
-                    type="url"
-                    value={settings.website}
-                    onChange={(ev) => update("website", ev.target.value)}
-                    placeholder="https://your-website.com"
-                  />
-                </Label>
-              </section>
-              <p className="settings-note">
-                <Icon name="check" size={15} />
-                <span>Changes save automatically on this device.</span>
-              </p>
-            </div>
-          )}
           {section === "Preferences" && (
             <div className="settings-stack">
               <div className="panel-heading settings-panel-head">
@@ -456,8 +407,7 @@ export function Setting({
                     <strong>Storage</strong>
                     <p>
                       Canvases, versions, saved drafts, and content plans stay
-                      on this device. Publishing connects directly to Buffer and
-                      Zernio.
+                      on this device. Publishing connects directly to Tebar.
                     </p>
                   </div>
                   <span className="settings-value-pill is-accent">

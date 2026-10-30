@@ -1,5 +1,4 @@
-// Direct Buffer and Zernio transport; all app drafts and receipts stay local.
-// Keys stay in the native/dev backend; this module never sends them to the UI.
+// Tebar is the only social transport. Drafts and delivery receipts stay local.
 import { createHash } from "node:crypto";
 import { captureUsage, assertRequestBudget } from "./social-usage.mjs";
 import { createElevenLabsPool, elevenLabsMedia } from "./elevenlabs.mjs";
@@ -8,290 +7,114 @@ import { generateScript } from "./opencode-generation.mjs";
 import { generateNarration } from "./opencode-narration.mjs";
 import { listOpenCodeModels } from "./opencode.mjs";
 import { publicOpenCode } from "./opencode-config.mjs";
-const providers = ["buffer", "zernio"];
+const providers = ["tebar"];
+const hash = (value) => createHash("sha256").update(value).digest("hex");
 export const publicConfig = (config, storage) => ({
   storage,
   opencode: publicOpenCode(config.opencode),
   elevenlabs: publicElevenLabs(config),
-  buffer: {
-    configured: !!config.buffer.key,
-    organizationId: config.buffer.organizationId || "",
-  },
-  zernio: {
-    configured: !!config.zernio.key,
-    profileId: config.zernio.profileId || "",
-  },
+  tebar: { configured: !!config.tebar?.key, profileId: config.tebar?.profileId || "" },
 });
 const safeId = (value) => {
-  if (typeof value !== "string" || !value || value.length > 300)
-    throw Error("A valid provider resource ID is required.");
+  if (typeof value !== "string" || !value || value.length > 300 || /[\r\n\0]/.test(value))
+    throw Error("A valid Tebar resource ID is required.");
   return value;
 };
-function https(value) {
+function publicHttps(value) {
   const url = new URL(value);
-  if (
-    url.protocol !== "https:" ||
-    url.username ||
-    url.password ||
-    /^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.|\[|172\.(1[6-9]|2\d|3[01])\.)/i.test(
-      url.hostname,
-    )
-  )
+  if (url.protocol !== "https:" || url.username || url.password ||
+      /^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.|\[|172\.(1[6-9]|2\d|3[01])\.)/i.test(url.hostname))
     throw Error("Media and connection URLs must use public HTTPS.");
   return url.href;
 }
-export function createSocialService({
-  fetchImpl = fetch,
-  opencodeRuntime = {},
-  state = { receipts: {}, bufferCalls: [], blockedUntil: 0 },
-  persist = async () => {},
-} = {}) {
+export function createSocialService({ fetchImpl = fetch, opencodeRuntime = {}, state = {}, persist = async () => {} } = {}) {
   state.receipts ||= {};
-  state.bufferCalls ||= [];
   state.usage ||= {};
   state.cache ||= {};
   state.keyHashes ||= {};
   const accountInFlight = new Map();
   function scope(config) {
-    for (const provider of providers) {
-      const hash = createHash("sha256")
-        .update(config[provider].key || "")
-        .digest("hex");
-      if (state.keyHashes[provider] !== hash) {
-        delete state.usage[provider];
-        state.cache = {};
-        if (provider === "buffer") {
-          state.bufferCalls = [];
-          state.blockedUntil = 0;
-        }
-        state.keyHashes[provider] = hash;
-      }
+    const identity = hash(config.tebar?.key || "");
+    if (state.keyHashes.tebar !== identity) {
+      delete state.usage.tebar;
+      state.cache = {};
+      state.keyHashes.tebar = identity;
     }
   }
-  async function record(provider, response, analytics = false) {
-    state.usage[provider] = captureUsage(
-      provider,
-      response,
-      state.usage[provider],
-      Date.now(),
-      analytics,
-    );
-    await persist(state);
-  }
-
-  async function read(response, provider) {
-    let body;
-    try {
-      body = await response.json();
-    } catch {
-      throw Error(
-        `${provider} returned an invalid response (${response.status}).`,
-      );
-    }
-    if (!response.ok || body.errors?.length)
-      throw Error(
-        `${provider}: ${body.errors?.[0]?.message || body.error || body.message || `request failed (${response.status})`}`,
-      );
-    return body;
-  }
-  async function buffer(config, query, variables) {
-    if (!config.buffer.key)
-      throw Error("Save your Buffer API key in Setting first.");
-    assertRequestBudget(state.usage.buffer);
-    const response = await fetchImpl("https://api.buffer.com", {
-      method: "POST",
-      redirect: "error",
-      signal: AbortSignal.timeout(30000),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.buffer.key}`,
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-    await record("buffer", response);
-    const body = await read(response, "Buffer");
-    if (!body.data)
-      throw Error("Buffer returned no data. Check your key permissions.");
-    return body.data;
-  }
-  async function zernio(config, path, body, query = {}, idempotencyKey) {
-    if (!config.zernio.key)
-      throw Error("Save your Zernio API key in Setting first.");
-    const url = new URL(`https://zernio.com/api/v1/${path}`);
+  async function tebar(config, path, { body, query = {}, method, raw = false, contentType, idempotencyKey, profileId = config.tebar?.profileId, owner = false } = {}) {
+    if (!config.tebar?.key) throw Error("Save your Tebar API key in Setting first.");
+    assertRequestBudget(state.usage.tebar);
+    const url = new URL(`https://api.tebar.app/v1/${path}`);
     for (const [key, value] of Object.entries(query))
-      if (value !== undefined && value !== "")
-        url.searchParams.set(key, String(value));
-    const analytics = path === "analytics" || path.startsWith("analytics/");
-    assertRequestBudget(state.usage.zernio, analytics);
-    const response = await fetchImpl(url, {
-      method: body === undefined ? "GET" : "POST",
-      redirect: "error",
-      signal: AbortSignal.timeout(45000),
-      headers: {
-        Authorization: `Bearer ${config.zernio.key}`,
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    await record("zernio", response, analytics);
-    return read(response, "Zernio");
-  }
-  async function organizations(config) {
-    return (
-      (
-        await buffer(
-          config,
-          "query Organizations { account { organizations { id name } } }",
-        )
-      ).account?.organizations || []
-    );
-  }
-  function cachedAccounts(config, provider) {
-    for (const only of [provider, "all"]) {
-      const key = JSON.stringify([
-        config.buffer.organizationId,
-        config.zernio.profileId,
-        only,
-      ]);
-      const cached = state.cache[key];
-      if (cached && Date.now() - cached.at < 300000)
-        return {
-          ...cached.data,
-          accounts: cached.data.accounts.filter(
-            (account) => account.provider === provider,
-          ),
-        };
+      if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
+    let response;
+    try {
+      response = await fetchImpl(url, {
+        method: method || (body === undefined ? "GET" : "POST"),
+        redirect: "error",
+        signal: AbortSignal.timeout(raw ? 90000 : 45000),
+        headers: {
+          Authorization: `Bearer ${config.tebar.key}`,
+          ...(!owner && profileId ? { "Tebar-Profile": safeId(profileId) } : {}),
+          ...(body === undefined ? {} : { "Content-Type": raw ? contentType : "application/json" }),
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        },
+        ...(body === undefined ? {} : { body: raw ? body : JSON.stringify(body) }),
+      });
+    } catch {
+      throw Object.assign(Error("Tebar could not be reached. Check Schedule before starting another submission."), { uncertain: true });
     }
+    state.usage.tebar = captureUsage("tebar", response, state.usage.tebar);
+    try { await persist(state); }
+    catch { throw Object.assign(Error("Could not save the Tebar request history. Check Schedule before retrying."), { uncertain: body !== undefined }); }
+    let data;
+    try { data = await response.json(); }
+    catch { throw Object.assign(Error(`Tebar returned an invalid response (${response.status}).`), { uncertain: response.ok || response.status >= 500 }); }
+    if (!response.ok || data.error) {
+      const error = data.error || {};
+      throw Object.assign(Error(`Tebar: ${error.message || data.message || `request failed (${response.status})`}${error.code ? ` (${error.code})` : ""}`), {
+        code: error.code, uncertain: response.status >= 500,
+      });
+    }
+    return data;
   }
-  async function bufferAccounts(config, force = false) {
-    const cached = !force && cachedAccounts(config, "buffer");
-    if (cached) return cached;
-    const orgs = await organizations(config),
-      organizationId = config.buffer.organizationId || orgs[0]?.id;
-    if (!organizationId) return { accounts: [], organizations: orgs };
-    if (!orgs.some((org) => org.id === organizationId))
-      throw Error(
-        "The selected Buffer organization is not available to this key.",
-      );
-    const data = await buffer(
-      config,
-      "query Channels($organizationId: OrganizationId!) { channels(input: { organizationId: $organizationId }) { id name service } }",
-      { organizationId },
-    );
-    return {
-      organizations: orgs,
-      accounts: (data.channels || []).map((a) => ({
-        id: a.id,
-        key: `buffer:${a.id}`,
-        provider: "buffer",
-        platform: a.service === "twitter" ? "x" : a.service,
-        name: a.name,
-        username: a.name,
-        active: true,
-        organizationId,
-      })),
-    };
-  }
-  async function zernioAccounts(config, force = false) {
-    const cached = !force && cachedAccounts(config, "zernio");
-    if (cached) return cached.accounts;
-    const data = await zernio(config, "accounts", undefined, {
-      profileId: config.zernio.profileId || undefined,
-    });
-    return (data.accounts || []).map((a) => ({
-      id: a._id || a.id,
-      key: `zernio:${a._id || a.id}`,
-      provider: "zernio",
-      platform: a.platform === "twitter" ? "x" : a.platform,
-      name: a.displayName || a.username || a.platform,
-      username: a.username || "",
-      active: a.isActive !== false,
-      profileId:
-        typeof a.profileId === "object" ? a.profileId?._id : a.profileId,
-    }));
-  }
-  async function accounts(config, only, force = false) {
-    const cacheKey = JSON.stringify([
-      config.buffer.organizationId,
-      config.zernio.profileId,
-      only || "all",
-    ]);
-    const cached = state.cache[cacheKey];
-    if (!force && cached && Date.now() - cached.at < 300000) return cached.data;
-    const requestKey = cacheKey + JSON.stringify(state.keyHashes);
-    if (accountInFlight.has(requestKey)) return accountInFlight.get(requestKey);
-    const pending = discoverAccounts(config, only, cacheKey, force).finally(
-      () => accountInFlight.delete(requestKey),
-    );
-    accountInFlight.set(requestKey, pending);
-    return pending;
-  }
-  async function discoverAccounts(config, only, cacheKey, force) {
-    const output = {
-      accounts: [],
-      organizations: [],
-      profiles: [],
-      issues: [],
-    };
-    await Promise.all(
-      providers
-        .filter((p) => (!only || only === p) && config[p].key)
-        .map(async (provider) => {
-          try {
-            if (provider === "buffer") {
-              const data = await bufferAccounts(config, force);
-              output.accounts.push(...data.accounts);
-              output.organizations = data.organizations;
-            } else {
-              const [list, profiles] = await Promise.allSettled([
-                zernioAccounts(config, force),
-                zernio(config, "profiles"),
-              ]);
-              if (list.status === "fulfilled")
-                output.accounts.push(...list.value);
-              else
-                output.issues.push({ provider, message: list.reason.message });
-              if (profiles.status === "fulfilled")
-                output.profiles = profiles.value.profiles || [];
-              else
-                output.issues.push({
-                  provider,
-                  message: profiles.reason.message,
-                });
-            }
-          } catch (error) {
-            output.issues.push({ provider, message: error.message });
-          }
-        }),
-    );
-    if (!output.issues.length) {
-      state.cache[cacheKey] = { at: Date.now(), data: output };
-      await persist(state);
+  async function discover(config) {
+    const output = { accounts: [], profiles: [], issues: [], ownerKey: false };
+    if (!config.tebar?.key) return output;
+    try {
+      const data = await tebar(config, "accounts");
+      if (!Array.isArray(data.data)) throw Error("Tebar returned an invalid account list.");
+      output.accounts = data.data.map((a) => ({
+        id: a.id, key: `tebar:${a.id}`, provider: "tebar", platform: a.platform,
+        name: a.display_name || a.username || a.platform, username: a.username || "",
+        active: a.status === "active" && !a.plan_suspended, profileId: a.profile_id,
+      }));
+      let cursor;
+      do {
+        const page = await tebar(config, "profiles", { owner: true, query: { limit: 100, cursor } });
+        if (!Array.isArray(page.data)) throw Error("Tebar returned an invalid workspace list.");
+        output.profiles.push(...page.data);
+        if (page.next_cursor && page.next_cursor === cursor) throw Error("Tebar repeated a workspace cursor.");
+        cursor = page.next_cursor;
+        output.ownerKey = true;
+      } while (cursor);
+    } catch (error) {
+      // Profile-scoped keys can publish, but cannot list or create profiles.
+      if (error.code !== "owner_key_required") output.issues.push({ provider: "tebar", message: error.message });
     }
     return output;
   }
-  async function receipt(key, payload, run) {
-    const fingerprint = createHash("sha256")
-        .update(JSON.stringify(payload))
-        .digest("hex"),
-      old = state.receipts[key];
-    if (old) {
-      if (old.fingerprint !== fingerprint)
-        throw Error(
-          "This request ID belongs to different content. Start a new submission.",
-        );
-      if (old.result) return old.result;
-      throw Error(
-        "The previous result is uncertain. Refresh provider posts before trying a new submission.",
-      );
-    }
-    state.receipts[key] = { fingerprint, startedAt: new Date().toISOString() };
-    await persist(state);
-    const result = await run();
-    state.receipts[key].result = result;
-    await persist(state);
-    return result;
+  async function accounts(config, force = false) {
+    const key = JSON.stringify([state.keyHashes.tebar, config.tebar?.profileId || ""]);
+    const cached = state.cache[key];
+    if (!force && cached && Date.now() - cached.at < 300000) return cached.data;
+    if (accountInFlight.has(key)) return accountInFlight.get(key);
+    const pending = discover(config).then(async (data) => {
+      if (!data.issues.length) { state.cache[key] = { at: Date.now(), data }; await persist(state); }
+      return data;
+    }).finally(() => accountInFlight.delete(key));
+    accountInFlight.set(key, pending);
+    return pending;
   }
   async function dispatch(config, action, payload = {}) {
     if (action === "ai.generate")
@@ -330,328 +153,145 @@ export function createSocialService({
       return { accountId: account.id, name: account.name, usage };
     }
     scope(config);
-    if (action === "usage.cached") return { providers: state.usage };
+    if (payload.provider && payload.provider !== "tebar") throw Error("Tebar is the only social provider.");
+    if (action === "usage.cached") return { providers: { tebar: state.usage.tebar } };
     if (action === "usage") {
       const issues = [];
-      const selected = payload.provider ? [payload.provider] : providers;
-      if (selected.some((provider) => !providers.includes(provider)))
-        throw Error("Choose a provider.");
-      for (const provider of selected.filter(
-        (provider) => config[provider].key,
-      )) {
-        try {
-          if (provider === "buffer")
-            await buffer(config, "query Usage { account { id } }");
-          else {
-            const data = await zernio(config, "usage");
-            state.usage.zernio = {
-              ...state.usage.zernio,
-              fetchedAt: new Date().toISOString(),
-              planName: data.planName,
-              billingPeriod: data.billingPeriod,
-              hasAccess: data.hasAccess,
-              limits: data.limits,
-              usage: data.usage,
-              spend: data.spend,
-            };
-            await persist(state);
-          }
-        } catch (error) {
-          issues.push({ provider, message: error.message });
-        }
+      if (config.tebar?.key) {
+        try { await tebar(config, "me"); }
+        catch (error) { issues.push({ provider: "tebar", message: error.message }); }
       }
-      return { providers: state.usage, issues };
+      return { providers: { tebar: state.usage.tebar }, issues };
     }
-    if (action === "accounts")
-      return accounts(config, undefined, payload.refresh === true);
+    if (action === "publishingLimit" || action === "accountOptions") {
+      const account = (await accounts(config)).accounts.find((a) => a.id === payload.accountId);
+      if (!account) throw Error("Refresh your connected Tebar accounts first.");
+      const id = encodeURIComponent(safeId(account.id));
+      const path = action === "publishingLimit" ? `accounts/${id}/publishing-limit`
+        : account.platform === "tiktok" ? `accounts/${id}/tiktok/creator-info`
+        : account.platform === "pinterest" ? `accounts/${id}/pinterest/boards` : undefined;
+      if (!path) throw Error("This account has no additional publishing choices.");
+      return tebar(config, path, { profileId: account.profileId });
+    }
+    if (action === "accounts") return accounts(config, payload.refresh === true);
     if (action === "test") {
-      if (
-        !providers.includes(payload.provider) ||
-        !config[payload.provider].key
-      )
-        throw Error("Save a provider API key before testing.");
-      const result = await accounts(config, payload.provider, true);
+      if (!config.tebar?.key) throw Error("Save your Tebar API key before testing.");
+      const result = await accounts(config, true);
       if (result.issues.length) throw Error(result.issues[0].message);
-      return {
-        ...result,
-        provider: payload.provider,
-        testedAt: new Date().toISOString(),
-      };
+      const me = await tebar(config, "me");
+      return { ...result, scopes: me.auth?.scopes || [], testedAt: new Date().toISOString() };
     }
     if (action === "connect") {
-      if (payload.provider === "buffer")
-        return { url: "https://publish.buffer.com/channels" };
-      const profileId = payload.profileId || config.zernio.profileId;
-      if (!profileId)
-        throw Error("Choose a Zernio profile before connecting a channel.");
-      if (!/^[a-z]+$/.test(payload.platform || ""))
-        throw Error("Choose a social platform.");
-      const data = await zernio(
-        config,
-        `connect/${payload.platform === "x" ? "twitter" : payload.platform}`,
-        undefined,
-        { profileId },
-      );
-      return { url: https(data.authUrl) };
+      const data = await accounts(config);
+      if (!data.ownerKey) return { url: "https://publish.tebar.app" };
+      const profileId = config.tebar.profileId || data.profiles.find((p) => p.is_default)?.id;
+      if (!profileId) throw Error("Choose a Tebar workspace before connecting an account.");
+      const link = await tebar(config, `profiles/${encodeURIComponent(safeId(profileId))}/connect-links`, { body: {}, owner: true });
+      const url = publicHttps(link.url);
+      if (new URL(url).hostname !== "publish.tebar.app") throw Error("Tebar returned an invalid connect link.");
+      return { url, expiresAt: link.expires_at };
     }
     if (action === "createProfile") {
-      if (!payload.name?.trim()) throw Error("Enter a profile name.");
-      return zernio(config, "profiles", { name: payload.name.trim() });
+      if (typeof payload.name !== "string" || !payload.name.trim() || payload.name.length > 100) throw Error("Enter a workspace name under 100 characters.");
+      const result = await tebar(config, "profiles", { body: { name: payload.name.trim() }, owner: true });
+      state.cache = {};
+      return result;
     }
     if (action === "posts") {
-      const result = { posts: [], issues: [], nextCursor: undefined };
-      await Promise.all(
-        providers
-          .filter((p) => config[p].key)
-          .map(async (provider) => {
-            try {
-              if (provider === "buffer") {
-                const data = await bufferAccounts(config);
-                if (!data.accounts.length) return;
-                const org = data.accounts[0].organizationId;
-                const response = await buffer(
-                  config,
-                  "query Posts($organizationId: OrganizationId!, $channelIds: [ChannelId!]) { posts(first: 50, input: { organizationId: $organizationId, filter: { channelIds: $channelIds } }) { edges { node { id text status dueAt sentAt channelId channelService } } } }",
-                  {
-                    organizationId: org,
-                    channelIds: data.accounts.map((a) => a.id),
-                  },
-                );
-                result.posts.push(
-                  ...(response.posts?.edges || []).map(({ node: p }) => ({
-                    id: p.id,
-                    provider,
-                    content: p.text,
-                    status: p.status,
-                    scheduledFor: p.dueAt,
-                    publishedAt: p.sentAt,
-                    platform: p.channelService,
-                    accountId: p.channelId,
-                  })),
-                );
-              } else {
-                const data = await zernio(config, "posts", undefined, {
-                  limit: 50,
-                  page: payload.zernioPage || 1,
-                  sortBy: "scheduled-desc",
-                  profileId: config.zernio.profileId || undefined,
-                });
-                result.posts.push(
-                  ...(data.posts || []).map((p) => ({
-                    id: p._id || p.id,
-                    provider,
-                    content: p.content,
-                    status: p.status,
-                    scheduledFor: p.scheduledFor,
-                    publishedAt: p.publishedAt,
-                    platform: p.platforms?.map((a) => a.platform).join(", "),
-                    accountId: p.platforms?.[0]?.accountId,
-                    platforms: p.platforms,
-                  })),
-                );
-                result.zernioHasMore = !!(
-                  data.pagination?.hasMore ||
-                  data.pagination?.page < data.pagination?.pages
-                );
-              }
-            } catch (error) {
-              result.issues.push({ provider, message: error.message });
-            }
-          }),
-      );
+      const result = { posts: [], issues: [], nextCursor: null };
+      if (!config.tebar?.key) return result;
+      try {
+        const page = await tebar(config, "posts", { query: { limit: 50, cursor: payload.cursor } });
+        if (!Array.isArray(page.data)) throw Error("Tebar returned an invalid post list.");
+        result.posts = page.data.flatMap((p) => (p.targets?.length ? p.targets : [{}]).map((target) => ({
+          id: p.id, provider: "tebar", content: target.content ?? p.content,
+          status: p.status === "scheduled" && target.status === "pending" ? "scheduled" : target.status || p.status,
+          scheduledFor: p.scheduled_at, publishedAt: target.published_at,
+          platform: target.platform, accountId: target.account_id, accountName: target.display_name || target.username,
+          permalink: target.permalink, error: target.error_message || target.error_code,
+        })));
+        result.nextCursor = page.next_cursor || null;
+      } catch (error) { result.issues.push({ provider: "tebar", message: error.message }); }
       return result;
     }
     if (action === "upload") {
-      if (
-        typeof payload.data !== "string" ||
-        payload.data.length > 48 * 1024 * 1024 ||
-        !payload.data ||
-        !/^(image|video)\/[a-z0-9.+-]+$/i.test(payload.contentType || "")
-      )
-        throw Error("Choose a supported media file under 32 MB.");
-      const bytes = Buffer.from(payload.data, "base64");
-      if (!bytes.length || bytes.length > 32 * 1024 * 1024)
-        throw Error("Media must be between 1 byte and 32 MB.");
-      const presign = await zernio(config, "media/presign", {
-        filename: String(payload.filename || "media").slice(0, 150),
-        contentType: payload.contentType,
-        size: bytes.length,
-      });
-      const uploadUrl = https(presign.uploadUrl),
-        url = https(presign.publicUrl);
-      const response = await fetchImpl(uploadUrl, {
-        method: "PUT",
-        redirect: "error",
-        signal: AbortSignal.timeout(90000),
-        headers: { "Content-Type": payload.contentType },
-        body: bytes,
-      });
-      if (!response.ok)
-        throw Error(`Media upload failed (${response.status}).`);
-      return {
-        url,
-        type: payload.contentType.startsWith("video/") ? "video" : "image",
-      };
+      if (payload.confirmed !== true) throw Error("Confirm publication before uploading media to Tebar.");
+      const profileId = payload.profileId || config.tebar?.profileId;
+      let data;
+      if (payload.url) {
+        data = await tebar(config, "media/from-url", { body: { url: publicHttps(payload.url) }, profileId });
+      } else {
+        if (typeof payload.data !== "string" || !payload.data || payload.data.length > 48 * 1024 * 1024 ||
+            !/^(image\/(jpeg|png)|video\/(mp4|quicktime))$/.test(payload.contentType || ""))
+          throw Error("Choose a JPEG, PNG, MP4, or MOV file (images up to 8 MB; composer videos up to 32 MB).");
+        const bytes = Buffer.from(payload.data, "base64");
+        const limit = payload.contentType.startsWith("image/") ? 8 : 32;
+        if (!bytes.length || bytes.length > limit * 1024 * 1024) throw Error(`Media must be between 1 byte and ${limit} MB.`);
+        data = await tebar(config, "media/upload", { body: bytes, raw: true, contentType: payload.contentType, profileId });
+      }
+      if (!data.id || data.status !== "ready") throw Error("Tebar did not return ready media. Check the media in Tebar before retrying.");
+      return { id: data.id, type: data.type };
     }
     if (action === "publish") {
-      if (
-        !["now", "schedule", "draft"].includes(payload.mode) ||
-        typeof payload.content !== "string" ||
-        !payload.content.trim() ||
-        payload.content.length > 5000 ||
-        !Array.isArray(payload.accountKeys) ||
-        !payload.accountKeys.length
-      )
-        throw Error("Check the caption, connected channels, and timing.");
-      if (
-        payload.mode === "schedule" &&
-        (!Number.isFinite(Date.parse(payload.scheduledFor)) ||
-          Date.parse(payload.scheduledFor) <= Date.now())
-      )
+      if (payload.confirmed !== true) throw Error("Confirm before publishing or scheduling with Tebar.");
+      const media = payload.media || [];
+      if (!["now", "schedule"].includes(payload.mode) || typeof payload.content !== "string" ||
+          (!payload.content.trim() && !media.length) || payload.content.length > 5000 ||
+          !Array.isArray(payload.accountKeys) || !payload.accountKeys.length || payload.accountKeys.length > 10)
+        throw Error("Check the content, connected accounts (up to 10), and timing.");
+      if (payload.mode === "schedule" && (!Number.isFinite(Date.parse(payload.scheduledFor)) || Date.parse(payload.scheduledFor) <= Date.now()))
         throw Error("Choose a future schedule time.");
       safeId(payload.requestId);
-      const media = payload.media || [];
-      if (
-        !Array.isArray(media) ||
-        media.length > 20 ||
-        media.some((m) => !["image", "video"].includes(m.type))
-      )
-        throw Error("Choose up to 20 valid media items.");
-      for (const item of media) https(item.url);
+      if (!Array.isArray(media) || media.length > 20 || media.some((m) => !["image", "video"].includes(m.type) || typeof m.id !== "string"))
+        throw Error("Choose up to 20 uploaded Tebar media items.");
       const available = await accounts(config);
-      const targets = [...new Set(payload.accountKeys)].map((key) =>
-        available.accounts.find((a) => a.key === key && a.active),
-      );
-      if (targets.some((a) => !a))
-        throw Error(
-          "A selected channel is disconnected. Refresh your accounts before submitting.",
-        );
-      const results = [];
-      for (const account of targets) {
-        const key = `post:${payload.requestId}:${account.key}`;
-        try {
-          results.push(
-            await receipt(
-              key,
-              {
-                content: payload.content,
-                media,
-                mode: payload.mode,
-                scheduledFor: payload.scheduledFor,
-                account: account.key,
-              },
-              async () => {
-                if (account.provider === "buffer") {
-                  const data = await buffer(
-                    config,
-                    "mutation CreateSocialPost($input: CreatePostInput!) { createPost(input: $input) { ... on PostActionSuccess { post { id status dueAt } } ... on MutationError { message } } }",
-                    {
-                      input: {
-                        text: payload.content.trim(),
-                        channelId: account.id,
-                        schedulingType: "automatic",
-                        mode:
-                          payload.mode === "now"
-                            ? "shareNow"
-                            : payload.mode === "schedule"
-                              ? "customScheduled"
-                              : "addToQueue",
-                        ...(payload.mode === "schedule"
-                          ? {
-                              dueAt: new Date(
-                                payload.scheduledFor,
-                              ).toISOString(),
-                            }
-                          : {}),
-                        ...(payload.mode === "draft"
-                          ? { saveToDraft: true }
-                          : {}),
-                        ...(media.length
-                          ? {
-                              assets: media.map((m) =>
-                                m.type === "image"
-                                  ? { image: { url: m.url } }
-                                  : { video: { url: m.url } },
-                              ),
-                            }
-                          : {}),
-                      },
-                    },
-                  );
-                  const post = data.createPost?.post;
-                  return {
-                    provider: "buffer",
-                    accountKey: account.key,
-                    accountName: account.name,
-                    success: !!post,
-                    id: post?.id,
-                    status: post?.status,
-                    ...(!post
-                      ? {
-                          error:
-                            data.createPost?.message ||
-                            "Buffer did not accept this post.",
-                        }
-                      : {}),
-                  };
-                }
-                const data = await zernio(
-                  config,
-                  "posts",
-                  {
-                    content: payload.content.trim(),
-                    platforms: [
-                      {
-                        platform:
-                          account.platform === "x"
-                            ? "twitter"
-                            : account.platform,
-                        accountId: account.id,
-                      },
-                    ],
-                    ...(payload.mode === "now"
-                      ? { publishNow: true }
-                      : payload.mode === "schedule"
-                        ? {
-                            scheduledFor: new Date(
-                              payload.scheduledFor,
-                            ).toISOString(),
-                          }
-                        : { isDraft: true }),
-                    ...(payload.timezone ? { timezone: payload.timezone } : {}),
-                    ...(media.length ? { mediaItems: media } : {}),
-                  },
-                  {},
-                  `${payload.requestId}-${account.id}`,
-                );
-                const post = data.post;
-                if (!post?._id && !post?.id)
-                  throw Error(
-                    "Zernio returned no post ID. Check provider posts before retrying.",
-                  );
-                return {
-                  provider: "zernio",
-                  accountKey: account.key,
-                  accountName: account.name,
-                  success: true,
-                  id: post._id || post.id,
-                  status: post.status,
-                };
-              },
-            ),
-          );
-        } catch (error) {
-          results.push({
-            provider: account.provider,
-            accountKey: account.key,
-            accountName: account.name,
-            success: false,
-            uncertain: !!state.receipts[key] && !state.receipts[key].result,
-            error: error.message,
-          });
-        }
+      const targets = [...new Set(payload.accountKeys)].sort().map((key) => available.accounts.find((a) => a.key === key && a.active));
+      if (targets.some((a) => !a)) throw Error("A selected account is disconnected. Refresh your accounts before submitting.");
+      const profileIds = new Set(targets.map((a) => a.profileId));
+      if (profileIds.size !== 1) throw Error("Choose accounts from one Tebar workspace per post.");
+      const profileId = targets[0].profileId;
+      const body = {
+        content: payload.content.trim(), media_ids: media.map((m) => safeId(m.id)),
+        targets: targets.map((account) => {
+          const options = payload.accountOptions?.[account.key];
+          if (options !== undefined && (!options || typeof options !== "object" || Array.isArray(options))) throw Error("Check the account publishing options.");
+          if (account.platform === "youtube" && (!options?.title?.trim() || typeof options.made_for_kids !== "boolean"))
+            throw Error("Choose a YouTube title and audience before submitting.");
+          if (account.platform === "pinterest" && !options?.board_id?.trim()) throw Error("Choose a Pinterest board before submitting.");
+          if (account.platform === "tiktok" && !options?.privacy_level) throw Error("Choose TikTok visibility before submitting.");
+          return { account_id: account.id, ...(options ? { options } : {}) };
+        }),
+        ...(payload.mode === "schedule" ? { scheduled_at: new Date(payload.scheduledFor).toISOString() } : {}),
+      };
+      const key = `tebar:${hash(JSON.stringify([state.keyHashes.tebar, profileId, payload.requestId]))}`;
+      const fingerprint = hash(JSON.stringify(body));
+      const previous = state.receipts[key];
+      if (previous) {
+        if (previous.fingerprint !== fingerprint) throw Error("This submission ID belongs to different content. Start a new submission.");
+        if (previous.result) return previous.result;
+        throw Error("The previous result is uncertain. Refresh Tebar posts before starting another submission.");
       }
-      return { results };
+      assertRequestBudget(state.usage.tebar);
+      state.receipts[key] = { fingerprint, startedAt: new Date().toISOString() };
+      await persist(state);
+      let result;
+      try {
+        const post = await tebar(config, "posts", { body, profileId, idempotencyKey: key.slice(6) });
+        if (!post.id || !Array.isArray(post.targets)) throw Object.assign(Error("Tebar returned no post or target IDs. Check Schedule before retrying."), { uncertain: true });
+        result = { results: targets.map((a) => {
+          const target = post.targets.find((t) => t.account_id === a.id);
+          const success = !!target && !["failed", "canceled"].includes(target.status);
+          return { provider: "tebar", accountKey: a.key, accountName: a.name, success,
+            id: post.id, status: post.status === "scheduled" && target?.status === "pending" ? "scheduled" : target?.status || post.status,
+            ...(!success ? { error: target?.error_message || target?.error_code || "Tebar returned no delivery target.", uncertain: !target } : {}) };
+        }) };
+      } catch (error) {
+        result = { results: targets.map((a) => ({ provider: "tebar", accountKey: a.key, accountName: a.name,
+          success: false, uncertain: error.uncertain === true, error: error.message })) };
+      }
+      state.receipts[key].result = result;
+      await persist(state);
+      return result;
     }
     throw Error("Unknown social action.");
   }

@@ -16,6 +16,7 @@ src/assets/generated/
 *.local
 /config.json
 /config.json.*.tmp
+/.genie-social/
 
 # Editor directories and files
 .vscode/*

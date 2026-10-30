@@ -2,325 +2,111 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
+import { isTauri } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Icon } from "../components/ui/icon";
 import { SelectField } from "../components/ui/select";
 import { PlatformIcon } from "../marketing/shared";
-import { useSocial, type Provider } from "./client";
-export function Connections() {
-  const social = useSocial();
-  return (
-    <div className="social-connections settings-stack">
-      <div className="panel-heading settings-panel-head">
-        <div>
-          <p className="settings-eyebrow">Connections</p>
-          <h2>Social connections</h2>
-          <p>Save your provider keys, test them, then choose your channels.</p>
-        </div>
-        <Button
-          type="button"
-          className="settings-refresh"
-          disabled={social.busy}
-          onClick={() => void social.refresh()}
-        >
-          <Icon name="redo" size={15} />
-          {social.busy ? "Refreshing…" : "Refresh"}
-        </Button>
-      </div>
-      {social.error && (
-        <p className="settings-alert is-error mt-2.5" role="alert">
-          {social.error}
-        </p>
-      )}
-      <p className="settings-note">
-        <Icon name="help" size={15} />
-        <span>
-          Keys and provider settings are saved locally in config.json.
-        </span>
-      </p>
-      <section className="settings-card" aria-label="Connected channels">
-        <div className="settings-card-head">
-          <h3>Connected channels</h3>
-          {social.accounts.length > 0 && (
-            <span className="settings-value-pill is-accent">
-              {social.accounts.length} connected
-            </span>
-          )}
-        </div>
-        <div className="social-account-list">
-          {social.accounts.length ? (
-            social.accounts.map((account) => (
-              <div key={account.key} className="social-account-row">
-                <PlatformIcon id={account.platform} size={24} />
-                <div>
-                  <strong>{account.name}</strong>
-                  <span>
-                    {account.platform} ·{" "}
-                    {account.provider === "buffer" ? "Buffer" : "Zernio"}
-                    {account.username
-                      ? ` · @${account.username.replace(/^@/, "")}`
-                      : ""}
-                  </span>
-                </div>
-                <span
-                  className={`connection-badge ${account.active ? "connected" : "error"}`}
-                >
-                  <span className="badge-dot" aria-hidden="true" />
-                  {account.active ? "Connected" : "Reconnect needed"}
-                </span>
-              </div>
-            ))
-          ) : (
-            <div className="social-empty">
-              <span className="settings-row-icon" aria-hidden="true">
-                <Icon name="link" size={18} />
-              </span>
-              <div>
-                <strong>No channels connected yet</strong>
-                <span>
-                  Save a key below and test the connection to load channels.
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-      {(["buffer", "zernio"] as const).map((provider) => (
-        <ProviderConnection key={provider} provider={provider} />
-      ))}
-      <p className="settings-note">
-        <Icon name="check" size={15} />
-        <span>
-          Drafts, plans, and delivery receipts stay in Genie. Provider requests
-          go directly to Buffer and Zernio; the website social API is not used.
-        </span>
-      </p>
-    </div>
-  );
+import { useSocial, type Account } from "./client";
+
+type Usage = { providers: { tebar?: { observedAt: string; retryAt?: string; windows: { limit?: number; remaining?: number; resetAt?: string }[] } }; issues?: { message: string }[] };
+async function openConnection(url: string) {
+  if (isTauri()) {
+    await openUrl(url);
+  } else window.open(url, "_blank", "noopener,noreferrer");
 }
-function ProviderConnection({ provider }: { provider: Provider }) {
-  const social = useSocial(),
-    config = social.config[provider];
-  const [key, setKey] = useState(""),
-    [resource, setResource] = useState(
-      provider === "buffer"
-        ? social.config.buffer.organizationId
-        : social.config.zernio.profileId,
-    ),
-    [busy, setBusy] = useState(false),
-    [status, setStatus] = useState(""),
-    [error, setError] = useState(""),
-    [profileName, setProfileName] = useState("");
-  useEffect(
-    () =>
-      setResource(
-        provider === "buffer"
-          ? social.config.buffer.organizationId
-          : social.config.zernio.profileId,
-      ),
-    [provider, social.config],
-  );
-  const title = provider === "buffer" ? "Buffer" : "Zernio",
-    accounts = social.accounts.filter((a) => a.provider === provider),
-    issue = social.issues.find((i) => i.provider === provider);
-  async function saveAndTest() {
-    setBusy(true);
-    setError("");
-    setStatus("");
-    try {
-      if (
-        key.trim() ||
-        resource !==
-          (provider === "buffer"
-            ? social.config.buffer.organizationId
-            : social.config.zernio.profileId)
-      )
-        await social.save(provider, {
-          ...(key.trim() ? { key: key.trim() } : {}),
-          ...(provider === "buffer"
-            ? { organizationId: resource }
-            : { profileId: resource }),
-        });
-      setKey("");
-      const result = await social.test(provider);
-      setStatus(
-        `Connection verified. ${result.accounts.length} channels available.`,
-      );
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
+export function Connections() {
+  const social = useSocial(), config = social.config.tebar;
+  const [key, setKey] = useState(""), [profileId, setProfileId] = useState(config.profileId),
+    [busy, setBusy] = useState(false), [status, setStatus] = useState(""), [error, setError] = useState(""),
+    [profileName, setProfileName] = useState(""), [usage, setUsage] = useState<Usage>();
+  useEffect(() => { setProfileId(config.profileId); }, [config.profileId]);
+  useEffect(() => {
+    let live = true;
+    setUsage(undefined);
+    void social.request<Usage>("usage.cached").then((value) => { if (live) setUsage(value); }).catch(() => {});
+    return () => { live = false; };
+  }, [social.revision]);
+  async function run(work: () => Promise<void>) {
+    setBusy(true); setError(""); setStatus("");
+    try { await work(); } catch (err) { setError(String(err)); } finally { setBusy(false); }
   }
-  return (
-    <section className="settings-card provider-settings">
-      <div className="settings-card-head">
-        <div className="provider-title">
-          <span className={`provider-dot is-${provider}`} aria-hidden="true" />
-          <h3>{title}</h3>
-        </div>
-        <span
-          className={`connection-badge ${error || issue ? "error" : config.configured ? (accounts.length || status.startsWith("Connection verified.") ? "connected" : "saved") : ""}`}
-        >
-          <span className="badge-dot" aria-hidden="true" />
-          {error || issue
-            ? "Needs attention"
-            : config.configured
-              ? accounts.length || status.startsWith("Connection verified.")
-                ? "Connected"
-                : "Key saved"
-              : "Not configured"}
-        </span>
-      </div>
-      <p className="provider-hint">
-        {provider === "buffer"
-          ? "Publish and schedule through your Buffer organization."
-          : "Connect social accounts, upload media, publish, and schedule."}
-      </p>
-      <Label className="marketing-field settings-field">
-        {title} API key
-        <Input
-          type="password"
-          autoComplete="off"
-          spellCheck={false}
-          value={key}
-          onChange={(ev) => {
-            setKey(ev.target.value);
-            setStatus("");
-          }}
-          placeholder={
-            config.configured
-              ? "A key is saved. Enter a new key to replace it."
-              : "Paste your API key"
-          }
-        />
-      </Label>
-      <div className="provider-resource">
-        <Label className="marketing-field settings-field">
-          {provider === "buffer" ? "Organization" : "Profile"}
-        </Label>
-        <SelectField
-          label={`${title} ${provider === "buffer" ? "organization" : "profile"}`}
-          value={resource}
-          onChange={setResource}
-          options={[
-            {
-              value: "",
-              label:
-                provider === "buffer"
-                  ? "Use first available organization"
-                  : "Choose a profile",
-            },
-            ...(provider === "buffer"
-              ? social.organizations.map((o) => ({
-                  value: o.id,
-                  label: o.name,
-                }))
-              : social.profiles.map((p) => ({
-                  value: p._id || p.id || "",
-                  label: p.name,
-                }))),
-            ...(resource &&
-            !(provider === "buffer"
-              ? social.organizations.some((o) => o.id === resource)
-              : social.profiles.some((p) => (p._id || p.id) === resource))
-              ? [{ value: resource, label: resource }]
-              : []),
-          ]}
-        />
-      </div>
+  const snapshot = usage?.providers.tebar, window = snapshot?.windows[0];
+  return <div className="social-connections settings-stack">
+    <div className="panel-heading settings-panel-head">
+      <div><p className="settings-eyebrow">Connections</p><h2>Tebar social accounts</h2><p>Connect your Tebar workspace to publish and schedule.</p></div>
+      <Button disabled={busy || social.busy} onClick={() => void social.refresh()}><Icon name="redo" size={15} />Refresh accounts</Button>
+    </div>
+    <section className="settings-card provider-settings" aria-label="Tebar connection">
+      <div className="settings-card-head"><div className="provider-title"><span className="provider-dot is-tebar" /><h3>Tebar</h3></div><span className="connection-badge">{config.configured ? "Key saved" : "Not configured"}</span></div>
+      <p className="provider-hint">Create a read and write API key in Tebar → account menu → API key. A read-only key can browse accounts and posts.</p>
+      <Label className="marketing-field settings-field">Tebar API key<Input type="password" autoComplete="off" spellCheck={false} value={key} onChange={(ev) => setKey(ev.target.value)} placeholder={config.configured ? "Enter a new key to replace the saved key" : "tb_live_…"} /></Label>
+      <div className="provider-resource"><Label className="marketing-field settings-field">Workspace (optional)</Label><SelectField label="Tebar workspace" value={profileId} onChange={setProfileId} options={[
+        { value: "", label: "Use key scope / all workspaces" },
+        ...social.profiles.map((p) => ({ value: p.id, label: p.name })),
+        ...(profileId && !social.profiles.some((p) => p.id === profileId) ? [{ value: profileId, label: profileId }] : []),
+      ]} /></div>
+      <p className="provider-hint">Workspace keys already have a scope. Owner keys can select a workspace here; each post uses accounts from one workspace.</p>
       <div className="provider-actions">
-        <Button
-          className="primary"
-          disabled={busy || (!key.trim() && !config.configured)}
-          onClick={() => void saveAndTest()}
-        >
-          {busy ? "Working…" : key.trim() ? "Save & test" : "Test connection"}
-        </Button>
-        <Button
-          disabled={busy || !config.configured}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await social.save(provider, {
-                [provider === "buffer" ? "organizationId" : "profileId"]:
-                  resource,
-              });
-              await social.test(provider);
-              setStatus("Selection saved.");
-            } catch (err) {
-              setError(String(err));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Save selection
-        </Button>
-        {config.configured && (
-          <Button
-            className="danger-ghost"
-            disabled={busy}
-            onClick={async () => {
-              try {
-                await social.save(provider, { removeKey: true });
-                setStatus("");
-                setError("");
-                setKey("");
-              } catch (err) {
-                setError(String(err));
-              }
-            }}
-          >
-            Remove
-          </Button>
-        )}
+        <Button className="primary" disabled={busy || (!key.trim() && !config.configured)} onClick={() => void run(async () => {
+          await social.save("tebar", { ...(key.trim() ? { key: key.trim() } : {}), profileId });
+          setKey("");
+          const result = await social.test("tebar");
+          setStatus(`Connection verified. ${result.accounts.length} accounts available.${result.scopes?.includes("write") ? "" : " Read-only access; publishing needs a write key."}`);
+        })}>{busy ? "Working…" : "Save & test"}</Button>
+        <Button disabled={busy || !config.configured || profileId !== config.profileId} onClick={() => void run(async () => {
+          const link = await social.request<{ url: string }>("connect", { provider: "tebar" });
+          await openConnection(link.url);
+          setStatus("Finish connecting in Tebar, then refresh accounts here.");
+        })}>Connect account</Button>
+        {config.configured && <Button className="danger-ghost" disabled={busy} onClick={() => void run(async () => {
+          await social.save("tebar", { removeKey: true }); setKey(""); setUsage(undefined);
+        })}>Remove key</Button>}
       </div>
-      {provider === "zernio" &&
-        config.configured &&
-        !social.profiles.length && (
-          <div className="provider-create-profile">
-            <Input
-              aria-label="New Zernio profile name"
-              value={profileName}
-              onChange={(ev) => setProfileName(ev.target.value)}
-              placeholder="Profile name, for example Siswa Juara"
-            />
-            <Button
-              disabled={busy || !profileName.trim()}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  const result = await social.request<{
-                    profile?: { _id?: string; id?: string };
-                  }>("createProfile", { name: profileName });
-                  const id = result.profile?._id || result.profile?.id;
-                  if (id) {
-                    setResource(id);
-                    await social.save(provider, { profileId: id });
-                  }
-                  await social.test(provider);
-                  setProfileName("");
-                } catch (err) {
-                  setError(String(err));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Create profile
-            </Button>
-          </div>
-        )}
-      {status && (
-        <p className="settings-alert is-success mt-2.5" role="status">
-          {status}
-        </p>
-      )}
-      {(error || issue) && (
-        <p className="settings-alert is-error mt-2.5" role="alert">
-          {error || issue?.message}
-        </p>
-      )}
+      {social.ownerKey && <div className="provider-create-profile">
+        <Input aria-label="New Tebar workspace name" value={profileName} onChange={(ev) => setProfileName(ev.target.value)} placeholder="New workspace name" />
+        <Button disabled={busy || !profileName.trim()} onClick={() => void run(async () => {
+          const profile = await social.request<{ id: string }>("createProfile", { name: profileName });
+          await social.save("tebar", { profileId: profile.id }); await social.test("tebar"); setProfileName(""); setStatus("Workspace created and selected.");
+        })}>Create workspace</Button>
+      </div>}
+      <p className="settings-note"><a href="https://docs.tebar.app/api/" target="_blank" rel="noreferrer">Tebar API documentation</a></p>
     </section>
-  );
+    <section className="settings-card" aria-label="Connected channels">
+      <div className="settings-card-head"><h3>Connected accounts</h3><span>{social.accounts.length} accounts</span></div>
+      <div className="social-account-list">{social.accounts.map((account) => <ConnectedAccount key={account.key} account={account} />)}
+        {!social.accounts.length && <p className="social-empty">Save and test your Tebar key to load connected accounts.</p>}
+      </div>
+    </section>
+    <section className="settings-card" aria-label="Tebar API usage">
+      <div className="settings-card-head"><h3>API usage</h3><Button disabled={busy || !config.configured} onClick={() => void run(async () => {
+        const value = await social.request<Usage>("usage", { provider: "tebar" }); setUsage(value);
+        if (value.issues?.length) throw Error(value.issues.map((i) => i.message).join(" "));
+      })}>Fetch usage</Button></div>
+      <p>{window?.remaining !== undefined ? `${window.remaining} / ${window.limit ?? "unknown"} requests remaining` : "No request quota reported yet."}</p>
+      {snapshot && <p className="provider-hint">Observed {new Date(snapshot.observedAt).toLocaleString()}{window?.resetAt ? ` · Resets ${new Date(window.resetAt).toLocaleTimeString()}` : ""}{snapshot.retryAt ? ` · Retry after ${new Date(snapshot.retryAt).toLocaleTimeString()}` : ""}</p>}
+      <p className="provider-hint">Observed from Tebar response headers. All keys share the account's limit. Fetch usage makes one read request; there is no automatic polling.</p>
+    </section>
+    {status && <p className="settings-alert is-success" role="status">{status}</p>}
+    {[error, social.error, ...social.issues.map((i) => i.message)].filter(Boolean).map((message, i) => <p key={i} className="settings-alert is-error" role="alert">{message}</p>)}
+    <p className="settings-note">Your key stays in local config.json. Drafts, plans, and receipts stay in Genie. Publishing and scheduling require confirmation.</p>
+  </div>;
+}
+function ConnectedAccount({ account }: { account: Account }) {
+  const social = useSocial(), [limit, setLimit] = useState<unknown>(), [error, setError] = useState(""), [busy, setBusy] = useState(false);
+  return <div className="social-account-row">
+    <PlatformIcon id={account.platform} size={24} />
+    <div><strong>{account.name}</strong><span>{account.platform}{account.username ? ` · @${account.username.replace(/^@/, "")}` : ""} · {account.active ? "Connected" : "Reconnect or reactivate in Tebar"}</span>{limit !== undefined && <QuotaDetails value={limit} />}{error && <small role="alert">{error}</small>}</div>
+    <Button disabled={busy} onClick={async () => {
+      setBusy(true); setError("");
+      try { const value = await social.request<unknown>("publishingLimit", { accountId: account.id }); setLimit(value); }
+      catch (err) { setError(String(err)); } finally { setBusy(false); }
+    }}>{busy ? "Loading…" : "Check posting quota"}</Button>
+  </div>;
+}
+
+function QuotaDetails({ value }: { value: unknown }) {
+  if (value === null || value === undefined) return <small>Not reported</small>;
+  if (typeof value !== "object") return <small>{String(value)}</small>;
+  return <dl className="posting-quota">{Object.entries(value).map(([label, item]) => <div key={label}><dt>{label.replaceAll("_", " ")}</dt><dd><QuotaDetails value={item} /></dd></div>)}</dl>;
 }

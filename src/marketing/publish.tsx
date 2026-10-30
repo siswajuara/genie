@@ -11,15 +11,15 @@ import { dateISO } from "../components/ui/date";
 import { parseDate } from "../components/ui/date";
 import { Dialog, PageIntro, PlatformIcon } from "./shared";
 import { FramePreview, MediaPreview } from "./frame-preview";
-import { platforms, type BrandSettings, type Media, type Post } from "./store";
+import { platforms, type Media, type Post } from "./store";
 import { useSocial, type PublishResult } from "../social/client";
 import { prepareSocialMedia } from "../social/media";
+import { AccountPublishingOptions } from "../social/publishing-options";
 
 export function Publish({
   projects: p,
   draft,
   setDraft,
-  settings,
   onSave,
   onRecord,
   onCanvas,
@@ -29,7 +29,6 @@ export function Publish({
   projects: Projects;
   draft: Post;
   setDraft: Dispatch<SetStateAction<Post>>;
-  settings: BrandSettings;
   onSave: (status: "draft" | "planned") => void;
   onRecord: (post: Post) => Promise<void>;
   onCanvas: () => void;
@@ -43,13 +42,15 @@ export function Publish({
     [results, setResults] = useState<PublishResult[]>(draft.delivery || []),
     [mediaUrl, setMediaUrl] = useState("");
   const uploaded = useRef(
-    new Map<string, { url: string; type: "image" | "video" }>(),
+    new Map<string, { id: string; type: "image" | "video" }>(),
   );
   const [mediaDialog, setMediaDialog] = useState(false),
     [connectionDialog, setConnectionDialog] = useState(false),
     [previewIndex, setPreviewIndex] = useState(0),
     [previewPlatform, setPreviewPlatform] = useState("instagram"),
     [validation, setValidation] = useState("");
+  const previewAccount = social.accounts.find((account) => draft.accountKeys?.includes(account.key) && account.platform === previewPlatform);
+  const previewName = previewAccount?.name || "Your account";
   const [picking, setPicking] = useState(false);
   const patch = (value: Partial<Post>) => {
     setResults([]);
@@ -75,10 +76,9 @@ export function Publish({
       const media: Media[] = [];
       for (const file of files) {
         if (
-          !file.type.startsWith("image/") &&
-          !file.type.startsWith("video/")
+          !["image/jpeg", "image/png", "video/mp4", "video/quicktime"].includes(file.type)
         ) {
-          notify(`Choose an image or video. ${file.name} was not added.`);
+          notify(`Choose a JPEG, PNG, MP4, or MOV file. ${file.name} was not added.`);
           continue;
         }
         if (file.size > 8 * 1024 * 1024) {
@@ -150,9 +150,22 @@ export function Publish({
         return;
       }
     }
-    if (!draft.caption.trim()) {
-      setValidation("Write a caption before submitting.");
+    const selected = social.accounts.filter((a) => draft.accountKeys?.includes(a.key));
+    if (selected.length > 10 || new Set(selected.map((a) => a.profileId)).size > 1) {
+      setValidation("Choose up to 10 accounts from one Tebar workspace per post.");
       return;
+    }
+    for (const account of selected) {
+      const options = draft.accountOptions?.[account.key];
+      if (account.platform === "youtube" && (!String(options?.title || "").trim() || typeof options?.made_for_kids !== "boolean")) {
+        setValidation("Choose a YouTube title and audience before submitting."); return;
+      }
+      if (account.platform === "tiktok" && !options?.privacy_level) {
+        setValidation("Choose TikTok visibility before submitting."); return;
+      }
+      if (account.platform === "pinterest" && !String(options?.board_id || "").trim()) {
+        setValidation("Enter a Pinterest board ID before submitting."); return;
+      }
     }
     if (draft.delivery?.some((result) => result.success || result.uncertain)) {
       setValidation(
@@ -170,12 +183,13 @@ export function Publish({
     const requestId = draft.submissionId || crypto.randomUUID();
     setDraft((old) => ({ ...old, submissionId: requestId }));
     try {
+      const profileId = social.accounts.find((a) => draft.accountKeys?.includes(a.key))?.profileId || social.config.tebar.profileId;
       await onRecord({ ...draft, submissionId: requestId });
       const media = [];
       for (const [index, item] of draft.media.entries()) {
         setProgress(`Preparing media ${index + 1} of ${draft.media.length}…`);
         const key =
-          JSON.stringify(item) +
+          JSON.stringify([social.revision, profileId, item]) +
           (item.kind === "frame"
             ? p.workspace.projects
                 .find((project) => project.id === item.projectId)
@@ -187,7 +201,7 @@ export function Publish({
           prepared = await prepareSocialMedia(
             item,
             p.workspace,
-            social.config.zernio.configured,
+            profileId,
           );
           uploaded.current.set(key, prepared);
         }
@@ -202,6 +216,8 @@ export function Publish({
         "publish",
         {
           requestId,
+          confirmed: true,
+          accountOptions: draft.accountOptions,
           content: draft.caption,
           mode: draft.timing,
           accountKeys: draft.accountKeys,
@@ -227,8 +243,8 @@ export function Publish({
       notify(
         response.results.every((r) => r.success)
           ? draft.timing === "now"
-            ? "Post accepted by your social providers. Check Schedule for delivery status."
-            : "Post scheduled with your social providers."
+            ? "Post accepted by Tebar. Check Schedule for delivery status."
+            : "Post scheduled with Tebar."
           : "Some channels need attention. Review the individual results before retrying.",
       );
       setConnectionDialog(false);
@@ -524,6 +540,9 @@ export function Publish({
                   </Button>
                 ))}
             </div>
+            {social.accounts.filter((a) => draft.accountKeys?.includes(a.key)).map((account) => (
+              <AccountPublishingOptions key={account.key} account={account} values={draft.accountOptions?.[account.key] || {}} onChange={(values) => patch({ accountOptions: { ...draft.accountOptions, [account.key]: values } })} />
+            ))}
             <div className="connection-inline">
               <Icon name="link" size={16} />
               <span>
@@ -619,9 +638,8 @@ export function Publish({
             )}
             <p className="local-plan-note">
               Drafts and plans stay on this device. Publishing and scheduling
-              send approved content directly to Buffer or Zernio. Local media
-              and Canvas frames upload through Zernio; Buffer requires public
-              HTTPS media URLs.
+              send approved content and media directly to Tebar. Tebar runs
+              confirmed schedules even when Genie is closed.
             </p>
             {validation && (
               <p className="publish-validation" role="alert">
@@ -703,7 +721,7 @@ export function Publish({
           <div className="social-preview">
             <div className="social-preview-head">
               <span className="social-avatar">
-                {settings.name
+                {previewName
                   .trim()
                   .split(/\s+/)
                   .map((word) => word[0])
@@ -712,7 +730,7 @@ export function Publish({
                   .toUpperCase() || "SJ"}
               </span>
               <div>
-                <strong>{settings.name || "Your brand"}</strong>
+                <strong>{previewName}</strong>
                 <small>
                   {platforms.find((p) => p.id === previewPlatform)?.name} ·
                   Preview
@@ -757,7 +775,7 @@ export function Publish({
             <div className="social-caption">
               {draft.caption ? (
                 <>
-                  <strong>{settings.name || "Your brand"} </strong>
+                  <strong>{previewName} </strong>
                   {draft.caption}
                 </>
               ) : (
@@ -854,7 +872,7 @@ export function Publish({
           description={
             draft.timing === "now"
               ? "This sends the post to the accounts below now."
-              : "Your provider will publish this post at the selected date and time, even when this app is closed."
+              : "Tebar will publish this post at the selected date and time, even when this app is closed."
           }
           onClose={() => {
             if (!sending) setConnectionDialog(false);

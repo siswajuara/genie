@@ -19,11 +19,8 @@
   .provider-dot {
     @apply w-[10px] h-[10px] rounded-[50%] shrink-0;
   }
-  .provider-dot.is-buffer {
-    @apply bg-[#2f4bd8];
-  }
-  .provider-dot.is-zernio {
-    @apply bg-[#37b58a];
+  .provider-dot.is-tebar {
+    background: var(--primary);
   }
   .provider-hint {
     @apply text-[12px] text-muted-foreground leading-[1.6] mt-[10px] mr-0 mb-[4px] ml-0;

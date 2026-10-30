@@ -40,39 +40,41 @@ function Refresh({
 }
 type ProviderPost = {
   id: string;
-  provider: "buffer" | "zernio";
+  provider: "tebar";
   content: string;
   status: string;
   scheduledFor?: string;
   publishedAt?: string;
   platform?: string;
   accountId?: string;
+  accountName?: string;
+  permalink?: string;
+  error?: string;
 };
 type PostsResponse = {
   posts: ProviderPost[];
   issues: Issue[];
-  bufferCursor?: string;
-  zernioHasMore?: boolean;
+  nextCursor?: string | null;
 };
 export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
   const social = useSocial(),
     enabled =
-      social.config.buffer.configured || social.config.zernio.configured;
-  const [page, setPage] = useState(1),
+      social.config.tebar.configured;
+  const [cursor, setCursor] = useState<string | undefined>(),
     [collected, setCollected] = useState<ProviderPost[]>([]);
   const feed = useSocialResource<PostsResponse>(
     "posts",
-    { zernioPage: page },
+    { cursor },
     enabled,
   );
   useEffect(() => {
     setCollected([]);
-    setPage(1);
+    setCursor(undefined);
   }, [social.revision]);
   useEffect(() => {
     if (feed.data)
       setCollected((old) =>
-        page === 1
+        !cursor
           ? feed.data!.posts
           : [
               ...new Map(
@@ -83,7 +85,7 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
               ).values(),
             ],
       );
-  }, [feed.data, page]);
+  }, [feed.data, cursor]);
   return (
     <div className={enabled ? "social-connected" : ""}>
       {enabled && (
@@ -92,14 +94,14 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
             <div>
               <h2>Published & scheduled</h2>
               <p>
-                Read directly from Buffer and Zernio. Refresh when you need
+                Read directly from Tebar. Refresh when you need
                 updated delivery status.
               </p>
             </div>
             <Refresh
               loading={feed.loading}
               onClick={() => {
-                setPage(1);
+                setCursor(undefined);
                 feed.refresh();
               }}
             />
@@ -114,20 +116,22 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
                 <strong>{post.content || "Media post"}</strong>
               </p>
               <small>
-                {post.provider} · {post.platform} · {post.status}{" "}
+                Tebar · {post.accountName || post.platform} · {post.status}{" "}
                 {post.scheduledFor
                   ? `· ${new Date(post.scheduledFor).toLocaleString()}`
                   : ""}
               </small>
+              {post.error && <p className="error">{post.error}</p>}
+              {post.permalink && /^https:\/\//.test(post.permalink) && <p><a href={post.permalink} target="_blank" rel="noreferrer">View published post</a></p>}
             </article>
           ))}
           {!collected.length && !feed.loading && (
             <p>No provider posts have been saved yet.</p>
           )}
-          {feed.data?.zernioHasMore && (
+          {feed.data?.nextCursor && (
             <Button
               disabled={feed.loading}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setCursor(feed.data?.nextCursor || undefined)}
             >
               Load more posts
             </Button>

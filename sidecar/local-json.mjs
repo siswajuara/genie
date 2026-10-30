@@ -32,14 +32,13 @@ export async function readConfig(filename) {
   }
   if (!config || typeof config !== "object" || Array.isArray(config))
     throw Error("config.json must contain an object.");
-  for (const provider of ["buffer", "zernio", "elevenlabs", "soniox"]) {
+  for (const provider of ["tebar", "elevenlabs", "soniox"]) {
     config[provider] ??= {};
     if (typeof config[provider] !== "object" || Array.isArray(config[provider]))
       throw Error(`Invalid ${provider} configuration in config.json.`);
     config[provider].key ??= "";
   }
   config.opencode = normalizeOpenCode(config.opencode);
-  config.buffer.organizationId ??= "";
-  config.zernio.profileId ??= "";
+  config.tebar.profileId ??= "";
   return config;
 }
