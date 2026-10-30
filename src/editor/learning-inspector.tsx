@@ -114,20 +114,6 @@ export function LearningFields({
   }
   return (
     <fieldset disabled={disabled} className="science-fields">
-      <Label>Learning model</Label>
-      <SelectField
-        label="Learning model"
-        value={draft.kind}
-        disabled={disabled || !allowModelChange}
-        options={Object.entries(learningModels).map(([kind, m]) => ({
-          value: kind,
-          label: m.label,
-        }))}
-        onChange={(kind) =>
-          apply(normalizeLearning({ kind: kind as LearningKind }))
-        }
-      />
-      <p className="muted">{model.description}</p>
       {Object.entries(model.defaults).map(([key, initial]) => (
         <div className="generate-field" key={`${draft.kind}-${key}`}>
           <Label htmlFor={`learning-${key}`}>{labels[key] || key}</Label>
@@ -170,16 +156,6 @@ export function LearningFields({
           Apply diagram text
         </Button>
       )}
-      <Label className="science-checkbox">
-        <Checkbox
-          disabled={disabled}
-          checked={draft.animate !== false}
-          onCheckedChange={(animate) =>
-            apply({ ...draft, animate: animate === true })
-          }
-        />
-        Animate emphasis
-      </Label>
       {error && (
         <p className="error" role="alert">
           {error}

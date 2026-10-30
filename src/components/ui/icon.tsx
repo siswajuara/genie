@@ -29,6 +29,8 @@ import {
   Copy,
   Trash2,
   Pencil,
+  Pen,
+  Brush,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
@@ -164,6 +166,9 @@ const icons = {
   film: Film,
   filter: ListFilter,
   speed: Gauge,
+  pen: Pen,
+  pencil: Pencil,
+  brush: Brush,
 };
 export type IconName = keyof typeof icons;
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

@@ -101,6 +101,7 @@ test("LaTeX stays editable, rejects invalid input, reveals on the timeline, and 
   page,
 }) => {
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page
     .getByRole("button", { name: "LaTeX equation", exact: true })
     .click();
@@ -161,6 +162,7 @@ test("LaTeX stays editable, rejects invalid input, reveals on the timeline, and 
   }, equation);
   expect(visible.early).not.toBe(visible.full);
   await page.reload();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "LaTeX equation", exact: true }),
   ).toBeVisible();
@@ -174,6 +176,7 @@ test("physics controls change deterministic playback and exported PNG frames", a
   page,
 }) => {
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page
     .getByRole("button", { name: "Physics diagram", exact: true })
     .click();
@@ -265,6 +268,7 @@ test("physics controls change deterministic playback and exported PNG frames", a
   expect(rendered.png0.type).toBe("image/png");
   expect(rendered.png0.bytes).not.toEqual(rendered.png1.bytes);
   await page.reload();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Physics diagram", exact: true }),
   ).toBeVisible();

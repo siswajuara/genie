@@ -1,0 +1,31 @@
+import type { Element } from "./model";
+export type Illustration3DSpec = {
+  scene: string;
+  parameters: Record<string, number>;
+  yaw: number;
+  pitch: number;
+  zoom: number;
+  progress: number;
+  gasHeight: number;
+  animate: boolean;
+  showTitle: boolean;
+  showDimensions: boolean;
+  showResults: boolean;
+  showFormula: boolean;
+};
+export type Illustration3DModel = {
+  label: string;
+  group: string;
+  keywords: string;
+  description: string;
+  formula: string;
+  animated: boolean;
+  dimensions: boolean;
+  progressLabel?: string;
+  parameters: { k: string; label: string; min: number; max: number; unit: string; step: number }[];
+};
+export const illustration3DModels: Record<string, Illustration3DModel>;
+export function normalizeIllustration3D(value?: Partial<Illustration3DSpec>): Illustration3DSpec;
+export function illustration3DSvg(value: Partial<Illustration3DSpec>): string;
+export function illustration3DThumbnail(value: Partial<Illustration3DSpec>): string;
+export function drawIllustration3D(ctx: CanvasRenderingContext2D, element: Element, seconds?: number): void;

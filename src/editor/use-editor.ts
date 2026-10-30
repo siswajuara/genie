@@ -165,6 +165,7 @@ export function useEditor(
           !o.latex &&
           !o.physics &&
           !o.learning &&
+          !o.illustration3d &&
           patch.aiDescription === undefined
             ? { ...patch, aiDescription: "" }
             : patch;
@@ -431,6 +432,7 @@ export function useEditor(
         !o.latex &&
         !o.physics &&
         !o.learning &&
+        !o.illustration3d &&
         !initialScene.isLocked(o),
     );
     if (!targets.length) return;

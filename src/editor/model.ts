@@ -26,6 +26,11 @@ import {
 import { learningSvg } from "./learning-drawing.mjs";
 import { physicsSvg } from "./physics-drawing.mjs";
 import {
+  normalizeIllustration3D,
+  illustration3DSvg,
+  type Illustration3DSpec,
+} from "./illustration3d.mjs";
+import {
   fitPresetToFrame,
   resizeFrameLayout,
   validateFrameLayout,
@@ -53,6 +58,7 @@ export type Element = {
   latex?: LatexSpec;
   physics?: PhysicsSpec;
   learning?: LearningSpec;
+  illustration3d?: Illustration3DSpec;
   chromaKey?: ChromaKey;
   videoStart?: number;
   videoLoop?: boolean;
@@ -275,19 +281,24 @@ export function validateElements(value: unknown): Element[] {
     )
       throw new Error("Invalid generation role.");
     if (o.latex !== undefined) {
-      if (o.t !== "img" || o.physics || o.learning)
+      if (o.t !== "img" || o.physics || o.learning || o.illustration3d)
         throw Error("LaTeX requires an equation image layer.");
       o.latex = normalizeLatex(o.latex);
     }
     if (o.physics !== undefined) {
-      if (o.t !== "img" || o.latex || o.learning)
+      if (o.t !== "img" || o.latex || o.learning || o.illustration3d)
         throw Error("Physics requires a diagram image layer.");
       o.physics = normalizePhysics(o.physics);
     }
     if (o.learning !== undefined) {
-      if (o.t !== "img" || o.latex || o.physics)
+      if (o.t !== "img" || o.latex || o.physics || o.illustration3d)
         throw Error("Learning requires a teaching diagram image layer.");
       o.learning = normalizeLearning(o.learning);
+    }
+    if (o.illustration3d !== undefined) {
+      if (o.t !== "img" || o.latex || o.physics || o.learning)
+        throw Error("3D illustrations require their own image layer.");
+      o.illustration3d = normalizeIllustration3D(o.illustration3d);
     }
     for (const key of numbers) {
       const v = (o as unknown as Record<string, unknown>)[key];
@@ -483,6 +494,12 @@ export function parsePresets(value: unknown): Preset[] {
     });
   });
 }
+export const equationKinds = [
+  "LaTeX equation",
+  "Physics diagram",
+  "Learning diagram",
+  "3D illustration",
+] as const;
 export const elementKinds = [
   "Text",
   "Heading",
@@ -494,9 +511,9 @@ export const elementKinds = [
   "Line",
   "Curve",
   "Image slot",
-  "LaTeX equation",
-  "Physics diagram",
-  "Learning diagram",
+  "Pen",
+  "Pencil",
+  "Brush",
 ] as const;
 export function makeElement(kind: string): Element {
   const base: Element = {
@@ -561,6 +578,19 @@ export function makeElement(kind: string): Element {
         },
       },
     };
+  if (kind === "3D illustration") {
+    const illustration3d = normalizeIllustration3D();
+    return {
+      ...base,
+      t: "img",
+      w: 900,
+      h: 620,
+      illustration3d,
+      src: illustration3DSvg(illustration3d),
+      fit: "contain",
+      animation: { start: 0 },
+    };
+  }
   if (kind === "Learning diagram") {
     const learning = normalizeLearning({ kind: "cube" });
     return {
@@ -590,7 +620,47 @@ export function makeElement(kind: string): Element {
     };
   }
   if (kind === "Line" || kind === "Curve")
-    return { ...base, t: "line", h: 0, lw: 8, bend: kind === "Curve" ? 70 : 0 };
+    return {
+      ...base,
+      t: "line",
+      h: 0,
+      lw: 8,
+      stroke: "#14226e",
+      bend: kind === "Curve" ? 70 : 0,
+    };
+  if (kind === "Pen")
+    return {
+      ...base,
+      t: "line",
+      w: 260,
+      h: 60,
+      lw: 4,
+      stroke: "#14226e",
+      bend: 30,
+      dash: 0,
+    };
+  if (kind === "Pencil")
+    return {
+      ...base,
+      t: "line",
+      w: 260,
+      h: 60,
+      lw: 3,
+      stroke: "#14226e",
+      bend: 30,
+      dash: 1,
+    };
+  if (kind === "Brush")
+    return {
+      ...base,
+      t: "line",
+      w: 280,
+      h: 80,
+      lw: 14,
+      stroke: "#2f4bd8",
+      bend: 40,
+      dash: 0,
+    };
   if (kind === "Image slot")
     return {
       ...base,

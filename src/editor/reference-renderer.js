@@ -1,6 +1,7 @@
 import { graphemes } from "./text-animation";
 import { drawLearning } from "./learning-drawing.mjs";
 import { drawPhysics } from "./physics-drawing.mjs";
+import { drawIllustration3D } from "./illustration3d.mjs";
 // Original drawing routines from reference/siswa-juara-editor.html.
 export function drawElement(ctx, o, exporting = false, glyphAnimation) {
   function draw(o) {
@@ -146,7 +147,8 @@ export function drawElement(ctx, o, exporting = false, glyphAnimation) {
       ctx.rotate((o.rot * Math.PI) / 180);
       ctx.translate(-c.x, -c.y);
     }
-    if (o.learning) drawLearning(ctx, o, o.scienceTime || 0);
+    if (o.illustration3d) drawIllustration3D(ctx, o, o.scienceTime || 0);
+    else if (o.learning) drawLearning(ctx, o, o.scienceTime || 0);
     else if (o.physics) drawPhysics(ctx, o, o.scienceTime || 0);
     else if (o.t === "text") drawText(o);
     else if (o.t === "line") drawLine(o);

@@ -35,7 +35,7 @@ Dragging a frame label moves its children with it. Duplicate a frame when you wa
 | --------------- | ------------------------------------------------------------ |
 | Header          | Canvas name, Versions, Zen mode, Canvas settings, Export     |
 | Page rail       | Switch pages or add a page                                   |
-| Left library    | Elements, Templates, Assets                                  |
+| Left library    | Elements, Equation, Templates, Assets                        |
 | Canvas toolbar  | Undo, Redo, Timeline; zoom controls sit beside the canvas    |
 | Right inspector | Properties, Narration, Animation, Layers                     |
 | Timeline        | Playhead, scene preview, layer clips, audio and caption rows |
@@ -47,6 +47,8 @@ Use **Fit frame** to focus your current frame and **Fit all** to see the page's 
 **Elements** offers Post 4:5 (1122 × 1402), Story 9:16 (940 × 1672), Square (1080 × 1080), and Wide 16:9 (1280 × 720) frames. Change dimensions in Properties when needed. These are the app's starting sizes; check the destination's requirements before delivery.
 
 Add editable text, shapes, lines, image slots, or a video. Drag elements from the library or use its buttons. Dropped text, images, and copied elements can be placed directly on the canvas. A drop inside an unlocked frame belongs to that frame.
+
+Open **Equation** for searchable LaTeX examples, physics/learning diagrams, and 23 editable 3D illustrations. Select a 3D card, then use Properties to change its parameters, rotate the preview, and adjust zoom, formulas, and dimensions. Animated illustrations follow the timeline and exports. See the [3D illustration catalog](science.md#3d-illustrations).
 
 Select a layer to change **Position & size**, appearance, and arrangement. Drag to move, use the handles to resize, and use the upper rotation handle to rotate. Shift constrains transforms; Alt resizes around the center; Ctrl/Cmd temporarily disables canvas snapping during a drag. Escape cancels an active transform.
 

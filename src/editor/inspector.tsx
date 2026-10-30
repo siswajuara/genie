@@ -385,7 +385,9 @@ export function Inspector({
                           ? "Physics diagram"
                           : o.learning
                             ? "Learning diagram"
-                            : o.t === "img"
+                            : o.illustration3d
+                              ? "3D illustration"
+                              : o.t === "img"
                               ? "Image"
                               : o.t === "text"
                                 ? "Text"
@@ -718,10 +720,10 @@ export function Inspector({
                   </Button>
                 </Section>
               )}
-              {(o.latex || o.physics || o.learning) && (
+              {(o.latex || o.physics || o.learning || o.illustration3d) && (
                 <ScienceInspector key={o.id} element={o} editor={e} />
               )}
-              {o.t === "img" && !o.latex && !o.physics && !o.learning && (
+              {o.t === "img" && !o.latex && !o.physics && !o.learning && !o.illustration3d && (
                 <Section title="Image">
                   <Input
                     hidden
@@ -825,7 +827,37 @@ export function Inspector({
                   )}
                 </Accordion>
               ) : (
-                o.t !== "frame" && (
+                o.t !== "frame" &&
+                (o.latex || o.physics || o.learning || o.illustration3d ? (
+                  <Section title="Outline & Shadow">
+                    {more[o.t].map(field)}
+                    <Toggle
+                      label="Shadow"
+                      description="Show shadow color, blur and offset"
+                      checked={(o.sh ?? 0) > 0}
+                      onChange={(on) =>
+                        e.patch(
+                          on
+                            ? {
+                                sh: 8,
+                                shc: o.shc ?? "#00000066",
+                                shx: o.shx ?? 2,
+                                shy: o.shy ?? 2,
+                              }
+                            : { sh: 0 },
+                        )
+                      }
+                    />
+                    {(o.sh ?? 0) > 0 && (
+                      <>
+                        {field("shc")}
+                        {field("sh")}
+                        {field("shx")}
+                        {field("shy")}
+                      </>
+                    )}
+                  </Section>
+                ) : (
                   <Accordion
                     className="insp-more"
                     title="Outline & Shadow"
@@ -858,7 +890,7 @@ export function Inspector({
                       </>
                     )}
                   </Accordion>
-                )
+                ))
               )}
               <Section title="">
                 <p className="arrange-label" id="arrange-align">

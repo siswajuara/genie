@@ -101,8 +101,15 @@ export function buildFrameContext(document, selectedIds = [], options = {}) {
           )
             layer[key] = structuredClone(value);
         if (o.text !== undefined) layer.readableText = clean(o.text);
-        if (o.latex || o.physics || o.learning)
+        if (o.latex || o.physics || o.learning || o.illustration3d)
           layer.renderedLabels = svgText(o.src);
+        if (o.illustration3d)
+          layer.teaching = {
+            model: o.n,
+            parameters: o.illustration3d,
+            metrics: { snapshotLabels: layer.renderedLabels },
+            rules: "Orthographic teaching illustration. Use the written units and model formulas; projected distances and particle/orbital sizes are illustrative. Labels describe the saved initial state.",
+          };
         if (o.latex)
           layer.equation = {
             source: o.latex.source,
@@ -130,7 +137,8 @@ export function buildFrameContext(document, selectedIds = [], options = {}) {
           (o.t === "img" || o.t === "video") &&
           !o.latex &&
           !o.physics &&
-          !o.learning
+          !o.learning &&
+          !o.illustration3d
         )
           layer.media = mediaInfo(o);
         return layer;

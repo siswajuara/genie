@@ -52,6 +52,7 @@ test("geometry stays editable, animates in exports, and survives reload", async 
   page,
 }) => {
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page
     .getByRole("button", { name: "Learning diagram", exact: true })
     .click();
@@ -128,6 +129,7 @@ test("Indonesian diagrams edit sentence roles and validate syllable composition"
   page,
 }) => {
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page
     .getByRole("button", { name: "Learning diagram", exact: true })
     .click();

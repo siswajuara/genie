@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { importVideoFile, defaultChromaKey } from "./editor/video";
 import { SocialProvider } from "./social/client";
 import { localStore } from "./lib/local-store";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "./editor/canvas";
 import { Inspector } from "./editor/inspector";
 import { useEditor } from "./editor/use-editor";
@@ -12,9 +12,7 @@ import { useProjects, type Projects } from "./editor/projects";
 import { CanvasVersions } from "./components/canvas-versions";
 import { UpdateProvider, UpdateNotice } from "./components/app-updates";
 import {
-  elementKinds,
   frames,
-  makeElement,
   parseDocument,
   parsePresets,
   uid,
@@ -22,7 +20,7 @@ import {
   type Preset,
 } from "./editor/model";
 import { saveExport, exportMessage } from "./lib/export";
-import { Icon, type IconName } from "./components/ui/icon";
+import { Icon } from "./components/ui/icon";
 import { ExportDialog } from "./editor/export-dialog";
 import { GenerateDialog } from "./editor/generate-dialog";
 import { Sparkles } from "lucide-react";
@@ -42,22 +40,13 @@ import { TemplateLibrary } from "./editor/template-library";
 import { DebugPanel } from "./components/debug-panel";
 import { loadAsset, type LibraryAsset } from "./editor/assets";
 import { prepareScienceElement } from "./editor/science";
-
-const elementIcons: Record<string, IconName> = {
-  Text: "text",
-  Heading: "heading",
-  Paragraph: "paragraph",
-  "Curved text": "arc",
-  Box: "box",
-  "Rounded box": "rounded",
-  Circle: "circle",
-  Line: "line",
-  Curve: "curve",
-  "Image slot": "image",
-  "LaTeX equation": "text",
-  "Physics diagram": "circle",
-  "Learning diagram": "box",
-};
+import {
+  ElementLibrary,
+  buildElementForItem,
+  elementLibraryItems,
+  equationLibraryItems,
+  type ElementLibraryItem,
+} from "./editor/element-library";
 const modules: Module[] = [
   "Canvases",
   "Canvas",
@@ -195,6 +184,7 @@ function WorkspacePage({
           if (
             !slot ||
             slot.t !== "img" ||
+            slot.illustration3d ||
             live.scene.isLocked(slot) ||
             live.scene.isHidden(slot)
           ) {
@@ -277,7 +267,8 @@ function WorkspacePage({
         slot =
           asset.type !== "video" &&
           live.selected.length === 1 &&
-          live.active?.t === "img"
+          live.active?.t === "img" &&
+          !live.active.illustration3d
             ? live.active
             : undefined;
       if (slot) {
@@ -316,6 +307,20 @@ function WorkspacePage({
   const videoInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
   const artboards = frames(e.doc);
+  const elementItems = useMemo(() => elementLibraryItems(), []);
+  const equationItems = useMemo(() => equationLibraryItems(), []);
+  function selectLibraryItem(item: ElementLibraryItem) {
+    if (item.kind === "Video") {
+      videoInput.current?.click();
+      return;
+    }
+    const element = buildElementForItem(item);
+    if (element.latex || element.physics || element.learning || element.illustration3d)
+      void prepareScienceElement(element)
+        .then((ready) => e.add(ready))
+        .catch((error) => e.notify(String(error)));
+    else e.add(element);
+  }
   function savePresets(next: Preset[]) {
     setSaved(next);
     try {
@@ -511,7 +516,7 @@ function WorkspacePage({
                   role="tablist"
                   aria-label="Editor library"
                 >
-                  {["Elements", "Templates", "Assets"].map((t) => (
+                  {["Elements", "Equation", "Templates", "Assets"].map((t) => (
                     <Button
                       key={t}
                       role="tab"
@@ -568,41 +573,25 @@ function WorkspacePage({
                       ev.target.value = "";
                     }}
                   />
-                  <div className="element-grid">
-                    {elementKinds.map((kind) => (
-                      <Button
-                        draggable
-                        key={kind}
-                        aria-label={kind}
-                        onDragStart={(ev) =>
-                          ev.dataTransfer.setData("genie/element", kind)
-                        }
-                        onClick={() => {
-                          const element = makeElement(kind);
-                          if (element.latex)
-                            void prepareScienceElement(element)
-                              .then((ready) => e.add(ready))
-                              .catch((error) => e.notify(String(error)));
-                          else e.add(element);
-                        }}
-                      >
-                        <span aria-hidden="true" className="element-symbol">
-                          <Icon name={elementIcons[kind]} size={25} />
-                        </span>
-                        {kind}
-                      </Button>
-                    ))}
-                    <Button
-                      key="Video"
-                      aria-label="Video"
-                      onClick={() => videoInput.current?.click()}
-                    >
-                      <span aria-hidden="true" className="element-symbol">
-                        <Icon name="video" size={25} />
-                      </span>
-                      Video
-                    </Button>
-                  </div>
+                  <ElementLibrary
+                    items={elementItems}
+                    onSelect={selectLibraryItem}
+                    searchPlaceholder="Search elements"
+                    searchLabel="Search elements"
+                  />
+                </>
+              ) : editorTab === "Equation" ? (
+                <>
+                  <h2 className="section-heading">Equation</h2>
+                  <p className="hint">
+                    LaTeX, 3D illustrations, physics, and learning diagrams.
+                  </p>
+                  <ElementLibrary
+                    items={equationItems}
+                    onSelect={selectLibraryItem}
+                    searchPlaceholder="Search equations and diagrams"
+                    searchLabel="Search equations and diagrams"
+                  />
                 </>
               ) : editorTab === "Assets" ? (
                 <AssetBrowser

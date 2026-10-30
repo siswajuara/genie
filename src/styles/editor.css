@@ -158,10 +158,10 @@
     @apply w-[260px] text-center bg-transparent border-transparent;
   }
   .studio-main {
-    @apply grid grid-cols-[52px_310px_minmax(0,_1fr)_auto] min-h-0;
+    @apply grid grid-cols-[52px_360px_minmax(0,_1fr)_auto] min-h-0;
   }
   .studio-main.without-inspector {
-    @apply grid-cols-[52px_310px_minmax(0,_1fr)];
+    @apply grid-cols-[52px_360px_minmax(0,_1fr)];
   }
   .studio-main.zen {
     @apply grid-cols-[minmax(0,_1fr)];
@@ -982,10 +982,10 @@
   }
   @media (max-width: 1150px) {
     .studio-main {
-      @apply grid-cols-[minmax(52px,_5%)_270px_minmax(0,_1fr)_240px];
+      @apply grid-cols-[minmax(52px,_5%)_320px_minmax(0,_1fr)_240px];
     }
     .studio-main.without-inspector {
-      @apply grid-cols-[minmax(52px,_5%)_270px_minmax(0,_1fr)];
+      @apply grid-cols-[minmax(52px,_5%)_320px_minmax(0,_1fr)];
     }
     .library-tabs {
       @apply p-0;
@@ -1031,7 +1031,7 @@
     }
     .studio-main,
     .studio-main.without-inspector {
-      @apply grid-cols-[52px_240px_minmax(0,_1fr)] grid-rows-[minmax(500px,_75dvh)_auto];
+      @apply grid-cols-[52px_280px_minmax(0,_1fr)] grid-rows-[minmax(500px,_75dvh)_auto];
     }
     .page-rail {
       @apply row-[1_/_-1];
@@ -1253,10 +1253,10 @@
     @apply flex-[1] text-[12px];
   }
   .editor-tabs {
-    @apply flex border border-solid border-border rounded-[6px] p-[3px] mb-[20px] gap-[4px];
+    @apply flex border border-solid border-border rounded-[6px] p-[3px] mb-[20px] gap-[2px];
   }
   .editor-tabs button {
-    @apply flex-[1] border-transparent p-[5px] text-[12px] bg-transparent text-muted-foreground;
+    @apply flex-[1] border-transparent p-[5px_4px] text-[12px] bg-transparent text-muted-foreground whitespace-nowrap;
   }
   .editor-tabs button[aria-selected="true"] {
     @apply bg-secondary text-foreground font-extrabold;
@@ -1427,3 +1427,15 @@
   }
 }
 
+.illustration3d-view {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border, #d5def5);
+  border-radius: 8px;
+  background: #fff;
+  cursor: grab;
+  touch-action: none;
+}
+.illustration3d-view:active { cursor: grabbing; }
+.illustration3d-view:focus-visible { outline: 2px solid #0757ec; outline-offset: 2px; }

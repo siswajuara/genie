@@ -18,6 +18,8 @@ import { prepareScienceElement } from "./science";
 import { LearningFields } from "./learning-inspector";
 import { learningSvg } from "./learning-drawing.mjs";
 import { physicsSvg } from "./physics-drawing.mjs";
+import { Illustration3DFields } from "./illustration3d-inspector";
+import { illustration3DSvg, illustration3DModels } from "./illustration3d.mjs";
 
 const labels: Record<string, string> = {
   gravity: "Gravity (m/s²)",
@@ -231,6 +233,20 @@ export function ScienceInspector({
       setBusy(false);
     }
   }
+  if (element.illustration3d)
+    return (
+      <section className="insp-section">
+        <h3>3D illustration</h3>
+        <Illustration3DFields element={element}
+          onChange={(illustration3d) => editor.patch({
+            illustration3d,
+            ...(element.illustration3d?.scene !== illustration3d.scene
+              ? { n: `${illustration3DModels[illustration3d.scene].label} · 3D` }
+              : {}),
+            src: illustration3DSvg(illustration3d),
+          }, [element.id])} />
+      </section>
+    );
   if (element.learning)
     return (
       <section className="insp-section">

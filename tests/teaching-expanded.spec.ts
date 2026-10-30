@@ -191,9 +191,11 @@ test("full frame context and visible text reach Generate and narration, and surv
     return route.fallback();
   });
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page
     .getByRole("button", { name: "Learning diagram", exact: true })
     .click();
+  await page.getByRole("tab", { name: "Elements", exact: true }).click();
   await page.getByRole("button", { name: "Image slot", exact: true }).click();
   await page
     .locator('input[type=file][accept="image/*"]')

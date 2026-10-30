@@ -144,6 +144,7 @@ export function receivesCameraMotion(element: Element): boolean {
     element.latex ||
     element.physics ||
     element.learning ||
+    element.illustration3d ||
     element.brandRole === "logo" ||
     element.brandRole === "footer" ||
     element.generationRole === "fixed" ||

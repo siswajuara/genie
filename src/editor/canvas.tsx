@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { prepareVideos, disposeVideos, type MediaImages } from "./video";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { frames, makeElement, type Element } from "./model";
+import { makeElementFromDragValue } from "./element-library";
 import { prepareScienceElement, textToEquation } from "./science";
 import { detectLatexSource } from "../../sidecar/science.mjs";
 import { bounds, hitElements, intersects, reparentOnDrop } from "./scene";
@@ -167,6 +168,7 @@ export function Canvas({
             !target.latex &&
             !target.physics &&
             !target.learning &&
+            !target.illustration3d &&
             asset.type !== "video"
             ? target.id
             : undefined,
@@ -175,7 +177,7 @@ export function Canvas({
       }
       const kind = data.getData("genie/element");
       if (kind) {
-        e.add(await prepareScienceElement(makeElement(kind)), at);
+        e.add(await prepareScienceElement(makeElementFromDragValue(kind)), at);
         return true;
       }
       const encoded = data.getData(elementMime) || data.getData("text/plain");

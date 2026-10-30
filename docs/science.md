@@ -2,7 +2,27 @@
 
 Untuk katalog SD–SMP yang diperluas (20 fisika, 40 matematika/bahasa), bangun datar/ruang, dan penambahan elemen baru oleh AI, lihat [model pembelajaran](learning.md).
 
-Add **LaTeX equation** or **Physics diagram** from the Elements panel. Their source and parameters are editable under Properties. A canvas still owns pages and each page contains frames; all source, settings, and rendered media stay in the local canvas and its JSON backups.
+Add **LaTeX equation**, **Physics diagram**, **Learning diagram**, or a **3D** illustration from the left **Equation** tab. Search by Indonesian or English topic and filter by group. Click a card or drag it into a frame. Their source and parameters are editable under Properties. A canvas still owns pages and each page contains frames; all source, settings, and rendered media stay in the local canvas and its JSON backups.
+
+## 3D illustrations
+
+The Equation library includes all 23 scenes adapted from `3d-illustration.tsx`:
+
+| Group | Scenes |
+| --- | --- |
+| 3D · Matematika | Kubus, Balok, Prisma segitiga, Limas segiempat, Tabung, Kerucut, Bola, Jaring-jaring kubus, Benda putar |
+| 3D · Fisika | Piston, Bandul, Pegas, Gelombang, Gerak parabola, Bidang miring, Rangkaian listrik, Tuas, Cahaya |
+| 3D · IPA | Tata surya, Model atom, Siklus air, Fase Bulan, Molekul |
+
+Select an illustration to edit its dimensions or physical parameters. Drag the inspector preview or use its arrow keys to rotate; Rotation, Tilt, Zoom, and Reset 3D view provide numeric controls. Cube folding, solids of revolution, and Moon phases have a saved progress control. Piston has a gas-height control, and Molekul offers H₂O, CO₂, and CH₄. Dimension and formula visibility are saved with the layer.
+
+Play or scrub the timeline for animated scenes. **Animate illustration** holds the saved initial state when disabled; reduced motion also holds that state. Scene geometry and particle motion depend only on the saved parameters and requested time, so seeking and image/video exports agree. The layer retains `illustration3d` settings and a standalone SVG snapshot in local canvases, versions, templates, and JSON backups. These native diagrams work without an asset pack or provider call.
+
+Projection, particle sizes, and planetary distances are illustrative; use the written units and formulas. The triangular prism has an isosceles cross-section; the pyramid supports a rectangular base. Pendulum angles are limited to 30° for the small-angle period approximation. Piston pressure uses an ideal isothermal Boyle-law relation; the atom scene is a Bohr teaching model for the first ten elements. Moon phase progress describes the approximately 29.5-day synodic cycle. Existing Learning and Physics diagrams keep their separate models and parameters.
+
+Implementation: `src/editor/illustration3d*.mjs` and `illustration3d-inspector.tsx`. Verify locally with `node tests/illustration3d.check.mjs` and `npm run test:ui -- tests/illustration3d.spec.ts`.
+
+## LaTeX equations
 
 LaTeX uses the locally bundled MathJax renderer and TeX font data. The engine loads when an equation is first rendered. It converts math-only expressions to standalone SVG paths without a CDN, external fonts, or a provider call, following [MathJax's direct-linking interface](https://docs.mathjax.org/en/latest/server/direct.html). The equation's `latex.source` remains editable alongside its embedded `src`. Invalid expressions leave the previous rendering intact. New equations have a timed reveal; use the Animation tab to adjust it; multiple equation layers can enter in sequence for a worked solution.
 

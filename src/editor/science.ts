@@ -4,9 +4,14 @@ import { renderLatex } from "./latex-renderer.mjs";
 import { normalizeLearning } from "../../sidecar/learning.mjs";
 import { learningSvg } from "./learning-drawing.mjs";
 import { physicsSvg } from "./physics-drawing.mjs";
+import { normalizeIllustration3D, illustration3DSvg } from "./illustration3d.mjs";
 export async function prepareScienceElement(
   element: Element,
 ): Promise<Element> {
+  if (element.illustration3d) {
+    const illustration3d = normalizeIllustration3D(element.illustration3d);
+    return { ...element, illustration3d, src: illustration3DSvg(illustration3d), fit: "contain" };
+  }
   if (element.latex) {
     const latex = normalizeLatex(element.latex);
     const rendered = await renderLatex(latex, element.color || "#112866");

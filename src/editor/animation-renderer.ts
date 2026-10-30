@@ -302,7 +302,7 @@ export function drawAnimationFrame(
         textures,
         Math.max(width / frame.w, height / frame.h),
         glyphAnimation,
-        element.physics || element.learning
+        element.physics || element.learning || element.illustration3d
           ? reducedMotion
             ? 0
             : Math.max(0, (time ?? 0) - timing(element, duration).start)

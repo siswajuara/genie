@@ -11,7 +11,7 @@ export async function resolvePresetAssets(preset: Preset): Promise<Preset> {
     while (index < objects.length) {
       const at = index++,
         object = objects[at];
-      if (object.latex || object.physics || object.learning) {
+      if (object.latex || object.physics || object.learning || object.illustration3d) {
         objects[at] = await prepareScienceElement(object);
         continue;
       }
@@ -51,6 +51,7 @@ export function unresolvedAssetSlots(elements: Element[]) {
       !o.latex &&
       !o.physics &&
       !o.learning &&
+      !o.illustration3d &&
       !o.src &&
       o.identifier &&
       (brandImageSource(o.identifier) || matchLibraryAsset(o.identifier)),

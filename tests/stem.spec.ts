@@ -79,6 +79,7 @@ test("24 STEM lessons fit, retain editable diagrams in backups, and animate in P
 
 test("thermal expansion coefficient edits without rounding away and survives reload", async ({ page }) => {
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page.getByRole("button", { name: "Physics diagram", exact: true }).click();
   await page.getByRole("combobox", { name: "Physics model", exact: true }).click();
   await page.getByRole("option", { name: "Pemuaian panjang", exact: true }).click();
@@ -106,6 +107,7 @@ for (const sample of [
   { kind: "photosynthesis", model: "Fotosintesis • Alur pada tumbuhan", field: "Illustration cycle (s)", key: "period", value: 12 },
 ]) test(`${sample.kind} parameters and motion settings survive reload`, async ({ page }) => {
   await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("tab", { name: "Equation", exact: true }).click();
   await page.getByRole("button", { name: "Physics diagram", exact: true }).click();
   await page.getByRole("combobox", { name: "Physics model", exact: true }).click();
   await page.getByRole("option", { name: sample.model, exact: true }).click();

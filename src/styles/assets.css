@@ -1,9 +1,26 @@
 @layer components {
-  .library-content:has(.asset-browser) {
+  .library-content:has(.asset-browser),
+  .library-content:has(.element-library) {
     @apply flex flex-col overflow-hidden min-h-0;
   }
-  .library-content:has(.asset-browser) .editor-tabs {
+  .library-content:has(.asset-browser) .editor-tabs,
+  .library-content:has(.element-library) .editor-tabs {
     @apply shrink-0;
+  }
+  .element-library {
+    @apply flex flex-col flex-[1] min-h-0 mt-0 mr-[-6px] mb-[-10px] ml-[-6px];
+  }
+  .element-library-grid {
+    @apply grid grid-cols-[1fr_1fr] gap-x-[8px] my-0 mx-[5px];
+  }
+  .element-group-title {
+    @apply flex items-baseline gap-[6px] mt-[16px] mr-[6px] mb-[8px] ml-[6px] text-[13px];
+  }
+  .element-group-title small {
+    @apply text-[11px] text-muted-foreground font-semibold;
+  }
+  .element-library-grid .asset-card {
+    @apply mt-0;
   }
   .asset-browser {
     @apply flex flex-col flex-[1] min-h-0 mt-0 mr-[-6px] mb-[-10px] ml-[-6px];
