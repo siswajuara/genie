@@ -18,8 +18,6 @@ import { Toggle } from "../components/ui/toggle";
 import { FontField } from "../components/ui/font-field";
 import { Accordion } from "../components/ui/accordion";
 import { Icon, type IconName } from "../components/ui/icon";
-import { slugify } from "./identifiers";
-import { matchLibraryAsset, useAssetLibrary } from "./assets";
 import { AnimationInspector } from "./animation-inspector";
 import type { AnimationPlayback } from "./use-animation-playback";
 import { AudioPanel } from "./audio-panel";
@@ -73,70 +71,6 @@ function ToolButton({
   );
 }
 
-function IdentifierField({
-  element,
-  editor,
-}: {
-  element: Element;
-  editor: Editor;
-}) {
-  useAssetLibrary();
-  const value = element.identifier || slugify(element.n),
-    [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value, element.id]);
-  const imageSlot =
-    element.t === "img" &&
-    !element.latex &&
-    !element.physics &&
-    !element.learning;
-  const match = imageSlot ? matchLibraryAsset(value) : undefined;
-  function commit() {
-    const next = slugify(draft);
-    setDraft(next || value);
-    if (next && next !== value) void editor.setIdentifier(next, [element.id]);
-  }
-  return (
-    <div className="identifier-field">
-      <div className="property">
-        <span>ID</span>
-        <Input
-          aria-label="Identifier"
-          title="Searchable asset id, e.g. laptop-blue-front"
-          placeholder="e.g. laptop-blue-front"
-          value={draft}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
-          onChange={(ev) => setDraft(ev.target.value)}
-          onBlur={commit}
-          onKeyDown={(ev) => {
-            if (ev.key === "Enter") {
-              ev.preventDefault();
-              ev.currentTarget.blur();
-            }
-          }}
-        />
-        {imageSlot && (
-          <span
-            className={`match-dot${match ? " is-match" : ""}`}
-            title={match ? `Matches: ${match.name}` : "No library match"}
-          />
-        )}
-      </div>
-      {imageSlot && match && (
-        <div className="asset-match">
-          <img src={match.thumbnail} alt="" width={32} height={32} />
-          <span>{match.name}</span>
-          <ToolButton
-            title={`Apply ${match.name}`}
-            icon="check"
-            onClick={() => void editor.setIdentifier(value, [element.id])}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 const labels: Record<string, string> = {
   n: "Name",
   x: "X",

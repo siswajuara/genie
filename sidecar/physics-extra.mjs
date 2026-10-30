@@ -1,4 +1,29 @@
 export const extraPhysicsModels = {
+  "newton-first": {
+    label: "Hukum Newton 1 • Kelembaman",
+    defaults: { mass: 2, initialVelocity: 2, force: 10, distance: 12 },
+    ranges: { mass: [0.1, 20], initialVelocity: [0, 20], force: [0, 100], distance: [1, 100] },
+    description: "Resultan gaya nol dalam kerangka inersial: dua gaya horizontal sama besar berlawanan arah pada satu benda. v tetap, a=0; v₀=0 berarti tetap diam. Gaya vertikal seimbang. Tanpa gesekan tambahan; lintasan dibatasi distance, keadaan diam diamati selama 6 s.",
+  },
+  "newton-second": {
+    label: "Hukum Newton 2 • Gaya dan percepatan",
+    defaults: { mass: 2, force: 6, initialVelocity: 0, distance: 24 },
+    ranges: { mass: [0.1, 20], force: [0, 100], initialVelocity: [0, 20], distance: [1, 100] },
+    description: "Massa tetap, resultan gaya horizontal konstan ke kanan: ΣF=ma. a=force/mass, v=v₀+at, s=v₀t+at²/2. Gaya vertikal seimbang; tanpa gesekan tambahan. Berhenti di batas lintasan, bukan tumbukan; jika gaya dan v₀ nol, pengamatan 6 s.",
+  },
+  "newton-third": {
+    label: "Hukum Newton 3 • Aksi dan reaksi",
+    defaults: { mass1: 2, mass2: 4, force: 4, distance: 12 },
+    ranges: { mass1: [0.1, 20], mass2: [0.1, 20], force: [0.1, 100], distance: [1, 100] },
+    description: "Dua benda mula-mula diam saling menolak dengan gaya interaksi ideal konstan: F pada A oleh B = −F pada B oleh A. Gaya bekerja serentak pada benda berbeda; a₁=−F/m₁, a₂=F/m₂. Resultan gaya luar horizontal nol, momentum total nol. Akhir pengamatan saat pertambahan jarak antarbenda mencapai distance; bukan simulasi pegas atau tumbukan.",
+  },
+  photosynthesis: {
+    label: "Fotosintesis • Alur pada tumbuhan",
+    subject: "biology",
+    defaults: { period: 8 },
+    ranges: { period: [4, 20] },
+    description: "Skema biologi: energi cahaya, CO₂ dari udara, dan air melalui akar mendukung pembentukan gula di kloroplas; O₂ dilepas. Persamaan bersih sederhana: 6CO₂+6H₂O → C₆H₁₂O₆+6O₂, dengan cahaya dan klorofil. O₂ berasal dari pemecahan air. Sorotan alur selama period detik adalah urutan penjelasan, bukan tahapan reaksi berurutan, laju nyata, atau hitungan molekul. Respirasi tidak digambarkan.",
+  },
   "sound-travel": {
     label: "Bunyi merambat melalui medium",
     defaults: { soundSpeed: 340, distance: 680 },
@@ -127,6 +152,35 @@ export function validateExtraPhysics(p) {
     );
 }
 export function extraPhysicsState(p, t) {
+  if (p.kind === "newton-first" || p.kind === "newton-second") {
+    const acceleration = p.kind === "newton-first" ? 0 : p.force / p.mass,
+      finalSpeed = Math.sqrt(p.initialVelocity ** 2 + 2 * acceleration * p.distance),
+      duration = finalSpeed + p.initialVelocity > 0
+        ? 2 * p.distance / (finalSpeed + p.initialVelocity) : 6,
+      time = p.loop ? t % duration : Math.min(t, duration);
+    return {
+      x: p.initialVelocity * time + acceleration * time ** 2 / 2,
+      y: 0, time, duration, acceleration,
+      speed: p.initialVelocity + acceleration * time,
+      netForce: p.kind === "newton-first" ? 0 : p.force,
+    };
+  }
+  if (p.kind === "newton-third") {
+    const acceleration1 = -p.force / p.mass1, acceleration2 = p.force / p.mass2,
+      duration = Math.sqrt(2 * p.distance / (acceleration2 - acceleration1)),
+      time = p.loop ? t % duration : Math.min(t, duration),
+      v1 = acceleration1 * time, v2 = acceleration2 * time;
+    return {
+      x: acceleration1 * time ** 2 / 2, x2: acceleration2 * time ** 2 / 2,
+      y: 0, time, duration, acceleration1, acceleration2,
+      force1: -p.force, force2: p.force, v1, v2,
+      momentum: p.mass1 * v1 + p.mass2 * v2,
+    };
+  }
+  if (p.kind === "photosynthesis") {
+    const time = p.loop ? t % p.period : Math.min(t, p.period), progress = time / p.period;
+    return { x: 0, y: 0, time, duration: p.period, progress, stage: Math.min(3, Math.floor(progress * 4)) };
+  }
   if (["sound-travel", "heating", "energy-conservation", "thermal-expansion"].includes(p.kind)) {
     const duration = p.kind === "sound-travel" ? p.distance / p.soundSpeed
       : p.kind === "heating" ? p.mass * p.specificHeat * p.temperatureRise / p.power

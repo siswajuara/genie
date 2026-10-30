@@ -109,7 +109,7 @@ export const sceneLabel = (value: string) =>
   value[0].toUpperCase() + value.slice(1);
 
 const educationalContext = (context: string) =>
-  /\bSD\b|\bSMP\b|\bSMA\b|elementary|middle school|high school|trigonometri|trigonometry|pythagoras|vektor|vector|kuadrat|quadratic|peluang|probability|kalor|pemuaian|tumbukan|matematika|\bmath\b|fisika|physics|bangun|geometri|geometry|kubus|balok|tabung|kerucut|persegi|segitiga|lingkaran|limas|prisma|bola|pecahan|fraction|garis bilangan|koordinat|diagram batang|kalimat|bahasa indonesia|suku kata|sinonim|antonim|ide pokok|urutan cerita|bandul|pendulum|pegas|spring|projectile|parabola|katrol|tuas|apung|massa jenis|gelombang|wave|rangkaian|circuit|cahaya|pemantulan|sudut|nilai tempat|jam analog|jaring|perkalian|perbandingan|imbuhan|tanda baca|sebab|akibat|cerita|hidrolik|tekanan|pembiasan|gesekan|glbb/i.test(
+  /\bSD\b|\bSMP\b|\bSMA\b|elementary|middle school|high school|trigonometri|trigonometry|pythagoras|vektor|vector|kuadrat|quadratic|peluang|probability|kalor|pemuaian|tumbukan|matematika|\bmath\b|fisika|physics|bangun|geometri|geometry|kubus|balok|tabung|kerucut|persegi|segitiga|lingkaran|limas|prisma|bola|pecahan|fraction|garis bilangan|koordinat|diagram batang|kalimat|bahasa indonesia|suku kata|sinonim|antonim|ide pokok|urutan cerita|bandul|pendulum|pegas|spring|projectile|parabola|katrol|tuas|apung|massa jenis|gelombang|wave|rangkaian|circuit|cahaya|pemantulan|sudut|nilai tempat|jam analog|jaring|perkalian|perbandingan|imbuhan|tanda baca|sebab|akibat|cerita|hidrolik|tekanan|pembiasan|gesekan|glbb|newton|kelembaman|aksi reaksi|fotosintesis|photosynthesis|biologi|biology/i.test(
     context,
   );
 export function rankedSceneTemplates(

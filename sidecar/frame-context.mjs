@@ -118,7 +118,7 @@ export function buildFrameContext(document, selectedIds = [], options = {}) {
           };
         if (o.physics)
           layer.teaching = {
-            subject: "physics",
+            subject: physicsModels[o.physics.kind]?.subject || "physics",
             model: physicsModels[o.physics.kind]?.label,
             parameters: o.physics,
             stateAtSample: physicsState(o.physics, context.sampleTime),

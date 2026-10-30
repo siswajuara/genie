@@ -1,6 +1,6 @@
 # Model pembelajaran SD–SMA
 
-Genie menyediakan **26 model fisika** dan **48 model pembelajaran matematika/Bahasa Indonesia**. Elemen tersimpan lokal sebagai parameter yang bisa diedit, dengan SVG mandiri untuk portabilitas. Pemutaran timeline dan ekspor memakai renderer lokal yang sama; tidak memerlukan gambar atau kode simulasi dari AI.
+Genie menyediakan **29 model fisika dan satu diagram biologi** dan **48 model pembelajaran matematika/Bahasa Indonesia**. Elemen tersimpan lokal sebagai parameter yang bisa diedit, dengan SVG mandiri untuk portabilitas. Pemutaran timeline dan ekspor memakai renderer lokal yang sama; tidak memerlukan gambar atau kode simulasi dari AI.
 
 ## Menambahkan dan mengedit
 
@@ -56,7 +56,7 @@ Pada review, periksa **Added teaching visual**, ubah model/parameter/teks, atau 
 
 ## Preset dan pengujian
 
-Koleksi eksternal **SD & SMP** berisi **62 preset**: 40 contoh pembelajaran, 16 contoh fisika tambahan, dan enam layout visual adaptif. Koleksi **STEM SD–SMA** menambah **20 preset** berlabel tingkat kelas; jumlah seluruh pustaka menjadi **132 template**. Sumber: `design-references/learning-presets.json` dan `design-references/stem-presets.json`; persiapan: `scripts/learning-presets.mjs`. Semua mengikuti standar logo/footer dan panduan preset dalam `design-references/README.md`.
+Koleksi eksternal **SD & SMP** berisi **62 preset**: 40 contoh pembelajaran, 16 contoh fisika tambahan, dan enam layout visual adaptif. Koleksi **STEM SD–SMA** menambah **24 preset** berlabel tingkat kelas; jumlah seluruh pustaka menjadi **136 template**. Sumber: `design-references/learning-presets.json` dan `design-references/stem-presets.json`; persiapan: `scripts/learning-presets.mjs`. Semua mengikuti standar logo/footer dan panduan preset dalam `design-references/README.md`.
 
 ```sh
 npm run presets:learning
@@ -95,4 +95,22 @@ Fisika menggunakan waktu analitis dan parameter SI. Matikan **Continue motion** 
 
 Dasar konsep: OpenStax [fungsi kuadrat](https://openstax.org/books/algebra-and-trigonometry-2e/pages/5-1-quadratic-functions), [lingkaran satuan](https://openstax.org/books/algebra-and-trigonometry-2e/pages/7-3-unit-circle), [kalor jenis](https://openstax.org/books/physics/pages/11-2-heat-specific-heat-and-heat-transfer), [rangkaian paralel](https://openstax.org/books/physics/pages/19-3-parallel-circuits), [tumbukan](https://openstax.org/books/physics/pages/8-3-elastic-and-inelastic-collisions), dan [pemuaian](https://openstax.org/books/university-physics-volume-2/pages/1-3-thermal-expansion).
 
-Verifikasi tambahan: `node tests/stem.check.mjs` dan `npm run test:ui -- tests/stem.spec.ts tests/teaching-expanded.spec.ts`. Pemeriksaan mencakup jawaban numerik, hukum kekekalan, batas parameter, berhenti/loop, skema backup, keterbacaan 20 template, parameter tersimpan, dan PNG animasi untuk semua 14 model baru. Seluruhnya lokal, tanpa panggilan provider.
+Verifikasi tambahan: `node tests/stem.check.mjs` dan `npm run test:ui -- tests/stem.spec.ts tests/teaching-expanded.spec.ts`. Pemeriksaan mencakup jawaban numerik, hukum kekekalan, batas parameter, berhenti/loop, skema backup, keterbacaan 24 template, parameter tersimpan, dan PNG animasi untuk semua 18 model STEM. Seluruhnya lokal, tanpa panggilan provider.
+
+
+## Hukum Newton dan fotosintesis
+
+Empat diagram tambahan tersedia melalui **Elements → Physics diagram → Physics model** dan empat template di **STEM SD–SMA**. Cari `Newton` atau `fotosintesis`; untuk pack desktop yang sudah terhubung, pilih **Setting → Assets → Refresh** setelah memperbarui pack.
+
+| Diagram | Parameter dan perilaku |
+| --- | --- |
+| Hukum Newton 1 | Massa, kecepatan awal (termasuk nol), besar gaya seimbang, panjang lintasan. Dua gaya horizontal seimbang pada satu benda: ΣF=0, a=0. Kecepatan nol mempertahankan keadaan diam. |
+| Hukum Newton 2 | Massa, resultan gaya horizontal, kecepatan awal, panjang lintasan. a=ΣF/m; penanda posisi pada selang waktu yang sama memperlihatkan perubahan laju. Gaya nol juga didukung. |
+| Hukum Newton 3 | Dua massa, besar gaya interaksi, pertambahan jarak antarbenda. Interaksi ideal konstan pada dua benda yang mula-mula diam, gaya luar horizontal nol. Gaya sama besar dan berlawanan arah; percepatan bergantung massa. |
+| Fotosintesis | Durasi siklus ilustrasi 4–20 detik. Sorotan cahaya, CO₂, air melalui akar, gula, dan O₂ mengarahkan penjelasan pada skema tumbuhan. Durasi bukan laju biologis dan urutan sorotan bukan urutan waktu reaksi sebenarnya. |
+
+Ketiga model Newton memakai kerangka inersial dan gaya vertikal seimbang. Akhir lintasan membatasi pengamatan; bukan tabrakan atau perlambatan benda. Matikan **Continue motion** untuk menahan keadaan akhir. Newton 1 dengan kecepatan nol dan Newton 2 dengan gaya/kecepatan nol diamati selama enam detik.
+
+Fotosintesis memakai mesin diagram yang sama dengan fisika, tetapi template berlabel **BIOLOGI** dan konteks AI menyatakan subjek biologi. Persamaan bersihnya disederhanakan; O₂ yang dilepas berasal dari air. Rujukan konsep: [hukum Newton, NASA](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/newtons-laws-of-motion/) dan [ikhtisar fotosintesis, OpenStax Biology 2e](https://openstax.org/books/biology-2e/pages/8-1-overview-of-photosynthesis).
+
+Pemeriksaan `tests/stem.check.mjs` mencakup keadaan diam, ΣF=ma, perbandingan massa/gaya, pasangan gaya berlawanan, momentum total nol, batas parameter, dan skema backup. `tests/stem.spec.ts` memeriksa empat kontrol baru, penyimpanan setelah reload, keterbacaan template, dan ekspor PNG deterministik pada waktu berbeda. Pengujian tidak memakai provider.

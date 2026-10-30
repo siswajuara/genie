@@ -297,5 +297,5 @@ assert.equal(
   "Siti",
 );
 console.log(
-  "PASS: 74 teaching models, known numeric answers, bounds, safe SVG, deterministic emphasis, and AI-added visual permissions. No provider calls.",
+  "PASS: 78 teaching models, known numeric answers, bounds, safe SVG, deterministic emphasis, and AI-added visual permissions. No provider calls.",
 );

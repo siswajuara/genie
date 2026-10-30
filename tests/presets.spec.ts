@@ -66,7 +66,7 @@ test("catalog is metadata only; browsing is lazy, searchable, and filtered witho
   });
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
   const library = page.getByRole("region", { name: "Template library" });
-  await expect(library.locator(".template-card")).toHaveCount(132);
+  await expect(library.locator(".template-card")).toHaveCount(136);
   await expect(library.locator(".template-card img").first()).toBeVisible();
   expect(
     jsonRequests.map((u) =>
@@ -74,7 +74,7 @@ test("catalog is metadata only; browsing is lazy, searchable, and filtered witho
     ),
   ).toEqual(["catalog.json"]);
   await expect(
-    library.getByText("132 templates", { exact: true }),
+    library.getByText("136 templates", { exact: true }),
   ).toBeVisible();
   await expect(
     library.getByRole("button", { name: "Next template page" }),
@@ -112,7 +112,7 @@ test("browser folder templates replace cached pack data and saved branding remai
   page,
 }) => {
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
-  await expect(page.locator(".template-card")).toHaveCount(132);
+  await expect(page.locator(".template-card")).toHaveCount(136);
   const catalog = JSON.parse(
     await fs.readFile(path.join(packRoot, "presets/catalog.json"), "utf8"),
   );
@@ -306,7 +306,7 @@ test("all catalog files validate and groups remain local", async ({ page }) => {
         .map((o) => o.fill),
     };
   });
-  expect(result.count).toBe(132);
+  expect(result.count).toBe(136);
   expect(result.references).toEqual([]);
   expect(result.cases.sort()).toEqual([
     "answer",
@@ -480,7 +480,7 @@ test("every library design inherits the supplied logo and footer as independent 
         .map((p) => p.name),
     };
   });
-  expect(result.count).toBe(132);
+  expect(result.count).toBe(136);
   const branding = source.objects.filter(
     (o) =>
       /^siswa-juara-logo-|^social-/.test(o.identifier) ||
@@ -606,7 +606,7 @@ test("pack contains no reconstructed reference artwork", async () => {
       "utf8",
     ),
   );
-  expect(catalog.presets).toHaveLength(132);
+  expect(catalog.presets).toHaveLength(136);
   expect(
     catalog.presets.some(
       (p) => p.reference || p.identifier.startsWith("reference-"),
@@ -986,7 +986,7 @@ test("all presets adapt to each frame format without distorting their content or
     }
     return { count: catalog.presets.length, checked, errors };
   });
-  expect(result.count).toBe(132);
+  expect(result.count).toBe(136);
   expect(result.checked).toBe(528);
   expect(result.errors).toEqual([]);
 });

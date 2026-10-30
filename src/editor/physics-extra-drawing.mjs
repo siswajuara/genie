@@ -5,7 +5,100 @@ export function drawExtraPhysics(d, p, s) {
   if (!extraPhysicsModels[p.kind]) return false;
   const { line, path, rect, ellipse, label, arrow, color, ink, soft } = d,
     t = s.time;
-  if (p.kind === "sound-travel") {
+  if (p.kind === "newton-first" || p.kind === "newton-second") {
+    const first = p.kind === "newton-first", x = 180 + 500 * s.x / p.distance;
+    label(first ? `F kiri = F kanan = ${n(p.force)} N` : `ΣF = ${n(p.force)} N; m = ${n(p.mass)} kg`, 35, 85, 25);
+    label(first ? "ΣF = 0 → a = 0" : `a = ΣF / m = ${n(s.acceleration)} m/s²`, 35, 125, 27);
+    line(75, 310, 835, 310);
+    if (p.trail) {
+      for (let i = 0; i <= 6; i++) {
+        const time = s.duration * i / 6,
+          position = p.initialVelocity * time + s.acceleration * time ** 2 / 2,
+          px = 180 + 500 * position / p.distance;
+        line(px, 324, px, 340, soft);
+        if (time <= t) ellipse(px, 332, 5, 5, color);
+      }
+      label("Penanda posisi pada selang waktu yang sama", 140, 370, 21);
+    }
+    rect(x - 36, 240, 72, 60, color);
+    label(`${n(p.mass)} kg`, x, 277, 18, "#ffffff", "center");
+    ellipse(x - 22, 305, 8, 8, ink, ink);
+    ellipse(x + 22, 305, 8, 8, ink, ink);
+    if (p.force > 0) {
+      const length = 40 + 60 * p.force / 100;
+      arrow(x + 36, 265, length, 0);
+      if (first) arrow(x - 36, 265, -length, 0);
+    }
+    if (s.speed > 0) {
+      const finalSpeed = p.initialVelocity + s.acceleration * s.duration;
+      arrow(x, 200, 25 + 60 * s.speed / finalSpeed, 0, "#b77900");
+      label("v", x + 23, 185, 24, "#b77900");
+    }
+    label(`v₀ = ${n(p.initialVelocity)} m/s; v = ${n(s.speed)} m/s; t = ${n(t)} s`, 35, 415, 24);
+    label(`s = ${n(s.x)} m • ${first ? (s.speed === 0 ? "Benda tetap diam" : "Kecepatan tetap") : "s = v₀t + ½at²"}`, 35, 450, 24);
+    label(first ? "Gaya seimbang pada satu benda • gaya vertikal seimbang" : "Resultan gaya tetap • gaya vertikal seimbang", 35, 485, 21);
+  } else if (p.kind === "newton-third") {
+    const x1 = 400 + 260 * s.x / p.distance, x2 = 500 + 260 * s.x2 / p.distance;
+    label(`A: m₁ = ${n(p.mass1)} kg`, 50, 85, 25);
+    label(`B: m₂ = ${n(p.mass2)} kg`, 500, 85, 25);
+    label(`Gaya B pada A = −${n(p.force)} N`, 50, 135, 23);
+    label(`Gaya A pada B = +${n(p.force)} N`, 500, 135, 23);
+    line(70, 320, 835, 320);
+    if (p.trail) {
+      line(400, 175, 400, 345, soft, true);
+      line(500, 175, 500, 345, soft, true);
+    }
+    for (const [x, name, fill, direction] of [[x1, "A", color, -1], [x2, "B", "#b77900", 1]]) {
+      rect(x - 33, 250, 66, 58, fill, fill);
+      label(name, x, 288, 28, "#ffffff", "center");
+      ellipse(x - 20, 313, 7, 7, ink, ink);
+      ellipse(x + 20, 313, 7, 7, ink, ink);
+      line(x, 245, x, 215, soft, true);
+      arrow(x, 210, direction * 65, 0, fill);
+    }
+    label(`a₁ = ${n(s.acceleration1)} m/s²; a₂ = ${n(s.acceleration2)} m/s²`, 35, 385, 25);
+    label(`v₁ = ${n(s.v1)} m/s; v₂ = ${n(s.v2)} m/s`, 35, 425, 24);
+    label("F pada A = −F pada B • bekerja pada dua benda berbeda", 35, 465, 24);
+    label("Interaksi ideal konstan • mula-mula diam • momentum total = 0", 35, 493, 20);
+  } else if (p.kind === "photosynthesis") {
+    const green = "#23835b", gold = "#b77900", active = (stage) => stage === s.stage,
+      flow = (stage, start, end, stroke) => {
+        arrow(...start, end[0] - start[0], end[1] - start[1], active(stage) ? stroke : soft);
+        if (active(stage)) {
+          const fraction = Math.min(1, s.progress * 4 - stage);
+          ellipse(start[0] + (end[0] - start[0]) * fraction, start[1] + (end[1] - start[1]) * fraction, 7, 7, stroke, stroke);
+        }
+      };
+    // The plant and all flows stay visible; time only guides the explanation.
+    line(450, 235, 450, 350, green);
+    line(350, 350, 550, 350, "#9a7040");
+    for (const dx of [-50, -25, 25, 50]) line(450, 350, 450 + dx, 385, "#9a7040");
+    ellipse(412, 213, 65, 35, "#d9f1df", green);
+    ellipse(487, 260, 53, 28, "#d9f1df", green);
+    line(360, 213, 450, 235, green);
+    line(450, 285, 530, 260, green);
+    label("Klorofil di kloroplas", 450, 150, 20, green, "center");
+    ellipse(112, 108, 27, 27, "#ffcf25", gold);
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      line(112 + 36 * Math.cos(a), 108 + 36 * Math.sin(a), 112 + 47 * Math.cos(a), 108 + 47 * Math.sin(a), gold);
+    }
+    label("Energi cahaya", 175, 85, 24, gold);
+    flow(0, [162, 108], [365, 180], gold);
+    label("CO₂ dari udara", 40, 235, 24);
+    flow(1, [225, 230], [345, 218], color);
+    label("H₂O melalui akar", 40, 365, 24);
+    flow(2, [260, 355], [395, 365], color);
+    flow(2, [450, 340], [450, 285], color);
+    label("O₂ ke udara", 635, 135, 24, green);
+    flow(3, [495, 205], [740, 165], green);
+    label("Gula (glukosa)", 630, 295, 24, green);
+    label("Bahan pertumbuhan", 630, 325, 20);
+    flow(3, [545, 260], [740, 260], green);
+    label("6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂", 450, 425, 29, ink, "center");
+    label("Dengan energi cahaya dan klorofil • persamaan bersih sederhana", 450, 457, 21, ink, "center");
+    label(["Amati energi cahaya menuju daun.", "Amati CO₂ masuk dari udara.", "Amati air diserap akar menuju daun.", "Amati gula terbentuk dan O₂ dilepas; O₂ berasal dari air."][s.stage], 450, 490, 21, green, "center");
+  } else if (p.kind === "sound-travel") {
     const x = 120 + 650 * s.progress;
     rect(65, 190, 55, 100, color); label("Sumber", 45, 335, 24);
     line(120, 240, 770, 240, soft, true);

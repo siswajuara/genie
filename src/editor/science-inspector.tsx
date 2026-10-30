@@ -78,6 +78,15 @@ export function PhysicsFields({
 }) {
   const p = normalizePhysics(value),
     model = physicsModels[p.kind];
+  const parameterLabel = (key: string) => {
+    if (p.kind === "photosynthesis" && key === "period") return "Illustration cycle (s)";
+    if (key === "force") {
+      if (p.kind === "newton-first") return "Balanced force (N)";
+      if (p.kind === "newton-second") return "Net force (N)";
+      if (p.kind === "newton-third") return "Interaction force (N)";
+    }
+    return labels[key];
+  };
   return (
     <fieldset disabled={disabled} className="science-fields">
       <Label>Physics model</Label>
@@ -96,9 +105,9 @@ export function PhysicsFields({
       {model.description && <p className="muted">{model.description}</p>}
       {Object.entries(model.ranges).map(([key, [min, max]]) => (
         <div className="property" key={key}>
-          <span>{labels[key]}</span>
+          <span>{parameterLabel(key)}</span>
           <NumberField
-            label={labels[key]}
+            label={parameterLabel(key)}
             value={(p[key as keyof PhysicsSpec] as number) * (key === "expansionCoefficient" ? 1e6 : 1)}
             min={min * (key === "expansionCoefficient" ? 1e6 : 1)}
             max={max * (key === "expansionCoefficient" ? 1e6 : 1)}
@@ -138,6 +147,10 @@ export function PhysicsFields({
         "parallel-circuit",
         "elastic-collision",
         "thermal-expansion",
+        "newton-first",
+        "newton-second",
+        "newton-third",
+        "photosynthesis",
       ].includes(p.kind) && (
         <Label className="science-checkbox">
           <Checkbox

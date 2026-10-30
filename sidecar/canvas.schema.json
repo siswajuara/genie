@@ -427,6 +427,147 @@
           "required": [
             "kind"
           ],
+          "description": "Resultan gaya nol dalam kerangka inersial: dua gaya horizontal sama besar berlawanan arah pada satu benda. v tetap, a=0; v₀=0 berarti tetap diam. Gaya vertikal seimbang. Tanpa gesekan tambahan; lintasan dibatasi distance, keadaan diam diamati selama 6 s.",
+          "properties": {
+            "kind": {
+              "const": "newton-first"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "mass": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20
+            },
+            "initialVelocity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 20
+            },
+            "force": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "distance": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "Massa tetap, resultan gaya horizontal konstan ke kanan: ΣF=ma. a=force/mass, v=v₀+at, s=v₀t+at²/2. Gaya vertikal seimbang; tanpa gesekan tambahan. Berhenti di batas lintasan, bukan tumbukan; jika gaya dan v₀ nol, pengamatan 6 s.",
+          "properties": {
+            "kind": {
+              "const": "newton-second"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "mass": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20
+            },
+            "force": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "initialVelocity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 20
+            },
+            "distance": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "Dua benda mula-mula diam saling menolak dengan gaya interaksi ideal konstan: F pada A oleh B = −F pada B oleh A. Gaya bekerja serentak pada benda berbeda; a₁=−F/m₁, a₂=F/m₂. Resultan gaya luar horizontal nol, momentum total nol. Akhir pengamatan saat pertambahan jarak antarbenda mencapai distance; bukan simulasi pegas atau tumbukan.",
+          "properties": {
+            "kind": {
+              "const": "newton-third"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "mass1": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20
+            },
+            "mass2": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20
+            },
+            "force": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 100
+            },
+            "distance": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "description": "Skema biologi: energi cahaya, CO₂ dari udara, dan air melalui akar mendukung pembentukan gula di kloroplas; O₂ dilepas. Persamaan bersih sederhana: 6CO₂+6H₂O → C₆H₁₂O₆+6O₂, dengan cahaya dan klorofil. O₂ berasal dari pemecahan air. Sorotan alur selama period detik adalah urutan penjelasan, bukan tahapan reaksi berurutan, laju nyata, atau hitungan molekul. Respirasi tidak digambarkan.",
+          "properties": {
+            "kind": {
+              "const": "photosynthesis"
+            },
+            "loop": {
+              "type": "boolean"
+            },
+            "trail": {
+              "type": "boolean"
+            },
+            "period": {
+              "type": "number",
+              "minimum": 4,
+              "maximum": 20
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
           "description": "SD–SMP: muka gelombang bunyi menempuh jarak s=vt, waktu tiba=distance/soundSpeed. Medium homogen; bukan gerak partikel udara bersama bunyi.",
           "properties": {
             "kind": {

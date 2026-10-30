@@ -69,7 +69,7 @@ export async function learningPresets(root) {
         "series",
         "Series label",
         s.level
-          ? `${s.physics ? "FISIKA" : "MATEMATIKA"} • ${s.level.toUpperCase()}`
+          ? `${s.subject === "biology" ? "BIOLOGI" : s.physics ? "FISIKA" : "MATEMATIKA"} • ${s.level.toUpperCase()}`
           : s.subject === "indonesian"
           ? "BAHASA INDONESIA • SD–SMP"
           : s.physics

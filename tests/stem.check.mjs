@@ -60,13 +60,53 @@ for (const masses of [[1, 1], [1, 2], [10, 0.1], [0.1, 10]])
 const collision = physicsState({ kind: "elastic-collision", loop: false }, 3);
 close(collision.v1, 0); close(collision.v2, 2);
 
+// Newton 1: balanced forces preserve both rest and uniform motion.
+for (const initialVelocity of [0, 2, 20])
+  for (const force of [0, 10, 100]) {
+    const p = { kind: "newton-first", initialVelocity, force, loop: false };
+    for (const time of [0, 0.5, 100]) {
+      const s = physicsState(p, time);
+      close(s.netForce, 0); close(s.acceleration, 0); close(s.speed, initialVelocity);
+      close(s.x, initialVelocity * s.time);
+    }
+  }
+const second = physicsState({ kind: "newton-second", mass: 2, force: 6, loop: false }, 2);
+close(second.acceleration, 3); close(second.speed, 6); close(second.x, 6);
+close(physicsState({ kind: "newton-second", mass: 4, force: 6 }, 0).acceleration, 1.5);
+close(physicsState({ kind: "newton-second", mass: 2, force: 12 }, 0).acceleration, 6);
+for (const initialVelocity of [0, 2]) {
+  const p = { kind: "newton-second", force: 0, initialVelocity, loop: false };
+  const s = physicsState(p, 100);
+  finite(s); close(s.acceleration, 0); close(s.speed, initialVelocity);
+  close(s.x, initialVelocity * s.time);
+}
+// Newton 3: equal opposite forces, unequal accelerations, no external impulse.
+for (const [mass1, mass2] of [[2, 4], [0.1, 20], [20, 0.1]])
+  for (const time of [0, 0.5, 100]) {
+    const s = physicsState({ kind: "newton-third", mass1, mass2, force: 4, loop: false }, time);
+    close(s.force1, -s.force2);
+    close(s.acceleration1 * mass1, -4); close(s.acceleration2 * mass2, 4);
+    close(s.momentum, 0); close(mass1 * s.x + mass2 * s.x2, 0);
+    assert.ok(s.x <= 0 && s.x2 >= 0);
+    if (time === 100) close(s.x2 - s.x, 12);
+  }
+for (const [time, stage] of [[0, 0], [2, 1], [4, 2], [6, 3], [100, 3]]) {
+  const s = physicsState({ kind: "photosynthesis", period: 8, loop: false }, time);
+  close(s.stage, stage);
+  assert.ok(s.progress >= 0 && s.progress <= 1);
+}
+assert.equal(physicsModels.photosynthesis.subject, "biology");
+const photoLabels = physicsDrawing({ kind: "photosynthesis" }, 6).filter(s => s.t === "text").map(s => s.value).join(" ");
+assert.match(photoLabels, /6CO₂ \+ 6H₂O → C₆H₁₂O₆ \+ 6O₂/);
+assert.match(photoLabels, /O₂ berasal dari air/);
+
 const source = JSON.parse(await fs.readFile(new URL("../design-references/stem-presets.json", import.meta.url)));
 const schema = JSON.parse(await fs.readFile(new URL("../sidecar/canvas.schema.json", import.meta.url)));
-assert.equal(source.length, 20);
-assert.equal(new Set(source.map(s => s.identifier)).size, 20);
+assert.equal(source.length, 24);
+assert.equal(new Set(source.map(s => s.identifier)).size, 24);
 const learningKinds = [...new Set(source.filter(s => s.learning).map(s => s.learning.kind))];
 const physicsKinds = [...new Set(source.filter(s => s.physics).map(s => s.physics.kind))];
-assert.equal(learningKinds.length, 8); assert.equal(physicsKinds.length, 6);
+assert.equal(learningKinds.length, 8); assert.equal(physicsKinds.length, 10);
 for (const [kinds, models, normalize, drawing, svg, schemaKey] of [
   [learningKinds, learningModels, normalizeLearning, learningDrawing, learningSvg, "learningSpec"],
   [physicsKinds, physicsModels, normalizePhysics, physicsDrawing, physicsSvg, "physicsSpec"],
@@ -100,4 +140,4 @@ const prompt = buildScriptPrompt({ content: "SMA trigonometri dan tumbukan lenti
 const catalog = JSON.parse(prompt.user).teachingCatalog;
 for (const kind of learningKinds) assert.ok(catalog.learning[kind]);
 for (const kind of physicsKinds) assert.ok(catalog.physics[kind]);
-console.log("PASS: 14 STEM models, 20 level-tagged lessons, known answers, conservation laws, endpoints, parameter boundaries, backup schema and generation catalog; no provider calls.");
+console.log("PASS: 18 STEM models, 24 level-tagged lessons, known answers, conservation laws, endpoints, parameter boundaries, backup schema and generation catalog; no provider calls.");

@@ -135,7 +135,7 @@ test("all 48 learning models animate on the real canvas without changing their l
     };
   });
   expect(result.learning).toBe(48);
-  expect(result.physics).toBe(26);
+  expect(result.physics).toBe(30);
   expect(result.issues).toEqual([]);
 });
 test("full frame context and visible text reach Generate and narration, and survive reload", async ({

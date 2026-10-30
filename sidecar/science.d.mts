@@ -24,7 +24,11 @@ export type PhysicsKind =
   | "energy-conservation"
   | "parallel-circuit"
   | "elastic-collision"
-  | "thermal-expansion";
+  | "thermal-expansion"
+  | "newton-first"
+  | "newton-second"
+  | "newton-third"
+  | "photosynthesis";
 export type PhysicsSpec = {
   kind: PhysicsKind;
   gravity?: number;
@@ -82,6 +86,7 @@ export const physicsModels: Record<
     defaults: Record<string, number>;
     integers?: string[];
     description?: string;
+    subject?: "biology";
     ranges: Record<string, [number, number]>;
   }
 >;

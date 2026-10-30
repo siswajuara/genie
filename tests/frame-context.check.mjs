@@ -275,6 +275,12 @@ assert.throws(
   /no content was silently dropped/,
 );
 assert.equal(buildFrameContext(doc, []).frames.length, 2);
+const biologyContext = buildFrameContext({ elements: [frame, {
+  id: "photosynthesis", t: "img", n: "Fotosintesis", fid: frame.id,
+  x: 0, y: 0, w: 900, h: 500, physics: { kind: "photosynthesis" },
+}] }, [frame.id]);
+assert.equal(biologyContext.frames[0].layers[0].teaching.subject, "biology");
+assert.match(biologyContext.frames[0].layers[0].teaching.rules, /O₂ berasal dari pemecahan air/);
 console.log(
   "PASS: all layer types, hidden/locked content, calculated values, SVG text, captions/media metadata, privacy, and full AI request context.",
 );

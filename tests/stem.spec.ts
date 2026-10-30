@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("button", { name: "New Canvas", exact: true }).click();
 });
 
-test("20 STEM lessons fit, retain editable diagrams in backups, and animate in PNG exports", async ({ page }) => {
+test("24 STEM lessons fit, retain editable diagrams in backups, and animate in PNG exports", async ({ page }) => {
   const result = await page.evaluate(async () => {
     const { initializeAssetLibrary } = await window.genieSource("/src/editor/assets.ts");
     await initializeAssetLibrary();
@@ -71,8 +71,8 @@ test("20 STEM lessons fit, retain editable diagrams in backups, and animate in P
     }
     return { count: entries.length, models: kinds.size, grades: [...grades].sort(), issues };
   });
-  expect(result.count).toBe(20);
-  expect(result.models).toBe(14);
+  expect(result.count).toBe(24);
+  expect(result.models).toBe(18);
   expect(result.grades).toEqual(["SD", "SMA", "SMP"]);
   expect(result.issues).toEqual([]);
 });
@@ -97,4 +97,36 @@ test("thermal expansion coefficient edits without rounding away and survives rel
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Canvas name", exact: true })).toBeVisible();
   expect((await saved()).expansionCoefficient).toBe(0.000024);
+});
+
+for (const sample of [
+  { kind: "newton-first", model: "Hukum Newton 1 • Kelembaman", field: "Initial speed (m/s)", key: "initialVelocity", value: 0 },
+  { kind: "newton-second", model: "Hukum Newton 2 • Gaya dan percepatan", field: "Net force (N)", key: "force", value: 12 },
+  { kind: "newton-third", model: "Hukum Newton 3 • Aksi dan reaksi", field: "Mass 2 (kg)", key: "mass2", value: 8 },
+  { kind: "photosynthesis", model: "Fotosintesis • Alur pada tumbuhan", field: "Illustration cycle (s)", key: "period", value: 12 },
+]) test(`${sample.kind} parameters and motion settings survive reload`, async ({ page }) => {
+  await page.getByRole("button", { name: /Post 4:5/ }).click();
+  await page.getByRole("button", { name: "Physics diagram", exact: true }).click();
+  await page.getByRole("combobox", { name: "Physics model", exact: true }).click();
+  await page.getByRole("option", { name: sample.model, exact: true }).click();
+  const parameter = page.getByRole("spinbutton", { name: sample.field, exact: true });
+  await parameter.fill(String(sample.value));
+  await parameter.press("Tab");
+  await page.getByRole("checkbox", { name: "Continue motion", exact: true }).uncheck();
+  const saved = async () => page.evaluate(async () => {
+    const { prepareLocalSave, localStore } = await window.genieSource("/src/lib/local-store.ts");
+    await prepareLocalSave();
+    const workspace = JSON.parse(localStore.getItem("genie.workspace.v1"));
+    const doc = workspace.projects.find(p => p.id === workspace.activeProjectId).pages.find(p => p.id === workspace.activePageId).canvas;
+    const diagram = doc.elements.find(o => o.physics);
+    return { settings: diagram.physics, src: diagram.src };
+  });
+  const before = await saved();
+  expect(before.settings.kind).toBe(sample.kind);
+  expect(before.settings[sample.key]).toBe(sample.value);
+  expect(before.settings.loop).toBe(false);
+  expect(before.src).toMatch(/^data:image\/svg\+xml;/);
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "Canvas name", exact: true })).toBeVisible();
+  expect(await saved()).toEqual(before);
 });

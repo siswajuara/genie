@@ -17,7 +17,7 @@ import { physicsDrawing } from "../src/editor/physics-drawing.mjs";
 import { blendColor, focusColor } from "../src/editor/teaching-motion.mjs";
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
 assert.equal(Object.keys(learningModels).length, 48);
-assert.equal(Object.keys(physicsModels).length, 26);
+assert.equal(Object.keys(physicsModels).length, 30);
 close(
   learningMetrics({ kind: "regular-polygon", sides: 4, side: 3 }).polygonArea,
   9,
@@ -198,5 +198,5 @@ assert.ok(
 );
 
 console.log(
-  "PASS: 74 models, known expanded-model answers, invariant lesson data, deterministic continuous emphasis, static mode, safe colors and time samples.",
+  "PASS: 78 models, known expanded-model answers, invariant lesson data, deterministic continuous emphasis, static mode, safe colors and time samples.",
 );
