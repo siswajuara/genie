@@ -12,7 +12,6 @@ import {
   motions,
   easings,
   transitions,
-  sceneDuration,
   timing,
   keyframePose,
   identity,
@@ -334,9 +333,9 @@ export function AnimationInspector({
                         },
                       });
                       if (type !== "cut" && p.nextFrame)
-                        replayAt(Math.max(0, p.duration - Math.min(
-                          duration, p.duration / 2, sceneDuration(p.nextFrame) / 2,
-                        ) - 0.2));
+                        // The transition renders across the breathing pause
+                        // after the scene, so start just before the end.
+                        replayAt(Math.max(0, p.duration - 0.2));
                     }}
                   />
                   <p className="hint">

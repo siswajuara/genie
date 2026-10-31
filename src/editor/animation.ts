@@ -406,25 +406,33 @@ export type SequenceEntry = {
   frame: Element;
   start: number;
   end: number;
-  overlap: number;
+  /** Breathing pause before this entry. The outgoing transition renders
+   * across the gap while every audio track stays silent, like a speaker
+   * pausing for breath between sentences. Zero for the first scene. */
+  gap: number;
 };
+/** Default pause for breath between scenes, also used for cuts. */
+export const BREATH_GAP = 0.4;
+/** Pause inserted before `next` so its incoming transition can play out
+ * while audio stays silent. Non-cut transitions use their (capped) duration;
+ * cuts and missing transitions use their authored pause or a short breath. */
+export function transitionGap(
+  previous: Element | undefined,
+  next: Element,
+): number {
+  const transition = previous?.scene?.transition;
+  const raw = transition?.duration ?? BREATH_GAP;
+  if (!transition || transition.type === "cut") return Math.max(0.05, raw);
+  const prev = previous ? sceneDuration(previous) : raw;
+  return Math.min(raw, prev / 2, sceneDuration(next) / 2);
+}
 export function buildSequence(frames: Element[]): SequenceEntry[] {
   let end = 0;
   return frames.map((frame, i) => {
-    const duration = sceneDuration(frame),
-      previous = frames[i - 1];
-    const transition = previous?.scene?.transition;
-    const overlap =
-      transition && transition.type !== "cut"
-        ? Math.min(
-            transition.duration,
-            sceneDuration(previous) / 2,
-            duration / 2,
-          )
-        : 0;
-    const start = end - overlap;
-    end = start + duration;
-    return { frame, start, end, overlap };
+    const gap = i === 0 ? 0 : transitionGap(frames[i - 1], frame);
+    const start = end + gap;
+    end = start + sceneDuration(frame);
+    return { frame, start, end, gap };
   });
 }
 

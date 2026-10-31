@@ -1,8 +1,10 @@
 # Working in Genie
 
-Genie is a React/Vite editor with a Tauri desktop shell and a Node sidecar. The workspace contains Canvases, Publish, Schedule, and Setting. Use `README.md` and the relevant guides under `docs/` for current workflows, and verify behavior against the implementation before updating instructions. The application no longer loads marketing skills; `sidecar/skills/` and `reference-skills/` are absent.
+Genie is a React/Vite editor with a Tauri desktop shell and a Node sidecar. The workspace contains Content, Canvases, Publish, Schedule, and Setting. Use `README.md` and the relevant guides under `docs/` for current workflows, and verify behavior against the implementation before updating instructions. The application no longer loads marketing skills; `sidecar/skills/` and `reference-skills/` are absent.
 
 Preserve the local ownership model: a canvas has pages; a page contains frames. Canvases, versions, personal templates, saved drafts, content plans, and delivery receipts stay local. The document library uses SQLite on desktop and IndexedDB in the browser. Preserve canvas/page context and local edits across navigation. Keep existing canvas backups and legacy metadata readable without recreating chat records or assistant sessions. See `docs/storage.md` and `src/README.md` for storage boundaries and document contracts.
+
+Content Studio lives in `src/content/`; `content/` remains the standalone source app. Tasks, questions, references, history, and task-to-canvas links use `genie.content.v1` in the local document library. Keep migration snapshots local and out of app builds. See `docs/content.md`.
 
 Optional frame generation and narration rewriting use `@opencode/client` through the stateless text API. The current default is Beam Free, preferring `opencode-go`; unavailable models produce an error rather than a fallback. Generation returns content for supplied scene/layer slots; the editor owns geometry, IDs, branding, animation, and document mutation. Keep generation metadata local and retain editable review before adding frames. See `docs/ai-generation.md` and `docs/frame-context.md`.
 

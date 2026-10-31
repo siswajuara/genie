@@ -212,6 +212,24 @@ export function useProjects() {
         : w;
     });
   }
+  function openPage(projectId: string, pageId: string) {
+    setWorkspace((w) =>
+      w.projects.some(
+        (p) => p.id === projectId && p.pages.some((page) => page.id === pageId),
+      )
+        ? {
+            ...w,
+            activeProjectId: projectId,
+            activePageId: pageId,
+            projects: w.projects.map((project) =>
+              project.id === projectId
+                ? { ...project, activePageId: pageId }
+                : project,
+            ),
+          }
+        : w,
+    );
+  }
   function selectPage(id: string) {
     setWorkspace((w) => {
       const project = w.projects.find((p) => p.id === w.activeProjectId);
@@ -470,6 +488,7 @@ export function useProjects() {
     updatePage,
     selectProject,
     selectPage,
+    openPage,
     createProject,
     duplicateProject,
     renameProject,

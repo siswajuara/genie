@@ -245,7 +245,7 @@ export async function extractVideoAudio(
   }
 }
 
-/** Offline mixing follows the same frame overlaps, trim, loop and fades as preview. */
+/** Offline mixing follows the same scene gaps, trim, loop and fades as preview. */
 export async function mixAudio(
   frames: Element[],
   signal: AbortSignal,
@@ -294,7 +294,7 @@ export async function mixAudio(
     source.loopEnd = buffer.duration;
     source.connect(gain).connect(context.destination);
     const start = entry.start + track.start;
-    // Sample the envelope to preserve overlapping fades exactly as preview.
+    // Sample the envelope to preserve breathing pauses and fades exactly as preview.
     const curve = new Float32Array(Math.max(2, Math.ceil(length * 100) + 1));
     for (let i = 0; i < curve.length; i++)
       curve[i] = audioGain(

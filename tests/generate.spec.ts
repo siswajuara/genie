@@ -198,9 +198,17 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   await setSceneTypes(page, dialog, ["cover", "explanation", "list"]);
   await dialog.getByRole("button", { name: "Change scene template" }).click();
   const picker = page.locator(".generate-template-picker");
+  const templateCount = await page.evaluate(async () => {
+    const { loadPresetCatalog } = await window.genieSource(
+      "/src/editor/preset-catalog.ts",
+    );
+    return (await loadPresetCatalog()).presets.filter(
+      (entry: { kind: string }) => entry.kind === "template",
+    ).length;
+  });
   await expect(
     picker.getByRole("textbox", { name: "Search all templates" }),
-  ).toHaveAttribute("placeholder", "Search 112 templates…");
+  ).toHaveAttribute("placeholder", `Search ${templateCount} templates…`);
   await picker
     .getByRole("textbox", { name: "Search all templates" })
     .fill("essentials cover");

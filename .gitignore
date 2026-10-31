@@ -45,3 +45,6 @@ asset-packs/*.zip
 # Browser test artifacts
 /test-results/
 /playwright-report/
+
+# Local migration snapshots from the standalone Content Studio
+/.genie-content/

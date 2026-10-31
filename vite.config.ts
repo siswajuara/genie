@@ -1,5 +1,7 @@
 import { defineConfig } from "vite";
 // @ts-expect-error the development plugin is a Node module
+import { contentDevPlugin } from "./scripts/content-dev.mjs";
+// @ts-expect-error the development plugin is a Node module
 import { socialDevPlugin } from "./scripts/social-dev.mjs";
 // @ts-expect-error the development plugin is a Node module
 import { assetDevPlugin } from "./scripts/asset-dev.mjs";
@@ -11,7 +13,13 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [tailwindcss(), react(), socialDevPlugin(), assetDevPlugin()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    socialDevPlugin(),
+    assetDevPlugin(),
+    contentDevPlugin(),
+  ],
   resolve: {
     alias: { "@": new URL("./src", import.meta.url).pathname },
   },

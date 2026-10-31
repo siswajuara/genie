@@ -1,3 +1,8 @@
+import {
+  pendingTaskGeneration,
+  clearTaskGeneration,
+} from "./content/canvas-bridge";
+import { linkTaskCanvas } from "./content/store";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +54,7 @@ import {
 } from "./editor/element-library";
 const modules: Module[] = [
   "Canvases",
+  "Content",
   "Canvas",
   "Publish",
   "Schedule",
@@ -67,7 +73,8 @@ export default function App() {
     const onHash = () => {
       setRoute(currentModule());
       const hash = `#${currentModule().toLowerCase()}`;
-      if (window.location.hash !== hash) window.location.replace(hash);
+      if (currentModule() !== "Content" && window.location.hash !== hash)
+        window.location.replace(hash);
     };
     onHash();
     window.addEventListener("hashchange", onHash);
@@ -292,7 +299,11 @@ function WorkspacePage({
   const [confirmDelete, setConfirmDelete] = useState<"project" | "page">();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [taskGeneration] = useState(() => pendingTaskGeneration(p.page.id));
   const [generateOpen, setGenerateOpen] = useState(false);
+  useEffect(() => {
+    if (taskGeneration) setGenerateOpen(true);
+  }, [taskGeneration]);
   const [debugOpen, setDebugOpen] = useState(false);
   const [saved, setSaved] = useState<Preset[]>(() => {
     try {
@@ -315,7 +326,12 @@ function WorkspacePage({
       return;
     }
     const element = buildElementForItem(item);
-    if (element.latex || element.physics || element.learning || element.illustration3d)
+    if (
+      element.latex ||
+      element.physics ||
+      element.learning ||
+      element.illustration3d
+    )
       void prepareScienceElement(element)
         .then((ready) => e.add(ready))
         .catch((error) => e.notify(String(error)));
@@ -738,7 +754,25 @@ function WorkspacePage({
         </Dialog>
       )}
       {generateOpen && (
-        <GenerateDialog editor={e} onClose={() => setGenerateOpen(false)} />
+        <GenerateDialog
+          editor={e}
+          taskGeneration={taskGeneration}
+          onAdded={
+            taskGeneration
+              ? async (ids) => {
+                  await linkTaskCanvas(taskGeneration.taskId, {
+                    projectId: p.project.id,
+                    pageId: p.page.id,
+                    frameIds: ids,
+                  });
+                }
+              : undefined
+          }
+          onClose={() => {
+            setGenerateOpen(false);
+            clearTaskGeneration();
+          }}
+        />
       )}
       {exportOpen && (
         <ExportDialog

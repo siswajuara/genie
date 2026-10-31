@@ -2,6 +2,8 @@
 
 Canvases, pages, versions, personal templates, saved social drafts, and content plans stay on the device. Delivery receipts and request history stay local too. Frame narration drafts, embedded audio tracks, subtitle cues, and caption style belong to canvas documents and their versions.
 
+Content Studio tasks, questions, references, AI draft history, and canvas/page links also stay local under `genie.content.v1`. Their JSON backup is separate from canvas exports; see [Content Studio](content.md).
+
 Provider keys and settings use local `config.json` outside the library database and project exports; no website social API is used.
 
 ## Why the old warning appeared

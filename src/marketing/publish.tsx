@@ -1,3 +1,4 @@
+import { verifyTaskPublication } from "../content/publishing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ export function Publish({
   onRecord,
   onCanvas,
   onSettings,
+  onContent,
   notify,
 }: {
   projects: Projects;
@@ -33,6 +35,7 @@ export function Publish({
   onRecord: (post: Post) => Promise<void>;
   onCanvas: () => void;
   onSettings: () => void;
+  onContent?: () => Promise<void>;
   notify: (message: string) => void;
 }) {
   const file = useRef<HTMLInputElement>(null);
@@ -49,7 +52,11 @@ export function Publish({
     [previewIndex, setPreviewIndex] = useState(0),
     [previewPlatform, setPreviewPlatform] = useState("instagram"),
     [validation, setValidation] = useState("");
-  const previewAccount = social.accounts.find((account) => draft.accountKeys?.includes(account.key) && account.platform === previewPlatform);
+  const previewAccount = social.accounts.find(
+    (account) =>
+      draft.accountKeys?.includes(account.key) &&
+      account.platform === previewPlatform,
+  );
   const previewName = previewAccount?.name || "Your account";
   const [picking, setPicking] = useState(false);
   const patch = (value: Partial<Post>) => {
@@ -65,7 +72,10 @@ export function Publish({
   };
   const selected =
     draft.media[Math.min(previewIndex, Math.max(0, draft.media.length - 1))];
-  const frames = p.project.pages.flatMap((page) =>
+  const sourceProject =
+    p.workspace.projects.find((project) => project.id === draft.projectId) ||
+    p.project;
+  const frames = sourceProject.pages.flatMap((page) =>
     page.canvas.elements
       .filter((o) => o.t === "frame")
       .map((frame) => ({ page, frame })),
@@ -76,9 +86,13 @@ export function Publish({
       const media: Media[] = [];
       for (const file of files) {
         if (
-          !["image/jpeg", "image/png", "video/mp4", "video/quicktime"].includes(file.type)
+          !["image/jpeg", "image/png", "video/mp4", "video/quicktime"].includes(
+            file.type,
+          )
         ) {
-          notify(`Choose a JPEG, PNG, MP4, or MOV file. ${file.name} was not added.`);
+          notify(
+            `Choose a JPEG, PNG, MP4, or MOV file. ${file.name} was not added.`,
+          );
           continue;
         }
         if (file.size > 8 * 1024 * 1024) {
@@ -150,21 +164,38 @@ export function Publish({
         return;
       }
     }
-    const selected = social.accounts.filter((a) => draft.accountKeys?.includes(a.key));
-    if (selected.length > 10 || new Set(selected.map((a) => a.profileId)).size > 1) {
-      setValidation("Choose up to 10 accounts from one Tebar workspace per post.");
+    const selected = social.accounts.filter((a) =>
+      draft.accountKeys?.includes(a.key),
+    );
+    if (
+      selected.length > 10 ||
+      new Set(selected.map((a) => a.profileId)).size > 1
+    ) {
+      setValidation(
+        "Choose up to 10 accounts from one Tebar workspace per post.",
+      );
       return;
     }
     for (const account of selected) {
       const options = draft.accountOptions?.[account.key];
-      if (account.platform === "youtube" && (!String(options?.title || "").trim() || typeof options?.made_for_kids !== "boolean")) {
-        setValidation("Choose a YouTube title and audience before submitting."); return;
+      if (
+        account.platform === "youtube" &&
+        (!String(options?.title || "").trim() ||
+          typeof options?.made_for_kids !== "boolean")
+      ) {
+        setValidation("Choose a YouTube title and audience before submitting.");
+        return;
       }
       if (account.platform === "tiktok" && !options?.privacy_level) {
-        setValidation("Choose TikTok visibility before submitting."); return;
+        setValidation("Choose TikTok visibility before submitting.");
+        return;
       }
-      if (account.platform === "pinterest" && !String(options?.board_id || "").trim()) {
-        setValidation("Enter a Pinterest board ID before submitting."); return;
+      if (
+        account.platform === "pinterest" &&
+        !String(options?.board_id || "").trim()
+      ) {
+        setValidation("Enter a Pinterest board ID before submitting.");
+        return;
       }
     }
     if (draft.delivery?.some((result) => result.success || result.uncertain)) {
@@ -183,7 +214,10 @@ export function Publish({
     const requestId = draft.submissionId || crypto.randomUUID();
     setDraft((old) => ({ ...old, submissionId: requestId }));
     try {
-      const profileId = social.accounts.find((a) => draft.accountKeys?.includes(a.key))?.profileId || social.config.tebar.profileId;
+      await verifyTaskPublication(draft, p.workspace);
+      const profileId =
+        social.accounts.find((a) => draft.accountKeys?.includes(a.key))
+          ?.profileId || social.config.tebar.profileId;
       await onRecord({ ...draft, submissionId: requestId });
       const media = [];
       for (const [index, item] of draft.media.entries()) {
@@ -198,11 +232,7 @@ export function Publish({
             : "");
         let prepared = uploaded.current.get(key);
         if (!prepared) {
-          prepared = await prepareSocialMedia(
-            item,
-            p.workspace,
-            profileId,
-          );
+          prepared = await prepareSocialMedia(item, p.workspace, profileId);
           uploaded.current.set(key, prepared);
         }
         media.push(prepared);
@@ -271,14 +301,16 @@ export function Publish({
               id: crypto.randomUUID(),
               kind: "frame",
               name,
-              projectId: p.project.id,
+              projectId: sourceProject.id,
               pageId,
               frameId,
             },
           ],
     });
   }
-  const generatedPost = p.page.canvas.metadata.post;
+  const generatedPost = draft.contentTaskId
+    ? undefined
+    : p.page.canvas.metadata.post;
   return (
     <>
       <PageIntro
@@ -294,6 +326,25 @@ export function Publish({
           </Button>
         }
       />
+      {draft.contentTaskId && (
+        <div className="content-publish-source">
+          <p>
+            From Content · <strong>{draft.title}</strong>. Confirm below to send
+            through Tebar. Delivery updates appear in Content after refreshing
+            Schedule.
+          </p>
+          {onContent && (
+            <Button
+              disabled={sending}
+              onClick={() =>
+                void onContent().catch((error) => setValidation(String(error)))
+              }
+            >
+              Back to Content task
+            </Button>
+          )}
+        </div>
+      )}
       <div className="publish-layout">
         <section className="publish-editor" inert={sending}>
           <div className="publish-step">
@@ -540,9 +591,23 @@ export function Publish({
                   </Button>
                 ))}
             </div>
-            {social.accounts.filter((a) => draft.accountKeys?.includes(a.key)).map((account) => (
-              <AccountPublishingOptions key={account.key} account={account} values={draft.accountOptions?.[account.key] || {}} onChange={(values) => patch({ accountOptions: { ...draft.accountOptions, [account.key]: values } })} />
-            ))}
+            {social.accounts
+              .filter((a) => draft.accountKeys?.includes(a.key))
+              .map((account) => (
+                <AccountPublishingOptions
+                  key={account.key}
+                  account={account}
+                  values={draft.accountOptions?.[account.key] || {}}
+                  onChange={(values) =>
+                    patch({
+                      accountOptions: {
+                        ...draft.accountOptions,
+                        [account.key]: values,
+                      },
+                    })
+                  }
+                />
+              ))}
             <div className="connection-inline">
               <Icon name="link" size={16} />
               <span>

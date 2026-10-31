@@ -98,3 +98,7 @@ Saved frame templates copy layout, dimensions, background, scene settings, and c
 Supplied preset files are listed with exact byte sizes in the optional `presets` manifest array. The browser folder reader, desktop binary IPC reader, and development endpoint read only listed files. Catalog and branding caches follow the connected pack revision; switching/disconnecting packs invalidates cached library data. Packs without a template listing remain valid media packs. Manual preset changes require `presets:index`; layout changes also need fresh previews.
 
 For backup boundaries, see [storage and recovery](../docs/storage.md). Workspace JSON includes canvas-owned data, while personal templates are separate local records. Provider keys and external pack catalogs are not embedded in workspace exports. Build, release, and updater instructions live in [desktop builds](../docs/builds.md) and [updates](../docs/updates.md).
+
+## Content Studio
+
+`content/` inside `src/` contains the integrated content planner: the standalone UI is scoped to `.content-studio`, while `store.ts` persists validated records through the local document library. `canvas-bridge.ts` connects each task to an exact canvas/page and seeds `GenerateDialog` with framework scenes and source material. `ai.content-draft` uses the stateless OpenCode SDK route in `sidecar/opencode-generation.mjs`; editable review still precedes frame mutation. See [Content Studio](../docs/content.md) for migration, authoring sources, and verification.

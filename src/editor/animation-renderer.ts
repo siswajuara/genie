@@ -335,13 +335,38 @@ export function drawAnimationFrame(
   ctx.restore();
 }
 
-function sequenceAt(sequence: SequenceEntry[], time: number) {
-  if (!sequence.length) return [];
+type SequenceSlot =
+  | { kind: "scene"; entry: SequenceEntry }
+  | {
+      kind: "gap";
+      prev: SequenceEntry;
+      next: SequenceEntry;
+      progress: number;
+    };
+function sequenceSlot(
+  sequence: SequenceEntry[],
+  time: number,
+): SequenceSlot | undefined {
+  if (!sequence.length) return undefined;
   const t = clamp(time, 0, sequence[sequence.length - 1].end);
-  return sequence.filter(
-    (entry, i) =>
-      t >= entry.start && (t < entry.end || i === sequence.length - 1),
-  );
+  for (let i = 0; i < sequence.length; i++) {
+    const entry = sequence[i];
+    if (t < entry.end) {
+      if (t >= entry.start) return { kind: "scene", entry };
+      // Inside the breathing pause before this entry: the outgoing
+      // transition renders across the gap while audio stays silent.
+      const prev = sequence[i - 1];
+      if (prev && entry.start > prev.end)
+        return {
+          kind: "gap",
+          prev,
+          next: entry,
+          progress: (t - prev.end) / (entry.start - prev.end),
+        };
+      return { kind: "scene", entry };
+    }
+  }
+  return { kind: "scene", entry: sequence[sequence.length - 1] };
 }
 export function createSequenceRenderer(
   frames: Element[],
@@ -377,19 +402,26 @@ export function createSequenceRenderer(
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
-      const active = sequenceAt(sequence, time);
+      const slot = sequenceSlot(sequence, time);
+      if (!slot) {
+        ctx.restore();
+        return;
+      }
+      const inGap = slot.kind === "gap";
+      const pair: SequenceEntry[] = inGap
+        ? [slot.prev, slot.next]
+        : [slot.entry];
+      const gapProgress = inGap ? slot.progress : 1;
       const transition =
-        active.length === 2 ? active[0].frame.scene?.transition : undefined;
+        pair.length === 2 ? pair[0].frame.scene?.transition : undefined;
       const shader = transition && !reducedMotion
         ? shaderTransition(transition.type)
         : undefined;
-      const raw = active.length === 2
-        ? clamp((time - active[1].start) / active[1].overlap)
-        : 1;
+      const raw = pair.length === 2 ? clamp(gapProgress) : 1;
       const progress =
         shader && !transition?.easing
           ? shaderEase(shader, raw)
-          : active.length === 2
+          : pair.length === 2
           ? clamp(
               ease(
                 raw,
@@ -406,8 +438,8 @@ export function createSequenceRenderer(
           transitionType === "fade-through-black" ? "#000000" : "#ffffff";
         ctx.fillRect(0, 0, width, height);
       }
-      for (let i = 0; i < active.length; i++) {
-        const entry = active[i],
+      for (let i = 0; i < pair.length; i++) {
+        const entry = pair[i],
           surface = surfaces[i],
           raster = surface.getContext("2d")!;
         raster.clearRect(0, 0, width, height);
@@ -422,29 +454,35 @@ export function createSequenceRenderer(
           raster,
           entry.frame,
           children.get(entry.frame.id) ?? [],
-          time - entry.start,
+          // In a gap the outgoing scene holds its final pose while the
+          // incoming scene waits at its first pose behind the transition.
+          pair.length === 2
+            ? i === 0
+              ? entry.end - entry.start
+              : 0
+            : time - entry.start,
           images,
           { width: w, height: h, textures, reducedMotion },
         );
         raster.restore();
       }
-      if (shader && active.length === 2) {
+      if (shader && pair.length === 2) {
         if (!shaderAttempted) {
           shaderAttempted = true;
           shaderRenderer = createShaderTransitionRenderer(width, height);
         }
         if (shaderRenderer?.draw(
           ctx, surfaces[0], surfaces[1], shader, raw, progress,
-          Math.max(0, time - active[1].start),
+          Math.max(0, time - pair[0].end),
         )) {
           ctx.restore();
           return;
         }
       }
-      for (let i = 0; i < active.length; i++) {
+      for (let i = 0; i < pair.length; i++) {
         const surface = surfaces[i];
         ctx.save();
-        if (i === 0 && active.length === 2) {
+        if (i === 0 && pair.length === 2) {
           if (transitionType === "push-left")
             ctx.translate(-width * progress, 0);
           if (transitionType === "push-right")

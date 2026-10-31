@@ -29,6 +29,7 @@ export type Media = {
 };
 export type Post = {
   id: string;
+  contentTaskId?: string;
   projectId: string;
   title: string;
   caption: string;
@@ -47,6 +48,7 @@ export type Post = {
     status?: string;
     error?: string;
     uncertain?: boolean;
+    permalink?: string;
   }[];
   timing: "now" | "schedule";
   date?: string;

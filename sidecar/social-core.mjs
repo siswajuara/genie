@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { captureUsage, assertRequestBudget } from "./social-usage.mjs";
 import { createElevenLabsPool, elevenLabsMedia } from "./elevenlabs.mjs";
 import { publicElevenLabs } from "./elevenlabs-config.mjs";
-import { generateScript } from "./opencode-generation.mjs";
+import { generateScript, generateContentDraft } from "./opencode-generation.mjs";
 import { generateNarration } from "./opencode-narration.mjs";
 import { listOpenCodeModels } from "./opencode.mjs";
 import { publicOpenCode } from "./opencode-config.mjs";
@@ -117,6 +117,8 @@ export function createSocialService({ fetchImpl = fetch, opencodeRuntime = {}, s
     return pending;
   }
   async function dispatch(config, action, payload = {}) {
+    if (action === "ai.content-draft")
+      return generateContentDraft(config, payload, fetchImpl, opencodeRuntime);
     if (action === "ai.generate")
       return generateScript(config, payload, fetchImpl, opencodeRuntime);
     if (action === "ai.narration")

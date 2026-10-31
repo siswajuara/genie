@@ -1,3 +1,4 @@
+import type { TaskGeneration } from "../content/canvas-bridge";
 import { buildFrameContext } from "../../sidecar/frame-context.mjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, Mic, VolumeX, ArrowLeft, LoaderCircle } from "lucide-react";
@@ -214,20 +215,27 @@ function GeneratedPreview({
 export function GenerateDialog({
   editor,
   onClose,
+  taskGeneration,
+  onAdded,
 }: {
   editor: Editor;
   onClose: () => void;
+  taskGeneration?: TaskGeneration;
+  onAdded?: (ids: string[]) => Promise<void>;
 }) {
   const social = useSocial();
   const { revision } = useAssetLibrary();
   const [canvasSeed] = useState(() =>
     canvasContextText(editor.getDocument(), editor.selection),
   );
-  const [content, setContent] = useState(canvasSeed);
-  const [scenes, setScenes] = useState(() => [
-    ...makeScenes(GENERATION_PRESETS[0]),
-    makeClosingScene(),
-  ]);
+  const [content, setContent] = useState(taskGeneration?.content || canvasSeed);
+  const [scenes, setScenes] = useState(
+    () =>
+      taskGeneration?.scenes || [
+        ...makeScenes(GENERATION_PRESETS[0]),
+        makeClosingScene(),
+      ],
+  );
   const [selected, setSelected] = useState(0);
   const [language, setLanguage] = useState("id");
   const [tone, setTone] = useState("warm");
@@ -306,14 +314,16 @@ export function GenerateDialog({
   }, [revision]);
 
   const problem =
-    content.trim().length < 20
-      ? "Add at least 20 characters of context."
-      : catalogLoading
-        ? "Loading your template library…"
-        : catalogError ||
-          (scenes.some((scene) => !templateFor(scene))
-            ? "Connect a template pack in Setting → Assets."
-            : "");
+    content.length > 12000
+      ? "Keep the task context within 12,000 characters. Remove unrelated material before generating."
+      : content.trim().length < 20
+        ? "Add at least 20 characters of context."
+        : catalogLoading
+          ? "Loading your template library…"
+          : catalogError ||
+            (scenes.some((scene) => !templateFor(scene))
+              ? "Connect a template pack in Setting → Assets."
+              : "");
   function patchScene(change: Partial<SceneDraft>) {
     setScenes((all) =>
       all.map((scene, index) =>
@@ -548,6 +558,8 @@ export function GenerateDialog({
         review.result.post,
         live.frame?.id,
       );
+      await onAdded?.(appended.ids);
+      if (!mounted.current) return;
       live.change(appended.document);
       live.select([appended.ids[0]]);
       live.notify(

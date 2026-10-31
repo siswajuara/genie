@@ -94,12 +94,12 @@ test("sequence renderer shares transition timing, supports scrubbing, reduced mo
     const all = () => [...ctx.getImageData(0, 0, 64, 64).data];
     const renderer = createSequenceRenderer(frames, new Map(), new Map(), 64, 64);
     renderer.draw(ctx, 0); const start = pixel();
-    renderer.draw(ctx, 1.5); const midpoint = all();
-    renderer.draw(ctx, 2); const incoming = pixel();
-    renderer.draw(ctx, 1.5); const scrubbed = all();
+    renderer.draw(ctx, 2.5); const midpoint = all();
+    renderer.draw(ctx, 5); const incoming = pixel();
+    renderer.draw(ctx, 2.5); const scrubbed = all();
     renderer.dispose();
     const reduced = createSequenceRenderer(frames, new Map(), new Map(), 64, 64, true);
-    reduced.draw(ctx, 1.5); const reducedPixel = pixel();
+    reduced.draw(ctx, 2.5); const reducedPixel = pixel();
     reduced.dispose();
     const original = HTMLCanvasElement.prototype.getContext;
     let attempted = 0;
@@ -110,8 +110,8 @@ test("sequence renderer shares transition timing, supports scrubbing, reduced mo
     let fallbackPixel: number[] = [];
     try {
       const fallback = createSequenceRenderer(frames, new Map(), new Map(), 64, 64);
-      fallback.draw(ctx, 1.5); fallbackPixel = pixel();
-      fallback.draw(ctx, 1.6);
+      fallback.draw(ctx, 2.5); fallbackPixel = pixel();
+      fallback.draw(ctx, 2.6);
       fallback.dispose();
     } finally { HTMLCanvasElement.prototype.getContext = original; }
     return { start, incoming, stable: JSON.stringify(midpoint) === JSON.stringify(scrubbed),
@@ -124,6 +124,46 @@ test("sequence renderer shares transition timing, supports scrubbing, reduced mo
   expect(Math.abs(result.fallbackPixel[0] - 128)).toBeLessThanOrEqual(2);
   expect(Math.abs(result.fallbackPixel[2] - 128)).toBeLessThanOrEqual(2);
   expect(result.attempted).toBe(1);
+});
+
+test("sequence inserts a silent breathing pause between scenes", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { buildSequence, transitionGap, BREATH_GAP } = await window.genieSource("/src/editor/animation.ts");
+    const frame = (id: string, duration: number, transition?: { type: string; duration: number }) => ({
+      id, t: "frame", n: id, x: 0, y: 0, w: 100, h: 100,
+      scene: { duration, ...(transition ? { transition } : {}) },
+    });
+    const frames = [
+      frame("a", 2, { type: "crossfade", duration: 1 }),
+      frame("b", 2),
+      frame("c", 2, { type: "cut", duration: 0.4 }),
+    ];
+    const sequence = buildSequence(frames);
+    const covered = (t: number) =>
+      sequence.some((entry: any) => t >= entry.start && t < entry.end);
+    return {
+      breath: BREATH_GAP,
+      cutGap: transitionGap(frames[1], frames[2]),
+      missingGap: transitionGap(undefined as any, frames[0]),
+      starts: sequence.map((entry: any) => entry.start),
+      ends: sequence.map((entry: any) => entry.end),
+      gaps: sequence.map((entry: any) => entry.gap),
+      sceneHoldsAudio: covered(1) && covered(4),
+      gapIsSilent: ![2, 2.5, 2.99].some(covered),
+      cutGapIsSilent: ![5, 5.2].some(covered),
+    };
+  });
+  expect(result).toEqual({
+    breath: 0.4,
+    cutGap: 0.4,
+    missingGap: 0.4,
+    starts: [0, 3, 5.4],
+    ends: [2, 5, 7.4],
+    gaps: [0, 1, 0.4],
+    sceneHoldsAudio: true,
+    gapIsSilent: true,
+    cutGapIsSilent: true,
+  });
 });
 
 test("editor preview draws the next frame within the outgoing frame bounds", async ({ page }) => {
@@ -141,15 +181,24 @@ test("editor preview draws the next frame within the outgoing frame bounds", asy
     const renderer = createSequenceRenderer(frames, scene.frameChildren, images, 64, 64);
     const canvas = Object.assign(document.createElement("canvas"), { width: 260, height: 160 });
     const ctx = canvas.getContext("2d")!;
-    renderScene(ctx, scene, { x: 0, y: 0, w: 260, h: 160 }, 1, 1, images,
-      new Map(), 0, undefined, { frameId: "a", time: 2, reducedMotion: false,
-        textures: new Map(), sequence: { renderer, width: 64, height: 64 } });
+    const preview = (time: number) => {
+      ctx.clearRect(0, 0, 260, 160);
+      renderScene(ctx, scene, { x: 0, y: 0, w: 260, h: 160 }, 1, 1, images,
+        new Map(), 0, undefined, { frameId: "a", time, reducedMotion: false,
+          textures: new Map(), sequence: { renderer, width: 64, height: 64 } });
+    };
     const pixel = (x: number, y: number) => [...ctx.getImageData(x, y, 1, 1).data];
-    const result = { outgoing: pixel(50, 80), next: pixel(180, 80), gap: pixel(120, 80) };
+    // Gap start: the outgoing scene holds its final pose behind the transition.
+    preview(2);
+    const outgoingStart = pixel(50, 80);
+    // Gap end: the incoming scene fills the outgoing frame bounds.
+    preview(3);
+    const result = { outgoing: outgoingStart, next: pixel(180, 80), gap: pixel(120, 80), outgoingEnd: pixel(50, 80) };
     renderer.dispose();
     return result;
   });
-  expect(result.outgoing).toEqual([0, 0, 255, 255]);
+  expect(result.outgoing).toEqual([255, 0, 0, 255]);
+  expect(result.outgoingEnd).toEqual([0, 0, 255, 255]);
   expect(result.next).toEqual([0, 0, 255, 255]);
   expect(result.gap).toEqual([0, 0, 0, 0]);
 });

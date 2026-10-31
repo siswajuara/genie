@@ -30,7 +30,7 @@ fn allowed(key: &str) -> bool {
     .any(|prefix| key.starts_with(prefix))
         || matches!(
             key,
-            "genie.canvas" | "genie.presets" | "genie.marketing.posts" | "genie.standard-branding.v1" | "genie.removed-presets.v1"
+            "genie.content.v1" | "genie.canvas" | "genie.presets" | "genie.marketing.posts" | "genie.standard-branding.v1" | "genie.removed-presets.v1"
         )
 }
 fn open(directory: &Path) -> Result<Connection, String> {

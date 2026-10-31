@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAudioPreview } from "./use-audio-preview";
 import type { Editor } from "./use-editor";
-import { clamp, sceneDuration } from "./animation";
+import { clamp, sceneDuration, transitionGap } from "./animation";
 
 export function useAnimationPlayback(editor: Editor) {
   const frame = editor.frame;
@@ -23,12 +23,22 @@ export function useAnimationPlayback(editor: Editor) {
   const nextFrame = frameIndex >= 0 ? visibleFrames[frameIndex + 1] : undefined;
   const previewFrames = useMemo(() => {
     if (!frame) return [];
-    return nextFrame && frame.scene?.transition && frame.scene.transition.type !== "cut"
-      ? [frame, nextFrame]
-      : [frame];
+    return nextFrame ? [frame, nextFrame] : [frame];
   }, [frame, nextFrame]);
+  // Every boundary renders its transition across a breathing pause after the
+  // scene. Scene preview plays through that pause so the outgoing transition
+  // stays visible; the timeline ruler itself still spans only the scene.
+  const tailGap =
+    previewFrames.length > 1 && frame && nextFrame
+      ? transitionGap(frame, nextFrame)
+      : 0;
+  const previewEnd = duration + tailGap;
+  // Audio follows only the active frame. The next frame is included in
+  // previewFrames for transition visuals, but its tracks must stay silent:
+  // its audio starts when its scene starts, after the breathing pause.
+  const previewAudio = useMemo(() => (frame ? [frame] : []), [frame]);
   const audioError = useAudioPreview(
-    previewFrames,
+    previewAudio,
     time,
     playing,
     open && preview,
@@ -72,7 +82,9 @@ export function useAnimationPlayback(editor: Editor) {
       setTime((t) => {
         const next = t + delta * speed,
           start = range?.start ?? 0,
-          end = range?.end ?? duration;
+          // A preview range stays inside the scene; full playback runs
+          // through the breathing pause so the outgoing transition plays.
+          end = range?.end ?? previewEnd;
         if (next >= end) {
           if (loop) return start + ((next - start) % (end - start));
           setPlaying(false);
@@ -91,7 +103,7 @@ export function useAnimationPlayback(editor: Editor) {
       cancelAnimationFrame(request);
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [playing, loop, duration, open, frame?.id, range, speed]);
+  }, [playing, loop, duration, previewEnd, open, frame?.id, range, speed]);
   const seek = useCallback(
     (value: number) => {
       setTime(clamp(value, 0, duration));
@@ -104,7 +116,7 @@ export function useAnimationPlayback(editor: Editor) {
     if (!frame) return;
     setOpen(true);
     setPreview(true);
-    if (time >= (range?.end ?? duration) || time < (range?.start ?? 0))
+    if (time >= (range?.end ?? previewEnd) || time < (range?.start ?? 0))
       setTime(range?.start ?? 0);
     setPlaying(!playing);
   }

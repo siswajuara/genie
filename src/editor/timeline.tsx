@@ -682,11 +682,9 @@ export function Timeline({
                     aria-label={`Transition to next scene: ${effectLabel(frame.scene.transition.type)}`}
                     onClick={() =>
                       p.seek(
-                        Math.max(
-                          0,
-                          p.duration -
-                            (frame.scene!.transition!.duration + 0.2),
-                        ),
+                        // The transition renders across the breathing pause
+                        // after the scene, so start just before the end.
+                        Math.max(0, p.duration - 0.2),
                       )
                     }
                   >

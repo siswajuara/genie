@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 
 type RecordEntry = { key: string; value: string | null };
 const managed = (key: string) =>
-  /^(genie\.(workspace\.|chat\.|conversation\.|revisions\.|marketing\.composer\.)|genie\.(canvas|presets|marketing\.posts|standard-branding\.v1|removed-presets\.v1)$)/.test(
+  /^(genie\.(workspace\.|chat\.|conversation\.|revisions\.|marketing\.composer\.)|genie\.(canvas|presets|content\.v1|marketing\.posts|standard-branding\.v1|removed-presets\.v1)$)/.test(
     key,
   );
 const cache = new Map<string, string>();

@@ -1,6 +1,8 @@
 # Genie by SiswaJuara
 
-Genie creates editable canvases with pages and frames for still designs, carousels, and narrated video. The workspace provides **Canvases**, **Publish**, **Schedule**, and **Setting**. Designs, versions, personal templates, drafts, plans, and delivery receipts stay local.
+Genie creates editable canvases with pages and frames for still designs, carousels, and narrated video. The workspace provides **Content**, **Canvases**, **Publish**, **Schedule**, and **Setting**. Designs, versions, personal templates, drafts, plans, and delivery receipts stay local.
+
+Plan scripts and questions in [Content Studio](docs/content.md), then generate editable frames on a linked canvas.
 
 Start with the [canvas user guide](docs/canvas.md) for the complete workflow: presets, artwork, editing, narration, captions, animation, export, and recovery.
 

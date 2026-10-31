@@ -38,7 +38,7 @@ function Refresh({
     </Button>
   );
 }
-type ProviderPost = {
+export type ProviderPost = {
   id: string;
   provider: "tebar";
   content: string;
@@ -56,17 +56,18 @@ type PostsResponse = {
   issues: Issue[];
   nextCursor?: string | null;
 };
-export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
+export function Schedule({
+  onProviderPosts,
+  ...props
+}: ComponentProps<typeof LocalSchedule> & {
+  onProviderPosts?: (posts: ProviderPost[]) => Promise<void>;
+}) {
   const social = useSocial(),
-    enabled =
-      social.config.tebar.configured;
+    enabled = social.config.tebar.configured;
   const [cursor, setCursor] = useState<string | undefined>(),
-    [collected, setCollected] = useState<ProviderPost[]>([]);
-  const feed = useSocialResource<PostsResponse>(
-    "posts",
-    { cursor },
-    enabled,
-  );
+    [collected, setCollected] = useState<ProviderPost[]>([]),
+    [syncError, setSyncError] = useState("");
+  const feed = useSocialResource<PostsResponse>("posts", { cursor }, enabled);
   useEffect(() => {
     setCollected([]);
     setCursor(undefined);
@@ -86,6 +87,23 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
             ],
       );
   }, [feed.data, cursor]);
+  useEffect(() => {
+    if (!feed.data || !onProviderPosts) return;
+    let live = true;
+    void onProviderPosts(feed.data.posts)
+      .then(() => {
+        if (live) setSyncError("");
+      })
+      .catch((error) => {
+        if (live)
+          setSyncError(
+            `Could not update linked Content tasks: ${String(error)}`,
+          );
+      });
+    return () => {
+      live = false;
+    };
+  }, [feed.data, onProviderPosts]);
   return (
     <div className={enabled ? "social-connected" : ""}>
       {enabled && (
@@ -94,8 +112,8 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
             <div>
               <h2>Published & scheduled</h2>
               <p>
-                Read directly from Tebar. Refresh when you need
-                updated delivery status.
+                Read directly from Tebar. Refresh when you need updated delivery
+                status.
               </p>
             </div>
             <Refresh
@@ -107,6 +125,11 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
             />
           </div>
           <Issues error={feed.error} issues={feed.data?.issues} />
+          {syncError && (
+            <p role="alert" className="error">
+              {syncError}
+            </p>
+          )}
           {collected.map((post) => (
             <article
               key={`${post.provider}:${post.id}:${post.accountId}`}
@@ -122,7 +145,13 @@ export function Schedule(props: ComponentProps<typeof LocalSchedule>) {
                   : ""}
               </small>
               {post.error && <p className="error">{post.error}</p>}
-              {post.permalink && /^https:\/\//.test(post.permalink) && <p><a href={post.permalink} target="_blank" rel="noreferrer">View published post</a></p>}
+              {post.permalink && /^https:\/\//.test(post.permalink) && (
+                <p>
+                  <a href={post.permalink} target="_blank" rel="noreferrer">
+                    View published post
+                  </a>
+                </p>
+              )}
             </article>
           ))}
           {!collected.length && !feed.loading && (

@@ -121,6 +121,78 @@ test("export preview uses elapsed time and does not repeatedly rewind the audio"
   expect(await page.evaluate(() => (window as any).audioTest.players.every(a => a.paused && !a.getAttribute("src")))).toBe(true);
 });
 
+test("scene preview plays only the active frame audio during transitions", async ({ page }) => {
+  await page.evaluate(async () => {
+    const { localStore, flushLocalStore, prepareLocalSave } = await (window as any).genieSource("/src/lib/local-store.ts");
+    await prepareLocalSave();
+    const workspace = JSON.parse(localStore.getItem("genie.workspace.v1"));
+    const project = workspace.projects.find(p => p.id === workspace.activeProjectId);
+    const doc = project.pages.find(p => p.id === workspace.activePageId).canvas;
+    const first = doc.elements.find(o => o.t === "frame");
+    const clone = JSON.parse(JSON.stringify(first));
+    clone.id = crypto.randomUUID();
+    clone.n = "Second frame";
+    clone.x = first.x + first.w + 40;
+    clone.audioTracks = first.audioTracks.map(t => ({ ...t, id: crypto.randomUUID(), end: 4 }));
+    first.scene = { duration: 4, transition: { type: "crossfade", duration: 0.5 } };
+    clone.scene = { duration: 4 };
+    first.audioTracks = first.audioTracks.map(t => ({ ...t, end: 4 }));
+    doc.elements.push(clone);
+    localStore.setItem("genie.workspace.v1", JSON.stringify(workspace));
+    await flushLocalStore();
+  });
+  await page.reload();
+  await page.getByRole("tab", { name: "Layers", exact: true }).click();
+  await page.getByRole("treeitem", { name: "Post 4:5 1", exact: true }).click();
+  await page.getByRole("button", { name: "Toggle animation timeline", exact: true }).click();
+  await page.evaluate(() => { (window as any).audioTest.delay = 240; });
+  await page.getByRole("button", { name: "Preview scene", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause scene preview", exact: true })).toBeVisible();
+  await page.waitForFunction(() => (window as any).audioTest.players.some(a => !a.paused && a.currentTime > 1));
+  // The next frame is visuals-only in scene preview; its tracks must not start.
+  expect(await page.evaluate(() => (window as any).audioTest.players.length)).toBe(1);
+  expect(await page.evaluate(() => (window as any).audioTest.seeks.filter(s => s.from - s.to > 0.18))).toEqual([]);
+});
+
+test("export sequence keeps audio continuous across the first frame boundary", async ({ page }) => {
+  await page.evaluate(async () => {
+    const { localStore, flushLocalStore, prepareLocalSave } = await (window as any).genieSource("/src/lib/local-store.ts");
+    await prepareLocalSave();
+    const workspace = JSON.parse(localStore.getItem("genie.workspace.v1"));
+    const project = workspace.projects.find(p => p.id === workspace.activeProjectId);
+    const doc = project.pages.find(p => p.id === workspace.activePageId).canvas;
+    const first = doc.elements.find(o => o.t === "frame");
+    const clone = JSON.parse(JSON.stringify(first));
+    clone.id = crypto.randomUUID();
+    clone.n = "Second frame";
+    clone.x = first.x + first.w + 40;
+    clone.audioTracks = first.audioTracks.map(t => ({ ...t, id: crypto.randomUUID(), end: 4 }));
+    first.scene = { duration: 4 };
+    clone.scene = { duration: 4 };
+    first.audioTracks = first.audioTracks.map(t => ({ ...t, end: 4 }));
+    doc.elements.push(clone);
+    localStore.setItem("genie.workspace.v1", JSON.stringify(workspace));
+    await flushLocalStore();
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Export canvas", exact: true });
+  await dialog.getByRole("button", { name: "MP4", exact: true }).click();
+  await dialog.getByRole("button", { name: "Select all", exact: true }).click();
+  await expect(dialog.locator(".sequence-preview-controls output")).toContainText("/ 8.40");
+  await expect(dialog.getByRole("button", { name: "Play sequence", exact: true })).toBeEnabled();
+  await page.evaluate(() => { (window as any).audioTest.delay = 240; });
+  await dialog.getByRole("button", { name: "Play sequence", exact: true }).click();
+  await page.waitForFunction(() => {
+    const out = document.querySelector(".sequence-preview-controls output")?.textContent ?? "";
+    return Number(out.split(" / ")[0]) > 5.0;
+  });
+  expect(await page.evaluate(() => (window as any).audioTest.seeks.filter(s => s.from - s.to > 0.18))).toEqual([]);
+  const times = await page.evaluate(() => (window as any).audioTest.players.map(a => a.currentTime));
+  expect(times).toHaveLength(2);
+  expect(Math.min(...times)).toBeGreaterThan(0.3);
+});
+
 test("scene preview retains speed, loop and restart controls under slow visual updates", async ({ page }) => {
   await page.getByRole("button", { name: "Toggle animation timeline", exact: true }).click();
   await page.getByRole("button", { name: "Playback settings", exact: true }).click();

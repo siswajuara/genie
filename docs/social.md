@@ -22,6 +22,12 @@ A Tebar post can initially be publishing or pending: acceptance does not mean ev
 
 Desktop request history in `social/requests.json` holds discovery cache, usage observations, and submission receipts outside canvas exports. Browser development uses `.genie-social/requests.json` for the same history. Post creation sends a stable `Idempotency-Key`; receipts prevent accidental duplicate writes and reject reused IDs with different content. Uncertain writes are not automatically retried. Check Tebar posts before starting another submission. Existing local drafts and historical delivery labels remain readable; old account selections must be replaced with connected Tebar accounts. Switching providers does not cancel schedules already created elsewhere.
 
+## Content task handoff
+
+**Content → task → Buka Publish (Tebar)** opens the shared Publish composer. It carries the task's title, caption, hashtags, and ordered canvas/page/frame references into a local post tagged with `contentTaskId`. Reopening preserves the saved composer edits, account selections, request ID, and receipts. The source canvas does not need to be the active editor canvas; the media picker follows the draft's canvas. Answer/accuracy verification and valid frame references are checked again before uploads.
+
+Content displays draft, local plan, acceptance, scheduling, failures, and published delivery separately. Provider-confirmed schedules advance verified tasks to Scheduled; all targets must report published before a task advances to Published. Schedule's existing reads reconcile saved results by Tebar post and account IDs, including target errors and permalinks. There are no extra provider reads or background polls. Manually changing the local task stage never publishes or schedules a post. See the [Content workflow](content.md#publish-through-tebar).
+
 ## Usage and quota
 
 **Fetch usage** makes one read request to `GET /me`. Tebar's response headers `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` supply request throughput; reset is seconds from the response. `Retry-After` and known exhausted windows block premature calls. Values are timestamped observations shared across all the account's keys, REST, and MCP; other clients can consume them too. Missing quota headers show unavailable values. **Check posting quota** separately requests `GET /accounts/{id}/publishing-limit` for an account's platform limit. Genie does not invent a plan, spend estimate, or free-tier quota.

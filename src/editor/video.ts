@@ -51,6 +51,11 @@ function applyChromaKey(pixels: Uint8ClampedArray, key: ChromaKey) {
     }
   }
 }
+/** Scrub videos only past a visible threshold. Re-seeking on every animation
+ * tick keeps the decoder in a permanent seeking state and starves preview
+ * audio on the main thread. 1/30 s is below one frame at common frame rates.
+ */
+export const VIDEO_SEEK_TOLERANCE = 1 / 30;
 function videoTime(element: Element, time: number, duration: number) {
   const local =
     Math.max(0, time - (element.animation?.start ?? 0)) +
@@ -198,7 +203,7 @@ export function imageForElement(
   if (clip.video.readyState < 2) return;
   const { video, canvas } = clip;
   const target = videoTime(element, time, video.duration);
-  if (!video.seeking && Math.abs(video.currentTime - target) > 0.001)
+  if (!video.seeking && Math.abs(video.currentTime - target) > VIDEO_SEEK_TOLERANCE)
     video.currentTime = target;
   const key = JSON.stringify(element.chromaKey);
   if (clip.time !== video.currentTime || clip.key !== key) {
@@ -236,7 +241,7 @@ export async function seekVideos(
         if (clip.error) throw clip.error;
         const target = videoTime(element, time, clip.video.duration);
         if (clip.video.seeking) await waitVideo(clip.video, "seeked", signal);
-        if (Math.abs(clip.video.currentTime - target) > 0.001) {
+        if (Math.abs(clip.video.currentTime - target) > VIDEO_SEEK_TOLERANCE) {
           const ready = waitVideo(clip.video, "seeked", signal);
           clip.video.currentTime = target;
           await ready;

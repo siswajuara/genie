@@ -1,19 +1,40 @@
+import {
+  taskPost,
+  taskPublishingPost,
+  syncTaskPublication,
+  reconcileContentDeliveries,
+} from "../content/publishing";
+import type { Task } from "../content/types";
+import type { ProviderPost } from "../social/views";
+import { lazy, Suspense } from "react";
+const ContentStudio = lazy(() => import("../content/content-studio"));
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { flushLocalStore, localStore } from "../lib/local-store";
 import type { Projects } from "../editor/projects";
 import type { Editor } from "../editor/use-editor";
 import { Icon, type IconName } from "../components/ui/icon";
 import { Dialog } from "./shared";
-import { emptyPost, initialPreferences, useLocalState, type Post } from "./store";
+import {
+  emptyPost,
+  initialPreferences,
+  useLocalState,
+  type Post,
+} from "./store";
 import { Publish } from "./publish";
 import { Canvases } from "./canvases";
 import { Setting } from "./modules";
 import { Schedule } from "../social/views";
 import { projectLogo } from "../lib/brand";
 
-export type Module = "Canvases" | "Canvas" | "Publish" | "Schedule" | "Setting";
+export type Module =
+  "Content" | "Canvases" | "Canvas" | "Publish" | "Schedule" | "Setting";
 const navigation: { name: Module; icon: IconName; description: string }[] = [
+  {
+    name: "Content",
+    icon: "filter",
+    description: "Plan content, questions, and generate frames",
+  },
   { name: "Canvases", icon: "layers", description: "Open and manage canvases" },
   { name: "Publish", icon: "publish", description: "Prepare a social post" },
   { name: "Schedule", icon: "calendar", description: "See your content plan" },
@@ -120,7 +141,58 @@ export function MarketingWorkspace({
     localStore.setItem("genie.marketing.posts", JSON.stringify(next));
     await flushLocalStore();
     setPosts(JSON.parse(localStore.getItem("genie.marketing.posts") || "[]"));
+    try {
+      await syncTaskPublication(post);
+    } catch (error) {
+      setToast(
+        `Post saved. Could not update its Content stage: ${String(error)}`,
+      );
+    }
   }
+
+  async function openContentPublish(task: Task) {
+    // Keep another in-progress composer recoverable in the local drafts list.
+    if (
+      draft.contentTaskId !== task.id &&
+      (draft.title || draft.caption || draft.media.length)
+    )
+      await recordPost(draft);
+    const saved = taskPublishingPost(task.id);
+    const existing =
+      draft.contentTaskId === task.id
+        ? {
+            ...draft,
+            ...(saved?.id === draft.id &&
+            saved.submissionId === draft.submissionId
+              ? { delivery: saved.delivery }
+              : {}),
+          }
+        : saved;
+    const next = taskPost(task, p.workspace, existing);
+    await recordPost(next);
+    setDraft(next);
+    navigate("Publish");
+  }
+  async function returnToContent() {
+    await recordPost(draft);
+    navigate("Content");
+    window.location.hash = `content/task/${draft.contentTaskId}`;
+  }
+  const updateContentDeliveries = useCallback(
+    async (providerPosts: ProviderPost[]) => {
+      const updated = await reconcileContentDeliveries(providerPosts);
+      setPosts(updated);
+      setDraft((current) => {
+        const saved = updated.find(
+          (post) =>
+            post.id === current.id &&
+            post.submissionId === current.submissionId,
+        );
+        return saved ? { ...current, delivery: saved.delivery } : current;
+      });
+    },
+    [setPosts],
+  );
 
   function readPosts(): Post[] {
     return (
@@ -232,6 +304,15 @@ export function MarketingWorkspace({
           id="marketing-main"
           className={`marketing-main module-${module.toLowerCase()}`}
         >
+          {module === "Content" && (
+            <Suspense fallback={<p>Loading Content Studio…</p>}>
+              <ContentStudio
+                projects={p}
+                onCanvas={() => navigate("Canvas")}
+                onPublish={openContentPublish}
+              />
+            </Suspense>
+          )}
           {module === "Canvases" && (
             <Canvases
               projects={p}
@@ -243,6 +324,8 @@ export function MarketingWorkspace({
           )}
           {module === "Publish" && (
             <Publish
+              key={draft.id}
+              onContent={draft.contentTaskId ? returnToContent : undefined}
               projects={p}
               draft={draft}
               setDraft={setDraft}
@@ -261,6 +344,7 @@ export function MarketingWorkspace({
                 </p>
               )}
               <Schedule
+                onProviderPosts={updateContentDeliveries}
                 posts={posts}
                 workspace={p.workspace}
                 timezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
