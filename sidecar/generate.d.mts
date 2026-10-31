@@ -32,6 +32,7 @@ export type TeachingVisual =
   | { type: "physics"; settings: PhysicsSpec }
   | { type: "latex"; source: string };
 export type GeneratedFrame = {
+  motionPlan?: "hold" | "build" | "focus" | "compare" | "resolve";
   useCase: string;
   title: string;
   texts: { id: string; text: string }[];

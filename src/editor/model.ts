@@ -48,7 +48,7 @@ export type Element = {
   h: number;
   fid?: string;
   gid?: string;
-  brandRole?: "logo" | "footer" | "content";
+  brandRole?: "logo" | "handle" | "footer" | "content";
   generationRole?: "editable" | "fixed" | "page-number";
   generationGroup?: string;
   hide?: boolean;
@@ -272,7 +272,7 @@ export function validateElements(value: unknown): Element[] {
     }
     if (
       o.brandRole !== undefined &&
-      !["logo", "footer", "content"].includes(o.brandRole)
+      !["logo", "handle", "footer", "content"].includes(o.brandRole)
     )
       throw new Error("Invalid branding role.");
     if (

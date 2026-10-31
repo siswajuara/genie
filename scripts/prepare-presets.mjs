@@ -1,3 +1,4 @@
+import { withSceneSafeLayout } from "../src/editor/scene-safe-layout.mjs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -89,7 +90,7 @@ async function save(preset, folder, preview) {
     id: `layer-${i + 1}`,
     identifier: o.identifier || slug(o.n),
   }));
-  preset = withGenerationSlots(preset);
+  preset = withGenerationSlots(withSceneSafeLayout(preset));
   const file = `${folder}/${preset.identifier}.json`,
     thumbnail = `previews/${preset.identifier}.webp`;
   await fs.writeFile(
@@ -341,7 +342,7 @@ for (const preset of await learningPresets(root))
   await save(preset, "learning");
 
 // The complete supplied standard is also a reusable template; detailed media stay
-// in the external pack, while the shared kit contains just the logo and footnote.
+// in the external pack, while the shared kit contains just the logo and handle.
 standard.objects = await Promise.all(
   standard.objects.map(async (o, i) => {
     const role = brandRole(o);
@@ -363,7 +364,7 @@ standard.objects = await Promise.all(
 );
 standard.collection = "Standard";
 standard.description =
-  "The supplied standard frame with editable logo, footer, artwork, and layout elements.";
+  "The supplied standard frame with editable logo, handle, artwork, and layout elements.";
 standard.branding = "siswa-juara";
 standard.objects = standard.objects.filter((o) => !brandRole(o));
 standard.requiredAssets = standard.objects

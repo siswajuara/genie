@@ -456,7 +456,7 @@ export function TemplateLibrary({
                 {preview.reference && (
                   <p className="hint">
                     Text, artwork, panels, and ornaments are separate layers.
-                    Logo and footer follow your standard frame. Reconstructed
+                    Logo and handle sit above the content. Bottom space is reserved for subtitles. Reconstructed
                     areas and fonts may vary from the source.
                   </p>
                 )}

@@ -25,14 +25,14 @@ export type SubtitleStyle = {
   offsetY?: number;
 };
 export const defaultSubtitleStyle: SubtitleStyle = {
-  size: 4.5,
-  color: "#ffffff",
-  background: "#000000cc",
+  size: 5.5,
+  color: "#1b2a7a",
+  background: "#ffffffd9",
   position: "bottom",
-  animation: "none",
+  animation: "karaoke",
   highlight: "#ffe14d",
-  outline: "#000000",
-  outlineWidth: 0,
+  outline: "#1b2a7a",
+  outlineWidth: 0.06,
   wordsPerLine: 4,
   popScale: 1.18,
   offsetY: 0,

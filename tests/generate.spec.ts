@@ -103,6 +103,7 @@ async function mockProviders(
             frames: body.payload.scenes.map((scene: any, index: number) => ({
               useCase: scene.useCase,
               title: `Reading scene ${index + 1}`,
+              motionPlan: "build",
               texts: scene.slots.map((slot: any) => ({
                 id: slot.id,
                 text:
@@ -236,6 +237,9 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   await expect(
     dialog.getByRole("textbox", { name: "Frame name", exact: true }),
   ).toHaveValue("Reading scene 1");
+  await expect(dialog.getByRole("combobox", { name: "Scene motion", exact: true })).toContainText("Build step by step");
+  await dialog.getByRole("combobox", { name: "Scene motion", exact: true }).click();
+  await page.getByRole("option", { name: "Reading pause", exact: true }).click();
   await page.screenshot({ path: "/tmp/genie-generate-review.png" });
   expect(requests.filter((r) => r.action === "ai.generate")).toHaveLength(1);
   const request = requests.find((r) => r.action === "ai.generate").payload;
@@ -260,9 +264,15 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   const before = await elements(page);
   expect(before.filter((o: any) => o.t === "frame")).toHaveLength(3);
   expect(before.some((o: any) => o.n === "Our reading scene")).toBe(true);
+  const firstFrame = before.find((o: any) => o.t === "frame");
+  const firstContent = before.filter((o: any) => o.fid === firstFrame.id && o.t === "text" && !o.brandRole);
+  expect(firstContent.length).toBeGreaterThan(0);
+  expect(firstContent.every((o: any) => o.animation.start === 0 && !o.animation.enter)).toBe(true);
+  expect(before.some((o: any) => o.brandRole === "footer")).toBe(false);
+
   expect(before.find((o: any) => o.t === "frame").scene.duration).toBe(8);
   expect(
-    before.filter((o: any) => o.brandRole === "footer").length,
+    before.filter((o: any) => o.brandRole === "handle").length,
   ).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Generate", exact: true }).click();
   await dialog
@@ -907,10 +917,57 @@ test("review renders edited copy and identifies images that need manual filling"
   });
   await expect(preview).toBeVisible();
   await expect(dialog.getByText(/These slots need your images/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Play scene motion", exact: true }).click();
+  const motion = dialog.getByRole("img", { name: "Scene motion preview", exact: true });
+  await expect(motion).toBeVisible();
+  await expect.poll(async () => Number(await motion.getAttribute("data-time"))).toBeGreaterThan(0.1);
+  await dialog.getByRole("button", { name: "Stop scene motion", exact: true }).click();
+  await expect(preview).toBeVisible();
+
   const original = await preview.getAttribute("src");
   await dialog
     .getByRole("textbox", { name: /Headline/ })
     .fill("Tell your story");
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.getAttribute("src")).not.toBe(original);
+});
+
+
+test("scene motion plans keep cards synchronized, branding static, and render settings portable", async ({ page }) => {
+  await mockProviders(page);
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { withGenerationMotion } = await window.genieSource("/src/editor/generation-motion.ts");
+    const { parseDocument, applyPreset, initialDocument } = await window.genieSource("/src/editor/model.ts");
+    const { evaluateAnimation } = await window.genieSource("/src/editor/animation.ts");
+    const base = { name: "Two sides", kind: "template", W: 1080, H: 1080,
+      objects: [
+        { id: "paper", t: "rect", n: "Paper", x: 0, y: 0, w: 1080, h: 1080 },
+        { id: "handle", t: "text", n: "Handle", x: 700, y: 30, w: 300, h: 50, brandRole: "handle", size: 32, text: "@siswajuaraofficial" },
+        { id: "left-card", t: "rect", n: "Left card", x: 80, y: 300, w: 400, h: 400 },
+        { id: "left-text", t: "text", n: "Left text", x: 100, y: 350, w: 300, h: 100, size: 32, text: "Before" },
+        { id: "right-card", t: "rect", n: "Right card", x: 600, y: 300, w: 400, h: 400 },
+        { id: "right-text", t: "text", n: "Right text", x: 620, y: 350, w: 300, h: 100, size: 32, text: "After" },
+        { id: "visual", t: "img", n: "Visual", x: 620, y: 500, w: 200, h: 150 },
+      ] };
+    const original = JSON.stringify(base);
+    const errors = [];
+    for (const plan of ["hold", "build", "focus", "compare", "resolve"]) {
+      const p = withGenerationMotion(base, plan, 6);
+      if (JSON.stringify(p) !== JSON.stringify(withGenerationMotion(base, plan, 6))) errors.push("nondeterministic");
+      if (p.objects[0] !== base.objects[0] || p.objects[1] !== base.objects[1]) errors.push("changed static layers");
+      if (p.objects[2].animation.start !== p.objects[3].animation.start ||
+          p.objects[4].animation.start !== p.objects[5].animation.start ||
+          p.objects[4].animation.start !== p.objects[6].animation.start) errors.push("separated card cues");
+      if (plan === "compare" && p.objects[2].animation.start >= p.objects[4].animation.start) errors.push("lost comparison order");
+      if (plan === "hold" && p.objects.slice(2).some((o) => o.animation.enter || o.animation.start)) errors.push("lost reading pause");
+      const doc = parseDocument(JSON.parse(JSON.stringify(applyPreset(initialDocument(), p))));
+      for (const o of doc.elements.filter((o) => o.animation)) {
+        const a = evaluateAnimation(o, 5.9, 6);
+        if (a.opacity !== 1 || a.x || a.y || a.scale !== 1) errors.push("final state did not settle");
+      }
+    }
+    return { errors, preserved: original === JSON.stringify(base), fallback: withGenerationMotion(base, undefined, 6) === base };
+  });
+  expect(result).toEqual({ errors: [], preserved: true, fallback: true });
 });

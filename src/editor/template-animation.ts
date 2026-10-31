@@ -102,14 +102,16 @@ export function withTemplateAnimation(preset: Preset): Preset {
       .sort((a, b) => a.w * a.h - b.w * b.h)[0];
   }
   const objects = preset.objects.map((element): Element => {
-    if (element.animation || element.t === "frame") return element;
+    if (element.animation || element.t === "frame" ||
+        ["logo", "handle", "footer"].includes(element.brandRole || "")) return element;
     const parent = container(element),
       anchor = parent ?? element;
     const footer = anchor.y >= height * 0.88;
     const header = anchor.y < height * 0.08 && anchor.h < height * 0.1;
     const headline =
       !footer &&
-      ((element.t === "text" &&
+      (element.generationGroup?.startsWith("headline-") ||
+       (element.t === "text" &&
         (element.size ?? 0) >= 60 &&
         element.y < height * 0.4) ||
         (anchor.y > height * 0.08 && anchor.y < height * 0.28));

@@ -1,3 +1,4 @@
+import { withSceneSafeLayout } from "../src/editor/scene-safe-layout.mjs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { sciencePresets } from "./science-presets.mjs";
@@ -17,7 +18,7 @@ const presets = await sciencePresets(root),
 catalog.presets = catalog.presets.filter((p) => !identifiers.has(p.identifier));
 await fs.mkdir(path.join(folder, "science"), { recursive: true });
 for (const raw of presets) {
-  const preset = withGenerationSlots({
+  const preset = withGenerationSlots(withSceneSafeLayout({
     ...raw,
     objects: raw.objects.map((o, i) => ({
       ...o,
@@ -29,7 +30,7 @@ for (const raw of presets) {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, ""),
     })),
-  });
+  }));
   const relative = `science/${preset.identifier}.json`;
   await fs.writeFile(
     path.join(folder, relative),

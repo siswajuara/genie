@@ -217,6 +217,7 @@ export function readableFrameText(context) {
         o.hide ||
         o.brandRole === "logo" ||
         o.brandRole === "footer" ||
+        o.brandRole === "handle" ||
         o.generationRole === "fixed" ||
         o.generationRole === "page-number"
       )
@@ -255,6 +256,7 @@ export function contextCoverage(context) {
         (o) =>
           o.brandRole !== "logo" &&
           o.brandRole !== "footer" &&
+          o.brandRole !== "handle" &&
           o.generationRole !== "fixed" &&
           ["needs-description", "vector-text-only"].includes(
             o.media?.contentStatus,

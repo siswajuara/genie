@@ -283,12 +283,6 @@
   .narration-track-name {
     @apply flex-[1] text-[11px] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
   }
-  .narration-details {
-    @apply mt-[8px] text-[11px];
-  }
-  .narration-details summary {
-    @apply cursor-pointer py-[4px] px-0;
-  }
   .narration-transcribe {
     @apply grid gap-[8px] mt-[10px];
   }

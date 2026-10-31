@@ -19,6 +19,7 @@ import { loadPreset, type PresetSummary } from "./preset-catalog";
 import { resolvePresetAssets } from "./resolve-assets";
 import { withTemplateAnimation } from "./template-animation";
 import { withGenerationSlots } from "./template-slots.mjs";
+import { withGenerationMotion } from "./generation-motion";
 import { prepareScienceElement } from "./science";
 
 export const GENERATION_PRESETS = [
@@ -547,7 +548,7 @@ export async function fillGenerationTemplate(
       }),
     );
   }
-  return {
+  return withGenerationMotion({
     ...template,
     name: content.title,
     scene: {
@@ -595,7 +596,7 @@ export async function fillGenerationTemplate(
       )),
       ...additions,
     ],
-  };
+  }, content.motionPlan, scene.seconds);
 }
 export async function fillGenerationTemplates(
   templates: Preset[],

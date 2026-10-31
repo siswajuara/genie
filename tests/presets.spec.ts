@@ -405,7 +405,7 @@ test("remove unsuitable library presets, persist the choice, and restore without
   await page.reload();
   await page.getByRole("tab", { name: "Templates", exact: true }).click();
   await expect(
-    library.getByText("130 templates", { exact: true }),
+    library.getByText("134 templates", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".footer-meta")).toContainText("1 frame");
   await library.getByRole("combobox", { name: "Template collection" }).click();
@@ -444,7 +444,7 @@ test("remove unsuitable library presets, persist the choice, and restore without
   await expect(page.locator(".footer-meta")).toContainText("1 frame");
 });
 
-test("every library design inherits the supplied logo and footer as independent elements", async ({
+test("every library design has top logo and handle with subtitle-safe content", async ({
   page,
 }) => {
   const source = JSON.parse(
@@ -481,19 +481,8 @@ test("every library design inherits the supplied logo and footer as independent 
     };
   });
   expect(result.count).toBe(136);
-  const branding = source.objects.filter(
-    (o) =>
-      /^siswa-juara-logo-|^social-/.test(o.identifier) ||
-      ["footer-pill", "website", "handle", "divider-1", "divider-2"].includes(
-        o.identifier,
-      ),
-  );
-  const expected = branding.map(({ identifier, x, y, w, h }) => ({
-    identifier,
-    x,
-    y,
-    w,
-    h,
+  const expected = source.objects.map(({ identifier, x, y, w, h }) => ({
+    identifier, x, y, w, h,
   }));
   for (const positions of result.positions) expect(positions).toEqual(expected);
   expect(result.referenceErrors).toEqual([]);
@@ -534,10 +523,10 @@ test("standard changes affect cached presets while existing canvas edits remain 
     logo.y = 57;
     logo.w = 201;
     logo.h = 177;
-    custom.objects.find((o) => o.identifier === "website").text =
-      "www.example.test";
+    custom.objects.find((o) => o.identifier === "handle").text =
+      "@customschool";
     custom.objects.push({
-      ...custom.objects.find((o) => o.identifier === "website"),
+      ...custom.objects.find((o) => o.identifier === "handle"),
       id: "new-footnote",
       identifier: "new-footnote",
       n: "New footnote",
@@ -576,7 +565,7 @@ test("standard changes affect cached presets while existing canvas edits remain 
         newLogo.w,
         newLogo.h,
       ],
-      newWebsite: after.objects.find((o) => o.identifier === "website").text,
+      newHandle: after.objects.find((o) => o.identifier === "handle").text,
       newFootnote: after.objects.find((o) => o.identifier === "new-footnote")
         ?.text,
       restoredX: (await loadPreset(entry)).objects.find(
@@ -587,11 +576,13 @@ test("standard changes affect cached presets while existing canvas edits remain 
     };
   });
   expect(result.unchanged).toBe(true);
-  expect(result.oldLogoX).toBe(0);
-  expect(result.newLogo).toEqual([41, 57, 201, 177]);
-  expect(result.newWebsite).toBe("www.example.test");
-  expect(result.newFootnote).toBe("An added footer element");
-  expect(result.restoredX).toBe(0);
+  expect(result.oldLogoX).toBeCloseTo(28.05);
+  expect(result.newLogo[0]).toBeCloseTo(28.05);
+  expect(result.newLogo[1]).toBeCloseTo(28.05);
+  expect(result.newLogo[2] / result.newLogo[3]).toBeCloseTo(201 / 177);
+  expect(result.newHandle).toBe("@customschool");
+  expect(result.newFootnote).toBeUndefined();
+  expect(result.restoredX).toBeCloseTo(28.05);
   expect(result.text).toBe("My local changes");
   expect(result.animation.x).not.toBe(0);
 });
@@ -918,6 +909,8 @@ test("all presets adapt to each frame format without distorting their content or
     const { fitPresetToFrame } = await window.genieSource(
       "/src/editor/preset-layout.ts",
     );
+    const { sceneSafeArea, isSceneSurface } = await window.genieSource("/src/editor/scene-safe-layout.mjs");
+    const { bounds } = await window.genieSource("/src/editor/scene.ts");
     const catalog = await loadPresetCatalog();
     const errors = [];
     let checked = 0;
@@ -943,6 +936,24 @@ test("all presets adapt to each frame format without distorting their content or
         const replaced = parseDocument(applyPreset(doc, p, target.id, true));
         const frame = replaced.elements.find((o) => o.id === target.id);
         const fitted = fitPresetToFrame(p, { w, h });
+        const safe = sceneSafeArea(w, h);
+        for (const o of fitted.objects) {
+          if (o.brandRole || isSceneSurface(o, w, h)) continue;
+          const b = bounds(o);
+          if (b.x < safe.x - 0.01 || b.y < safe.y - 0.01 ||
+              b.x + b.w > safe.x + safe.w + 0.01 ||
+              b.y + b.h > safe.y + safe.h + 0.01)
+            errors.push(`${entry.identifier}: ${o.n} overlaps branding/caption space at ${w}x${h}`);
+        }
+        if (fitted.teachingArea) {
+          const a = fitted.teachingArea;
+          if (a.y < safe.y - 0.01 || a.y + a.h > safe.y + safe.h + 0.01)
+            errors.push(`${entry.identifier}: teaching area overlaps captions`);
+        }
+        const handle = fitted.objects.find((o) => o.brandRole === "handle");
+        if (!handle || handle.x < w / 2 || handle.y + handle.h >= safe.y)
+          errors.push(`${entry.identifier}: handle outside top right`);
+
         if (frame.w !== w || frame.h !== h || frame.x !== 123 || frame.y !== 87)
           errors.push(`${entry.identifier}: changed chosen frame`);
         const children = replaced.elements.filter((o) => o.fid === frame.id);
@@ -987,7 +998,7 @@ test("all presets adapt to each frame format without distorting their content or
     return { count: catalog.presets.length, checked, errors };
   });
   expect(result.count).toBe(136);
-  expect(result.checked).toBe(528);
+  expect(result.checked).toBe(544);
   expect(result.errors).toEqual([]);
 });
 

@@ -1,3 +1,4 @@
+import { withSceneSafeLayout } from "../src/editor/scene-safe-layout.mjs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { learningPresets } from "./learning-presets.mjs";
@@ -16,7 +17,7 @@ const presets = await learningPresets(root),
 catalog.presets = catalog.presets.filter((p) => !ids.has(p.identifier));
 await fs.mkdir(path.join(folder, "learning"), { recursive: true });
 for (const raw of presets) {
-  const p = withGenerationSlots({
+  const p = withGenerationSlots(withSceneSafeLayout({
       ...raw,
       objects: raw.objects.map((o, i) => ({
         ...o,
@@ -28,7 +29,7 @@ for (const raw of presets) {
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-|-$/g, ""),
       })),
-    }),
+    })),
     file = `learning/${p.identifier}.json`,
     thumbnail = `previews/${p.identifier}.webp`;
   await fs.writeFile(

@@ -80,6 +80,19 @@ const result = {
   ],
 };
 const prompt = buildScriptPrompt(request);
+assert.match(prompt.system, /one true process/);
+assert.match(prompt.system, /motionPlan/);
+for (const motionPlan of ["hold", "build", "focus", "compare", "resolve"]) {
+  const directed = structuredClone(result);
+  directed.frames[0].motionPlan = motionPlan;
+  assert.equal(parseGenerationResult(directed, request).frames[0].motionPlan, motionPlan);
+}
+for (const motionPlan of ["javascript", { code: "alert(1)" }, null, "constructor"]) {
+  const invalid = structuredClone(result);
+  invalid.frames[0].motionPlan = motionPlan;
+  assert.throws(() => parseGenerationResult(invalid, request), /unsupported scene motion/);
+}
+
 assert.match(prompt.system, /English/);
 assert.match(prompt.user, /Start with a question/);
 assert.match(prompt.user, /curious/);

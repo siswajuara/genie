@@ -863,7 +863,12 @@ function TaskViews({
                 ? STATUSES
                 : STATUSES.filter(
                     (status, i) =>
-                      i < 4 || filtered.some((t) => t.status === status),
+                      (phase === "active"
+                        ? i >= 1 && i <= 5
+                        : phase === "ready"
+                          ? i >= 6
+                          : i < 4) ||
+                      filtered.some((t) => t.status === status),
                   )
               ).map((status) => (
                 <KanbanColumn

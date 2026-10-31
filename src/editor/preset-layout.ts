@@ -1,5 +1,6 @@
 import type { Element, Preset } from "./model";
 import { bounds } from "./scene";
+import { withSceneSafeLayout } from "./scene-safe-layout.mjs";
 
 const metrics = [
   "size",
@@ -73,13 +74,14 @@ export function layoutPresetObjects(
   objects: Element[],
   source: Size,
   target: Size,
+  enforceSafeArea = true,
 ) {
   if (source.w === target.w && source.h === target.h) return objects;
   const sx = target.w / source.w,
     sy = target.h / source.h;
   const k = Math.min(sx, sy);
   const brandOffsets = new Map<string, { x: number; y: number }>();
-  for (const role of ["logo", "footer"] as const) {
+  for (const role of ["logo", "handle", "footer"] as const) {
     const members = objects.filter((o) => o.brandRole === role);
     if (!members.length) continue;
     const b = area(members);
@@ -96,7 +98,7 @@ export function layoutPresetObjects(
       y: role === "footer" ? target.h - source.h * k : 0,
     });
   }
-  return objects.map((o) => {
+  const result = objects.map((o) => {
     const brand = brandOffsets.get(o.brandRole || "");
     if (brand) return scale(o, k, brand.x, brand.y);
     // Full-bleed surfaces and edge rules fill the chosen frame. Interior cards
@@ -129,6 +131,10 @@ export function layoutPresetObjects(
       (target.h - source.h * k) / 2,
     );
   });
+  return enforceSafeArea && objects.some((o) => o.brandRole === "handle")
+    ? withSceneSafeLayout({ name: "Layout", kind: "template", branding: "siswa-juara",
+        W: target.w, H: target.h, objects: result }).objects
+    : result;
 }
 
 export function fitPresetToFrame(preset: Preset, target: Size): Preset {
@@ -154,11 +160,11 @@ export function fitPresetToFrame(preset: Preset, target: Size): Preset {
   }
   const source = { w: preset.W || 1122, h: preset.H || 1402 };
   const k = Math.min(target.w / source.w, target.h / source.h);
-  return {
+  return withSceneSafeLayout({
     ...preset,
     W: target.w,
     H: target.h,
-    objects: layoutPresetObjects(preset.objects, source, target),
+    objects: layoutPresetObjects(preset.objects, source, target, false),
     ...(preset.teachingArea
       ? {
           teachingArea: {
@@ -169,7 +175,7 @@ export function fitPresetToFrame(preset: Preset, target: Size): Preset {
           },
         }
       : {}),
-  };
+  });
 }
 
 // Store geometry only, never a second copy of text or embedded media. This

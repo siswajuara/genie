@@ -407,6 +407,16 @@ export async function linkTaskCanvas(
               frameIds: [...new Set([...previous.frameIds, ...link.frameIds])],
             }
           : link;
+      // Keep the board in sync with canvas work: opening a canvas moves a
+      // Backlog task into Researching, adding frames moves it into Scripting.
+      // Both stages precede Review so no answer/accuracy check is required.
+      if ((link.frameIds?.length || 0) > 0) {
+        if (task.status === "Backlog" || task.status === "Researching")
+          task.status = "Scripting";
+      } else if (task.status === "Backlog") {
+        task.status = "Researching";
+      }
+      task.updatedAt = new Date().toISOString();
       await write(data);
     });
   queue = operation;

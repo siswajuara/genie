@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "assets:prepare": "node scripts/prepare-assets.mjs && node scripts/prepare-presets.mjs",
+    "presets:layout": "node scripts/prepare-scene-layouts.mjs",
     "presets:prepare": "node scripts/prepare-presets.mjs",
     "presets:studio": "node scripts/prepare-studio-presets.mjs",
     "presets:science": "node scripts/prepare-science-presets.mjs",

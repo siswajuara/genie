@@ -147,6 +147,7 @@ export function receivesCameraMotion(element: Element): boolean {
     element.illustration3d ||
     element.brandRole === "logo" ||
     element.brandRole === "footer" ||
+    element.brandRole === "handle" ||
     element.generationRole === "fixed" ||
     element.generationRole === "page-number"
   )
@@ -176,7 +177,8 @@ export function resizeFrameTiming(
       !o.hide &&
       o.animation &&
       o.brandRole !== "logo" &&
-      o.brandRole !== "footer",
+      o.brandRole !== "footer" &&
+      o.brandRole !== "handle",
   );
   const content = children.some((o) => o.t === "text")
     ? children.filter((o) => o.t === "text")

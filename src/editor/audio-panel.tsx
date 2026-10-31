@@ -764,104 +764,104 @@ export function AudioPanel({
                   </p>
                 </div>
               </div>
-              <details className="narration-details">
-                <summary>Advanced caption settings</summary>
-                <div className="narration-style-field">
+              <div className="narration-style-field">
+                <span className="narration-mini-label" aria-hidden="true">
+                  Advanced caption settings
+                </span>
+                <Label className="audio-field">
+                  <span>
+                    Words per caption · {style.wordsPerLine ?? 4}
+                  </span>
+                  <Slider
+                    aria-label="Words shown per caption line"
+                    min={1}
+                    max={6}
+                    step={1}
+                    value={[style.wordsPerLine ?? 4]}
+                    onValueChange={([value]) =>
+                      update({
+                        subtitleStyle: {
+                          ...style,
+                          wordsPerLine: value,
+                        },
+                      })
+                    }
+                  />
+                </Label>
+                <Label className="audio-field">
+                  <span>
+                    Background opacity ·{" "}
+                    {Math.round(
+                      backgroundOpacity(style.background) * 100,
+                    )}
+                    %
+                  </span>
+                  <Slider
+                    aria-label="Caption background opacity"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[backgroundOpacity(style.background)]}
+                    onValueChange={([value]) =>
+                      update({
+                        subtitleStyle: {
+                          ...style,
+                          background: withBackgroundAlpha(
+                            style.background.slice(0, 7),
+                            value,
+                          ),
+                        },
+                      })
+                    }
+                  />
+                </Label>
+                <Label className="audio-field">
+                  <span>
+                    Vertical nudge ·{" "}
+                    {(style.offsetY ?? 0) === 0
+                      ? "Off"
+                      : `${(style.offsetY ?? 0) > 0 ? "+" : ""}${Math.round(style.offsetY ?? 0)}%`}
+                  </span>
+                  <Slider
+                    aria-label="Caption vertical position nudge"
+                    min={-15}
+                    max={15}
+                    step={0.5}
+                    value={[style.offsetY ?? 0]}
+                    onValueChange={([value]) =>
+                      update({
+                        subtitleStyle: {
+                          ...style,
+                          offsetY: value,
+                        },
+                      })
+                    }
+                  />
+                </Label>
+                {(style.animation ?? "none") === "pop" && (
                   <Label className="audio-field">
                     <span>
-                      Words per caption · {style.wordsPerLine ?? 4}
+                      Pop strength ·{" "}
+                      {Math.round((style.popScale ?? 1.18) * 100)}%
                     </span>
                     <Slider
-                      aria-label="Words shown per caption line"
+                      aria-label="Caption pop animation strength"
                       min={1}
-                      max={6}
-                      step={1}
-                      value={[style.wordsPerLine ?? 4]}
-                      onValueChange={([value]) =>
-                        update({
-                          subtitleStyle: {
-                            ...style,
-                            wordsPerLine: value,
-                          },
-                        })
-                      }
-                    />
-                  </Label>
-                  <Label className="audio-field">
-                    <span>
-                      Background opacity ·{" "}
-                      {Math.round(
-                        backgroundOpacity(style.background) * 100,
-                      )}
-                      %
-                    </span>
-                    <Slider
-                      aria-label="Caption background opacity"
-                      min={0}
-                      max={1}
+                      max={1.6}
                       step={0.01}
-                      value={[backgroundOpacity(style.background)]}
+                      value={[style.popScale ?? 1.18]}
                       onValueChange={([value]) =>
                         update({
                           subtitleStyle: {
                             ...style,
-                            background: withBackgroundAlpha(
-                              style.background.slice(0, 7),
-                              value,
-                            ),
+                            popScale: value,
                           },
                         })
                       }
                     />
                   </Label>
-                  <Label className="audio-field">
-                    <span>
-                      Vertical nudge ·{" "}
-                      {(style.offsetY ?? 0) === 0
-                        ? "Off"
-                        : `${(style.offsetY ?? 0) > 0 ? "+" : ""}${Math.round(style.offsetY ?? 0)}%`}
-                    </span>
-                    <Slider
-                      aria-label="Caption vertical position nudge"
-                      min={-15}
-                      max={15}
-                      step={0.5}
-                      value={[style.offsetY ?? 0]}
-                      onValueChange={([value]) =>
-                        update({
-                          subtitleStyle: {
-                            ...style,
-                            offsetY: value,
-                          },
-                        })
-                      }
-                    />
-                  </Label>
-                  {(style.animation ?? "none") === "pop" && (
-                    <Label className="audio-field">
-                      <span>
-                        Pop strength ·{" "}
-                        {Math.round((style.popScale ?? 1.18) * 100)}%
-                      </span>
-                      <Slider
-                        aria-label="Caption pop animation strength"
-                        min={1}
-                        max={1.6}
-                        step={0.01}
-                        value={[style.popScale ?? 1.18]}
-                        onValueChange={([value]) =>
-                          update({
-                            subtitleStyle: {
-                              ...style,
-                              popScale: value,
-                            },
-                          })
-                        }
-                      />
-                    </Label>
-                  )}
-                </div>
-              </details>
+                )}
+              </div>
               <div className="narration-style-field">
                 <span className="narration-mini-label" aria-hidden="true">
                   All frames

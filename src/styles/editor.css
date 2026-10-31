@@ -311,6 +311,15 @@
   .format-preview {
     @apply block h-[30px] border-[1.5px] border-solid border-muted-foreground bg-card max-w-[55px];
   }
+  .format-strip {
+    @apply grid grid-cols-[repeat(4,_1fr)] gap-[6px];
+  }
+  .format-strip button {
+    @apply min-h-0 flex items-center flex-col justify-center gap-[4px] bg-background py-[8px] px-[4px] text-[11px] leading-none;
+  }
+  .format-strip .format-preview {
+    @apply h-[24px] max-w-[36px];
+  }
   .section-heading {
     @apply mt-[28px] mr-0 mb-[12px] ml-0;
   }

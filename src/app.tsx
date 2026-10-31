@@ -549,31 +549,33 @@ function WorkspacePage({
                   <div className="section-title">
                     <h2>Frames</h2>
                   </div>
-                  <div className="format-grid">
-                    {[
-                      ["Post 4:5", 1122, 1402],
-                      ["Story 9:16", 940, 1672],
-                      ["Square", 1080, 1080],
-                      ["Wide 16:9", 1280, 720],
-                    ].map(([n, w, h]) => (
+                  <div className="format-strip" role="group" aria-label="Add frame">
+                    {(
+                      [
+                        ["Post 4:5", "4:5", 1122, 1402],
+                        ["Story 9:16", "9:16", 940, 1672],
+                        ["Square", "1:1", 1080, 1080],
+                        ["Wide 16:9", "16:9", 1280, 720],
+                      ] as [string, string, number, number][]
+                    ).map(([n, short, w, h]) => (
                       <Button
                         key={n}
+                        title={`${n} · ${w} × ${h}`}
+                        aria-label={`${n} ${w} × ${h}`}
                         onClick={() =>
                           e.addFrame(
-                            Number(w),
-                            Number(h),
+                            w,
+                            h,
                             `${n} ${artboards.length + 1}`,
                           )
                         }
                       >
                         <span
                           className="format-preview"
+                          aria-hidden="true"
                           style={{ aspectRatio: `${w}/${h}` }}
                         />
-                        <span>{n}</span>
-                        <small>
-                          {w} × {h}
-                        </small>
+                        <span aria-hidden="true">{short}</span>
                       </Button>
                     ))}
                   </div>
@@ -756,13 +758,14 @@ function WorkspacePage({
       {generateOpen && (
         <GenerateDialog
           editor={e}
+          projects={p}
           taskGeneration={taskGeneration}
           onAdded={
             taskGeneration
-              ? async (ids) => {
+              ? async (ids, target) => {
                   await linkTaskCanvas(taskGeneration.taskId, {
-                    projectId: p.project.id,
-                    pageId: p.page.id,
+                    projectId: target?.projectId || p.project.id,
+                    pageId: target?.pageId || p.page.id,
                     frameIds: ids,
                   });
                 }

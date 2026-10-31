@@ -42,6 +42,7 @@ try {
   for (const name of [
     "social-core.mjs",
     "generate.mjs",
+    "animation-direction.mjs",
     "opencode.mjs",
     "opencode-config.mjs",
     "opencode-generation.mjs",

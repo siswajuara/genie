@@ -1,3 +1,5 @@
+import { motionPlanOptions } from "./generation-motion";
+import { GenerationMotionPreview } from "./generation-motion-preview";
 import type { TaskGeneration } from "../content/canvas-bridge";
 import { buildFrameContext } from "../../sidecar/frame-context.mjs";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -35,7 +37,7 @@ import { useAssetLibrary } from "./assets";
 import { loadPresetCatalog, type PresetSummary } from "./preset-catalog";
 import { PresetPreviewImage } from "./preset-preview-image";
 import { GenerateTemplatePicker } from "./generate-template-picker";
-import { type Element, type Preset, uid } from "./model";
+import { type Element, type Preset, initialDocument, uid } from "./model";
 import { readAudio } from "./sound";
 import {
   alignmentToWords,
@@ -65,6 +67,7 @@ import { PhysicsFields } from "./science-inspector";
 import { renderTemplatePreview } from "./template-thumbnail";
 import { ensureDocumentFonts } from "../lib/fonts";
 import type { Editor } from "./use-editor";
+import type { Projects } from "./projects";
 
 type Speech = {
   src: string;
@@ -153,15 +156,22 @@ function GeneratedPreview({
   total: number;
 }) {
   const [preview, setPreview] = useState({ src: "", error: "" });
+  const [prepared, setPrepared] = useState<Preset>();
+  const [playing, setPlaying] = useState(false);
   useEffect(() => {
     let live = true;
     setPreview({ src: "", error: "" });
+    setPrepared(undefined);
+    setPlaying(false);
     const timer = window.setTimeout(() => {
       void ensureDocumentFonts(template.objects)
         .then(() =>
           fillGenerationTemplate(template, content, scene, index, total),
         )
-        .then(renderTemplatePreview)
+        .then((preset) => {
+          if (live) setPrepared(preset);
+          return renderTemplatePreview(preset);
+        })
         .then((src) => {
           if (live) setPreview({ src, error: "" });
         })
@@ -193,7 +203,9 @@ function GeneratedPreview({
       aria-label="Generated scene preview"
     >
       <div className="template-thumbnail">
-        {preview.src ? (
+        {playing && prepared ? (
+          <GenerationMotionPreview preset={prepared} onStop={() => setPlaying(false)} />
+        ) : preview.src ? (
           <img src={preview.src} alt={`Generated scene ${index + 1} preview`} />
         ) : (
           <p className="generate-hint">
@@ -201,6 +213,10 @@ function GeneratedPreview({
           </p>
         )}
       </div>
+      <Button size="sm" disabled={!prepared || !preview.src}
+        onClick={() => setPlaying(!playing)}>
+        {playing ? "Stop scene motion" : "Play scene motion"}
+      </Button>
       {missing.length > 0 && (
         <figcaption className="generate-hint">
           Add images on the canvas:{" "}
@@ -217,11 +233,16 @@ export function GenerateDialog({
   onClose,
   taskGeneration,
   onAdded,
+  projects,
 }: {
   editor: Editor;
   onClose: () => void;
   taskGeneration?: TaskGeneration;
-  onAdded?: (ids: string[]) => Promise<void>;
+  onAdded?: (
+    ids: string[],
+    target?: { projectId: string; pageId: string },
+  ) => Promise<void>;
+  projects?: Projects;
 }) {
   const social = useSocial();
   const { revision } = useAssetLibrary();
@@ -237,6 +258,9 @@ export function GenerateDialog({
       ],
   );
   const [selected, setSelected] = useState(0);
+  const [destination, setDestination] = useState<
+    "current" | "new-page" | "new-canvas"
+  >("current");
   const [language, setLanguage] = useState("id");
   const [tone, setTone] = useState("warm");
   const [narration, setNarration] = useState(true);
@@ -551,21 +575,73 @@ export function GenerateDialog({
       }
       if (!mounted.current) return;
       const live = latestEditor.current;
+      const billed = costs.length
+        ? ` ElevenLabs reported ${costs.reduce((a, b) => a + b, 0).toLocaleString()} characters billed.`
+        : "";
+      if (destination !== "current" && !projects)
+        throw Error("Buka kanvas untuk membuat halaman atau kanvas baru.");
+      if (destination === "current") {
+        const appended = appendGeneratedFrames(
+          live.getDocument(),
+          templates,
+          frameData,
+          review.result.post,
+          live.frame?.id,
+        );
+        await onAdded?.(appended.ids, undefined);
+        if (!mounted.current) return;
+        live.change(appended.document);
+        live.select([appended.ids[0]]);
+        live.notify(
+          `${templates.length} generated frames added to this page.${billed}`,
+        );
+        onClose();
+        return;
+      }
+      const canvasName =
+        review.result.post.name?.trim() ||
+        taskGeneration?.taskId ||
+        "Generated frames";
+      if (destination === "new-canvas") {
+        const created = projects!.createProject(canvasName);
+        const target = {
+          projectId: created.id,
+          pageId: created.pages[0].id,
+        };
+        const appended = appendGeneratedFrames(
+          created.pages[0].canvas,
+          templates,
+          frameData,
+          review.result.post,
+          undefined,
+        );
+        projects!.updatePage(target.pageId, appended.document);
+        projects!.openPage(target.projectId, target.pageId);
+        await onAdded?.(appended.ids, target);
+        onClose();
+        return;
+      }
+      const base = initialDocument();
       const appended = appendGeneratedFrames(
-        live.getDocument(),
+        { ...base, metadata: { ...base.metadata, name: canvasName } },
         templates,
         frameData,
         review.result.post,
-        live.frame?.id,
+        undefined,
       );
-      await onAdded?.(appended.ids);
-      if (!mounted.current) return;
-      live.change(appended.document);
-      live.select([appended.ids[0]]);
+      const targetPageId = projects!.createPage();
+      const target = {
+        projectId: projects!.project.id,
+        pageId: targetPageId,
+      };
+      projects!.updatePage(targetPageId, appended.document);
+      projects!.selectPage(targetPageId);
+      await onAdded?.(appended.ids, target);
       live.notify(
-        `${templates.length} generated frames added.${costs.length ? ` ElevenLabs reported ${costs.reduce((a, b) => a + b, 0).toLocaleString()} characters billed.` : ""}`,
+        `${templates.length} generated frames added to a new page.${billed}`,
       );
       onClose();
+      return;
     } catch (error) {
       if (mounted.current) {
         setError(error instanceof Error ? error.message : String(error));
@@ -1082,6 +1158,18 @@ export function GenerateDialog({
                             }
                           />
                         </div>
+                        <div className="generate-field">
+                          <Label>Scene motion</Label>
+                          <SelectField
+                            label="Scene motion"
+                            value={activeContent.motionPlan || ""}
+                            disabled={!!busy}
+                            options={motionPlanOptions}
+                            onChange={(value) => patchContent({
+                              motionPlan: (value || undefined) as GeneratedFrame["motionPlan"],
+                            })}
+                          />
+                        </div>
                         {activeContent.texts.map((text, index) => {
                           const slot = review.request.scenes[
                             selected
@@ -1274,6 +1362,26 @@ export function GenerateDialog({
           <div className="generate-actions">
             {review ? (
               <>
+                <label className="generate-destination">
+                  <span>Add frames to</span>
+                  <select
+                    aria-label="Add frames to"
+                    value={destination}
+                    disabled={!!busy || !projects}
+                    onChange={(event) =>
+                      setDestination(
+                        event.target.value as
+                          | "current"
+                          | "new-page"
+                          | "new-canvas",
+                      )
+                    }
+                  >
+                    <option value="current">Current page</option>
+                    <option value="new-page">New page in this canvas</option>
+                    <option value="new-canvas">New canvas</option>
+                  </select>
+                </label>
                 <Button
                   disabled={!!busy}
                   onClick={() => {

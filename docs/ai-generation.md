@@ -52,7 +52,8 @@ The model returns JSON content in this form:
       "texts": [
         { "id": "supplied-headline-id", "text": "Which pendulum takes longer?" }
       ],
-      "narration": "[curious] Compare both lengths and predict which pendulum takes longer to complete one swing."
+      "narration": "[curious] Compare both lengths and predict which pendulum takes longer to complete one swing.",
+      "motionPlan": "hold"
     }
   ]
 }
@@ -62,14 +63,25 @@ This is a structural example: the returned frame count, use cases, and text IDs 
 
 | Model output / chosen setting        | Local result when frames are added                                             |
 | ------------------------------------ | ------------------------------------------------------------------------------ |
-| Ordered `frames`                     | New frames appended to the current page; existing content preserved            |
+| Ordered `frames`                     | New frames added to the chosen destination (current page appends; new page/canvas keeps existing content untouched) |
 | Frame `title`, `texts`, `physics`    | Frame name and editable layers in the chosen templates                         |
 | Chosen scene duration/transition     | `frame.scene`, with narration extending timing when needed                     |
+| Frame `motionPlan`                   | Editable supported layer choreography, selectable in review                  |
 | Frame `narration`                    | Local `voiceoverDraft`; optional ElevenLabs audio and matching captions        |
 | Post `name`, `caption`               | Current page document's `metadata.post`, alongside locally assigned `frameIds` |
 | Canvas/page/frame IDs and timestamps | Assigned or preserved by the local editor                                      |
 
-Validation rejects missing/reordered scenes, missing or duplicated slot IDs, overflowing copy, repeated headlines, missing/unfinished narration, invalid LaTeX, unsupported physics parameters or changed model kinds. If the model omits a physics or learning echo, the template's current diagram settings are kept and the review notes which scene was repaired; anything the model did return is still checked strictly. The prompt requires complete question/answer reasoning, consistent SI units, and distinct scene purposes. Review remains editable before any canvas mutation. Existing animation and template geometry stay under app control.
+Validation rejects missing/reordered scenes, missing or duplicated slot IDs, overflowing copy, repeated headlines, missing/unfinished narration, invalid LaTeX, unsupported physics parameters or changed model kinds. If the model omits a physics or learning echo, the template's current diagram settings are kept and the review notes which scene was repaired; anything the model did return is still checked strictly. The prompt requires complete question/answer reasoning, consistent SI units, and distinct scene purposes. Review remains editable before any canvas mutation. Motion plans and template geometry stay under app control.
+
+## Embedded animation direction
+
+Genie adapts the local `opencode-animation-skill` / Animate story and frame rules into `sidecar/animation-direction.mjs`, with its MIT notice in `sidecar/licenses/Animate.LICENSE`. The adapter ships with the sidecar; the skill checkout is an authoring reference, not a runtime dependency. It guides framework drafting and scene generation toward a coherent process, a recurring subject, consistent visual meaning, a readable idea per scene, and a resolved ending.
+
+Scene generation may return `motionPlan`: `hold`, `build`, `focus`, `compare`, or `resolve`. Unknown plans fail validation; omitted plans retain template motion for compatibility with older responses. **Review → Scene motion** lets the user change the choice or restore template motion before adding frames. **Play scene motion** previews that scene through the existing renderer without audio generation or canvas changes. The editor maps a plan to its existing layer animation settings, keeps containing cards and text on the same cue, and leaves the final result editable in Animation and Timeline. Preview, playback, and export use those same ordinary scene/layer settings. Narration can extend their duration after speech generation.
+
+This is an adapter for Genie's existing renderer and template catalog. It does not run the skill's CLI, generated JavaScript, procedural style kits, synthesizer, ffmpeg pipeline, measured beat/loudness checks, or automatic artwork generation. Existing asset placement and ElevenLabs audio controls remain the paths for media. No extra model or audio calls occur when browsing or reviewing.
+
+Supplied templates place the Siswa Juara logo at top left and `@siswajuaraofficial` at top right. Other content, including series badges and page numbers, fits below that strip and above the default bottom caption band. Full background surfaces may fill the frame. The rule applies to newly loaded/inserted templates and aspect-ratio changes; it never rewrites saved canvas documents on load. Custom caption size, position, and offsets can still require manual layout adjustments.
 
 ## Narration and usage
 

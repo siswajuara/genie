@@ -7,6 +7,7 @@ export function withGenerationSlots(preset) {
     const fixed =
       object.brandRole === "logo" ||
       object.brandRole === "footer" ||
+      object.brandRole === "handle" ||
       /SISWA\s+JUARA|siswajuara\.com|@siswajuara/i.test(
         text + " " + object.n,
       ) ||
@@ -21,13 +22,16 @@ export function withGenerationSlots(preset) {
       generationRole: page ? "page-number" : fixed ? "fixed" : "editable",
     };
   });
+  const headlineSize = Math.min(60, Math.max(1, ...objects
+    .filter((o) => o.t === "text" && o.generationRole === "editable" && !o.hide && o.y < (preset.H || 1402) * 0.4)
+    .map((o) => (o.size || 0) * 0.75)));
   const headlines = objects
     .filter(
       (o) =>
         o.t === "text" &&
         o.generationRole === "editable" &&
         !o.hide &&
-        (o.size || 0) >= 60 &&
+        (o.size || 0) >= headlineSize &&
         o.y < (preset.H || 1402) * 0.4,
     )
     .sort((a, b) => a.y - b.y || a.x - b.x);

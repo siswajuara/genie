@@ -19,7 +19,7 @@ export function Connections() {
   const social = useSocial(), config = social.config.tebar;
   const [key, setKey] = useState(""), [profileId, setProfileId] = useState(config.profileId),
     [busy, setBusy] = useState(false), [status, setStatus] = useState(""), [error, setError] = useState(""),
-    [profileName, setProfileName] = useState(""), [usage, setUsage] = useState<Usage>();
+    [usage, setUsage] = useState<Usage>();
   useEffect(() => { setProfileId(config.profileId); }, [config.profileId]);
   useEffect(() => {
     let live = true;
@@ -63,14 +63,6 @@ export function Connections() {
           await social.save("tebar", { removeKey: true }); setKey(""); setUsage(undefined);
         })}>Remove key</Button>}
       </div>
-      {social.ownerKey && <div className="provider-create-profile">
-        <Input aria-label="New Tebar workspace name" value={profileName} onChange={(ev) => setProfileName(ev.target.value)} placeholder="New workspace name" />
-        <Button disabled={busy || !profileName.trim()} onClick={() => void run(async () => {
-          const profile = await social.request<{ id: string }>("createProfile", { name: profileName });
-          await social.save("tebar", { profileId: profile.id }); await social.test("tebar"); setProfileName(""); setStatus("Workspace created and selected.");
-        })}>Create workspace</Button>
-      </div>}
-      <p className="settings-note"><a href="https://docs.tebar.app/api/" target="_blank" rel="noreferrer">Tebar API documentation</a></p>
     </section>
     <section className="settings-card" aria-label="Connected channels">
       <div className="settings-card-head"><h3>Connected accounts</h3><span>{social.accounts.length} accounts</span></div>

@@ -5,7 +5,7 @@ import {
   loadPackPresetFile,
 } from "./assets";
 import { localStore } from "../lib/local-store";
-import { layoutPresetObjects } from "./preset-layout";
+import { headerBranding, brandingRole, withSceneSafeLayout } from "./scene-safe-layout.mjs";
 
 type Branding = { version: 1; W: number; H: number; objects: Element[] };
 const key = "genie.standard-branding.v1";
@@ -13,21 +13,9 @@ export const brandingChanged = "genie-standard-branding-changed";
 let bundled: Promise<Branding> | undefined;
 let revision = -1;
 
-function role(o: Element): Element["brandRole"] {
-  if (o.brandRole) return o.brandRole;
-  if (/^siswa-juara-logo-/.test(o.identifier || "")) return "logo";
-  if (
-    /^(footer-pill|website|handle|divider-1|divider-2)$/.test(
-      o.identifier || "",
-    ) ||
-    /^social-(tiktok|instagram|facebook|youtube|threads)-/.test(
-      o.identifier || "",
-    )
-  )
-    return "footer";
-}
+const role = brandingRole;
 const isBrandElement = (o: Element) =>
-  ["logo", "footer"].includes(role(o) || "");
+  ["logo", "handle", "footer"].includes(role(o) || "");
 function validate(value: unknown): Branding {
   const b = value as Branding;
   if (
@@ -39,15 +27,15 @@ function validate(value: unknown): Branding {
   const objects = validateElements(b.objects);
   if (
     !objects.some((o) => o.brandRole === "logo") ||
-    !objects.some((o) => o.brandRole === "footer") ||
+    !objects.some((o) => ["handle", "footer"].includes(role(o) || "")) ||
     objects.some(
       (o) =>
-        !["logo", "footer"].includes(o.brandRole || "") ||
+        !["logo", "handle", "footer"].includes(role(o) || "") ||
         o.t === "frame" ||
         o.fid,
     )
   )
-    throw Error("The standard frame needs separate logo and footer elements.");
+    throw Error("The standard frame needs separate logo and handle elements.");
   return { ...b, objects };
 }
 export function hasCustomBranding() {
@@ -91,15 +79,14 @@ export async function withStandardBranding(preset: Preset): Promise<Preset> {
     !hasPresetLibrary() &&
     !hasCustomBranding() &&
     preset.objects.some((o) => role(o) === "logo") &&
-    preset.objects.some((o) => role(o) === "footer")
+    preset.objects.some((o) => ["handle", "footer"].includes(role(o) || ""))
   )
-    return preset;
+    return withSceneSafeLayout({ ...preset, objects: [
+      ...preset.objects.filter((o) => !isBrandElement(o)),
+      ...headerBranding(preset.objects, preset.W || 1122, preset.H || 1402),
+    ] });
   const b = await standardFrame();
-  const branding = layoutPresetObjects(
-    b.objects,
-    { w: b.W, h: b.H },
-    { w: preset.W || b.W, h: preset.H || b.H },
-  );
+  const branding = headerBranding(b.objects, preset.W || b.W, preset.H || b.H);
   const objects = preset.objects.filter((o) => !isBrandElement(o));
   const ids = new Set(objects.map((o) => o.id));
   branding.forEach((o, i) => {
@@ -114,5 +101,5 @@ export async function withStandardBranding(preset: Preset): Promise<Preset> {
   });
   // Application snapshots these ordinary elements into the canvas; later standard
   // edits only affect future insertions or an explicit update of the selected frame.
-  return { ...preset, objects };
+  return withSceneSafeLayout({ ...preset, objects });
 }

@@ -19,6 +19,7 @@ await fs.writeFile(path.join(destination, ".gitkeep"), "");
 for (const file of [
   "social-core.mjs",
   "generate.mjs",
+  "animation-direction.mjs",
   "opencode.mjs",
   "opencode-config.mjs",
   "opencode-generation.mjs",
@@ -65,6 +66,8 @@ await fs.copyFile(
   path.join(source, "licenses/OpenCode.LICENSE"),
   path.join(licenseDirectory, "OpenCode.LICENSE"),
 );
+await fs.copyFile(path.join(source, "licenses/Animate.LICENSE"),
+  path.join(licenseDirectory, "Animate.LICENSE"));
 let nodeLicense;
 for (const dir of [
   path.dirname(process.execPath),

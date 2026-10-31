@@ -322,6 +322,7 @@ export function useProjects() {
         p.id === project.id ? { ...p, pages: [...p.pages, next] } : p,
       ),
     }));
+    return next.id;
   }
   function renamePage(name: string) {
     setWorkspace((w) => ({

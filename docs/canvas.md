@@ -60,7 +60,7 @@ Changing stack order keeps a layer in its frame. Use **Properties → Arrange �
 
 ## Use presets and templates
 
-The editor calls reusable frame presets **Templates**. The supplied Siswa Juara pack currently contains 18: 10 Classic layouts, seven Essentials layouts, and the standard frame. Another pack may have a different catalog.
+The editor calls reusable frame presets **Templates**. The supplied Siswa Juara pack currently contains 136 templates across Classic, Essentials, Studio, Math & Physics, SD & SMP, STEM SD–SMA, and the standard frame. Another pack may have a different catalog.
 
 1. Connect the pack in **Setting → Assets**. Desktop remembers the folder in local `config.json`; browser folder selections last for the session. In development, a prepared local pack connects automatically.
 2. Open **Templates**. Search names, topics, or tags; combine use case, collection, and format filters. Use cases include Cover, List, Content, Image, Question, Answer, Explanation, and Closing.
@@ -77,17 +77,13 @@ Select a populated frame and choose **Templates → Save frame**, then enter a n
 
 A saved frame template contains its dimensions, background, design layers, scene settings, and layer animations. It does **not** include the frame's narration draft, audio tracks, captions, or caption style. Duplicate the frame to reuse a complete narrated scene, or use a canvas JSON backup to move it between installations.
 
-Replacing a frame's template retains that frame's existing narration and captions. Recheck their timing against the new scene duration and layout, including whether captions cover the new footer.
+Replacing a frame's template retains that frame's existing narration and captions. Recheck their timing against the new scene duration and layout, especially after changing the default caption position or size.
 
-### Keep a consistent logo and footer
+### Keep branding and subtitles clear
 
-Supplied templates compose independent logo and footer elements from the standard frame. In **Templates → Standard logo & footer**:
+Supplied templates place the Siswa Juara logo at top left and `@siswajuaraofficial` at top right, as separate editable layers. Only those two brand marks occupy the top strip. Series badges, page numbers, text, artwork, and diagrams fit below it. Footer pills, website text, social icons, and dividers are removed from new template insertions to leave room for subtitles.
 
-- **Use selected frame as standard** saves the selected frame's marked logo/footer elements as your local standard for future insertions.
-- **Update selected frame branding** applies the current standard to that frame.
-- **Restore supplied standard** removes the local override and returns to the pack's standard.
-
-Use **Properties → Advanced → Standard frame role** to mark layers as logo, footer, or content. Keep logo and footer roles separate. Updating the standard affects future insertions; existing canvases retain their saved elements until you explicitly update them. Portable saved/imported templates retain their embedded branding when the pack is disconnected.
+The same layout rule fits content above the default bottom caption band in portrait, story, square, and landscape frames, while keeping full background surfaces intact. Custom caption sizes, positions, and offsets may need manual adjustment. Existing saved canvases retain their layers and local edits; opening a canvas does not migrate its design. Portable saved/imported templates keep embedded branding when their pack is disconnected.
 
 For creating pack files, see [preset authoring](../design-references/README.md). Keep `design-references/`: preparation, cutouts, text fitting, and validation use its source files.
 

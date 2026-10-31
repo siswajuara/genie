@@ -1,3 +1,4 @@
+import { withSceneSafeLayout } from "../src/editor/scene-safe-layout.mjs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { studioPresets } from "./studio-presets.mjs";
@@ -23,14 +24,14 @@ const slug = (name) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 for (const raw of presets) {
-  const preset = withGenerationSlots({
+  const preset = withGenerationSlots(withSceneSafeLayout({
     ...raw,
     objects: raw.objects.map((o, i) => ({
       ...o,
       id: `layer-${i + 1}`,
       identifier: o.identifier || slug(o.n),
     })),
-  });
+  }));
   const relative = `studio/${preset.identifier}.json`;
   await fs.writeFile(
     path.join(folder, relative),
