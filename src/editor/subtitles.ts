@@ -196,6 +196,7 @@ export function wordsToCues(words: TimedWord[]): SubtitleCue[] {
   const cues: SubtitleCue[] = [];
   let current: SubtitleCue | undefined;
   let currentWords = 0;
+  let dotPending = false;
   const pushWord = (cue: SubtitleCue, text: string, word: TimedWord) => {
     (cue.words ??= []).push({ text, start: word.start, end: word.end });
   };
@@ -211,33 +212,68 @@ export function wordsToCues(words: TimedWord[]): SubtitleCue[] {
       continue;
     // The cue-break check runs on the raw token so a restored domain period
     // never splits siswajuara.com across two cues.
-    const breaks = /[.!?。！？]$/.test(word.text.trim());
-    const display = restoreCaptionDots(word.text.trim());
+    const raw = word.text.trim();
+    const breaks = /[.!?。！？]$/.test(raw);
+    // Speech timing spells the domain dot as its own token ("siswajuara dot
+    // com"), while the script holds it as one "(dot)" token. Merge the
+    // spoken dot back into a single domain word so captions and karaoke
+    // read siswajuara.com instead of "siswajuara . com".
+    const entries = current?.words ?? [];
+    const lastEntry = entries[entries.length - 1];
     if (
-      !current ||
-      currentWords >= MAX_WORDS_PER_CUE ||
-      word.start - current.end > 0.7 ||
-      word.end - current.start > 3.5 ||
-      current.text.length + display.length > 70
+      /^(dot|\(dot\))$/i.test(raw) &&
+      current &&
+      lastEntry &&
+      !lastEntry.text.endsWith(".")
     ) {
-      current = {
-        id: crypto.randomUUID(),
-        start: word.start,
-        end: word.end,
-        text: display,
-      };
-      currentWords = 1;
-      pushWord(current, display, word);
-      cues.push(current);
-    } else {
-      current.text = restoreCaptionDots(`${current.text} ${display}`);
+      current.text += ".";
+      lastEntry.text += ".";
+      lastEntry.end = word.end;
       current.end = word.end;
-      currentWords += 1;
-      pushWord(current, display, word);
+      dotPending = true;
+    } else {
+      const display = restoreCaptionDots(raw);
+      if (
+        !current ||
+        currentWords >= MAX_WORDS_PER_CUE ||
+        word.start - current.end > 0.7 ||
+        word.end - current.start > 3.5 ||
+        current.text.length + display.length > 70
+      ) {
+        dotPending = false;
+        current = {
+          id: crypto.randomUUID(),
+          start: word.start,
+          end: word.end,
+          text: display,
+        };
+        currentWords = 1;
+        pushWord(current, display, word);
+        cues.push(current);
+      } else if (dotPending) {
+        dotPending = false;
+        current.text += display;
+        current.end = word.end;
+        currentWords += 1;
+        const owned = current.words ?? [];
+        const ownedLast = owned[owned.length - 1];
+        if (ownedLast) {
+          ownedLast.text += display;
+          ownedLast.end = word.end;
+        } else {
+          pushWord(current, display, word);
+        }
+      } else {
+        current.text = restoreCaptionDots(`${current.text} ${display}`);
+        current.end = word.end;
+        currentWords += 1;
+        pushWord(current, display, word);
+      }
     }
     if (breaks) {
       current = undefined;
       currentWords = 0;
+      dotPending = false;
     }
   }
   return cues;

@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  approveScenes,
+  composedScene,
+  compositionStory,
+} from "./generation-helpers";
 
 async function mockProviders(page: Page) {
   const requests: any[] = [];
@@ -25,6 +30,7 @@ async function mockProviders(page: Page) {
       return route.fulfill({
         json: {
           data: {
+            story: compositionStory,
             post: {
               name: "Belajar pecahan",
               caption: "Dua dari empat sama dengan setengah.",
@@ -32,6 +38,8 @@ async function mockProviders(page: Page) {
             frames: body.payload.scenes.map((scene: any, i: number) => ({
               useCase: scene.useCase,
               title: `Pecahan ${i + 1}`,
+              motionPlan: "build",
+              ...(scene.composition ? composedScene(scene, i) : {}),
               texts: scene.slots.map((slot: any) => ({
                 id: slot.id,
                 text:
@@ -228,6 +236,7 @@ test("task context opens linked canvas generation; review appends frames and sur
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
   await expect(
     dialog.getByRole("button", { name: /Add 3 frames/ }),
   ).toBeVisible();
@@ -411,7 +420,7 @@ test("AI drafting preserves changes made while a request is running and keeps fa
 test("a task can target an existing canvas page without creating another canvas", async ({
   page,
 }) => {
-  const { task, target } = await page.evaluate(async () => {
+  const { task, target, targetName } = await page.evaluate(async () => {
     const { contentApi } = await import("/src/content/store.ts");
     const { localStore, prepareLocalSave } =
       await import("/src/lib/local-store.ts");
@@ -421,17 +430,25 @@ test("a task can target an existing canvas page without creating another canvas"
     });
     await prepareLocalSave();
     const workspace = JSON.parse(localStore.getItem("genie.workspace.v1")!);
+    const project = workspace.projects.find(
+      (p: any) => p.id === workspace.activeProjectId,
+    );
+    const targetPage = project.pages.find(
+      (p: any) => p.id === workspace.activePageId,
+    );
     return {
       task,
       target: [workspace.activeProjectId, workspace.activePageId],
+      targetName: `${project.name} · ${targetPage.name}`,
     };
   });
   await page.goto("/#content/task/" + task.id);
   await page.reload();
   const dialog = page.getByRole("dialog", { name: "Detail tugas" });
-  await dialog
-    .getByRole("combobox", { name: "Canvas tujuan" })
-    .selectOption(JSON.stringify(target));
+  await dialog.getByRole("combobox", { name: "Canvas tujuan" }).click();
+  await page
+    .getByRole("option", { name: targetName, exact: true })
+    .click();
   await dialog
     .getByRole("button", { name: "Generate frames di Canvas" })
     .click();

@@ -24,7 +24,7 @@ Desktop request history in `social/requests.json` holds discovery cache, usage o
 
 ## Content task handoff
 
-**Content → task → Buka Publish (Tebar)** opens the shared Publish composer. It carries the task's title, caption, hashtags, and ordered canvas/page/frame references into a local post tagged with `contentTaskId`. Reopening preserves the saved composer edits, account selections, request ID, and receipts. The source canvas does not need to be the active editor canvas; the media picker follows the draft's canvas. Answer/accuracy verification and valid frame references are checked again before uploads.
+**Content → task → Buka Publish** opens the shared Publish composer. It carries the task's title, caption, hashtags, and ordered canvas/page/frame references into a local post tagged with `contentTaskId`. Reopening preserves the saved composer edits, account selections, request ID, and receipts. The source canvas does not need to be the active editor canvas; the media picker follows the draft's canvas. Answer/accuracy verification and valid frame references are checked again before uploads.
 
 Content displays draft, local plan, acceptance, scheduling, failures, and published delivery separately. Provider-confirmed schedules advance verified tasks to Scheduled; all targets must report published before a task advances to Published. Schedule's existing reads reconcile saved results by Tebar post and account IDs, including target errors and permalinks. There are no extra provider reads or background polls. Manually changing the local task stage never publishes or schedules a post. See the [Content workflow](content.md#publish-through-tebar).
 

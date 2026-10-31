@@ -1,7 +1,7 @@
 import { copy, validateElements, type Element, type Preset } from "./model";
 import {
   assetPackRevision,
-  hasPresetLibrary,
+  hasPackPresetFile,
   loadPackPresetFile,
 } from "./assets";
 import { localStore } from "../lib/local-store";
@@ -76,7 +76,7 @@ export async function withStandardBranding(preset: Preset): Promise<Preset> {
   if (!preset.branding || preset.kind !== "template") return preset;
   // Portable saved/imported templates already contain their branding snapshot.
   if (
-    !hasPresetLibrary() &&
+    !hasPackPresetFile("presets/shared/branding.json") &&
     !hasCustomBranding() &&
     preset.objects.some((o) => role(o) === "logo") &&
     preset.objects.some((o) => ["handle", "footer"].includes(role(o) || ""))

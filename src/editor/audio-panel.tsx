@@ -3,7 +3,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SelectField } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { ColorField } from "@/components/ui/color-field";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
@@ -685,70 +685,42 @@ export function AudioPanel({
                   />
                 </Label>
                 <div className="narration-colors">
-                  <Label className="audio-field">
-                    <span>Text</span>
-                    <Input
-                      type="color"
-                      aria-label="Caption text color"
-                      value={style.color.slice(0, 7)}
-                      onChange={(ev) =>
-                        update({
-                          subtitleStyle: { ...style, color: ev.target.value },
-                        })
-                      }
-                    />
-                  </Label>
-                  <Label className="audio-field">
-                    <span>Background</span>
-                    <Input
-                      type="color"
-                      aria-label="Caption background color"
-                      value={style.background.slice(0, 7)}
-                      onChange={(ev) =>
-                        update({
-                          subtitleStyle: {
-                            ...style,
-                            background: withBackgroundAlpha(
-                              ev.target.value,
-                              backgroundOpacity(style.background),
-                            ),
-                          },
-                        })
-                      }
-                    />
-                  </Label>
-                  <Label className="audio-field">
-                    <span>Highlight</span>
-                    <Input
-                      type="color"
-                      aria-label="Caption highlight color"
-                      value={(style.highlight ?? "#ffe14d").slice(0, 7)}
-                      onChange={(ev) =>
-                        update({
-                          subtitleStyle: {
-                            ...style,
-                            highlight: ev.target.value,
-                          },
-                        })
-                      }
-                    />
-                  </Label>
-                  <Label className="audio-field">
-                    <span>Outline</span>
-                    <Input
-                      type="color"
-                      aria-label="Caption outline color"
-                      value={(style.outline ?? "#000000").slice(0, 7)}
-                      onChange={(ev) =>
-                        update({
-                          subtitleStyle: {
-                            ...style,
-                            outline: ev.target.value,
-                          },
-                        })
-                      }
-                    />
-                  </Label>
+                  <ColorField
+                    label="Caption text color"
+                    value={style.color}
+                    onChange={(value) =>
+                      update({
+                        subtitleStyle: { ...style, color: value },
+                      })
+                    }
+                  />
+                  <ColorField
+                    label="Caption background color"
+                    value={style.background}
+                    onChange={(value) =>
+                      update({
+                        subtitleStyle: { ...style, background: value },
+                      })
+                    }
+                  />
+                  <ColorField
+                    label="Caption highlight color"
+                    value={style.highlight ?? "#ffe14d"}
+                    onChange={(value) =>
+                      update({
+                        subtitleStyle: { ...style, highlight: value },
+                      })
+                    }
+                  />
+                  <ColorField
+                    label="Caption outline color"
+                    value={style.outline ?? "#000000"}
+                    onChange={(value) =>
+                      update({
+                        subtitleStyle: { ...style, outline: value },
+                      })
+                    }
+                  />
                   <p className="narration-preview" aria-hidden="true">
                     <span
                       style={{

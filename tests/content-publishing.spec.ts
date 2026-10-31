@@ -181,7 +181,7 @@ async function readTask(page: Page) {
   });
 }
 async function openPublish(page: Page) {
-  await page.getByRole("button", { name: "Buka Publish (Tebar)" }).click();
+  await page.getByRole("button", { name: "Buka Publish" }).click();
   await expect(
     page.getByRole("heading", { name: "Make your next post ready." }),
   ).toBeVisible();

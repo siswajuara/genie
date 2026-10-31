@@ -2387,13 +2387,8 @@
   color: var(--muted);
   max-width: 220px;
 }
-.content-studio .canvas-target select {
+.content-studio .canvas-target .studio-select-trigger {
   max-width: 100%;
-  min-height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: white;
-  padding: 4px 8px;
 }
 
 .content-studio .editor-workspace-tabs {

@@ -1,6 +1,6 @@
 # AI generation with OpenCode
 
-Genie uses `@opencode/client` 2.2+ for writing. The default model is `beam-free`, preferring provider `opencode-go` when more than one provider exposes it. Codex, Cloudflare, and GPT-OSS 120B are disabled in the generation route and model overrides. Legacy Cloudflare settings remain readable in existing config files but are ignored.
+Genie uses `@opencode/client` 2.2+ for scene composition and writing. The default model is `beam-free`, preferring provider `opencode-go` when more than one provider exposes it. Codex, Cloudflare, and GPT-OSS 120B are disabled in the generation route and model overrides. Legacy Cloudflare settings remain readable in existing config files but are ignored.
 
 ## Connect
 
@@ -8,7 +8,7 @@ Genie uses `@opencode/client` 2.2+ for writing. The default model is `beam-free`
 2. Open **Setting → AI generation**, or **Generate → Settings**.
 3. Leave the service URL blank to start/reuse the local service with `Service.ensure()`. Alternatively, enter a running service URL and optional bearer token. Save settings.
 4. Choose **Load models** to check the saved connection and available models. This starts/reuses a service if necessary but does not run inference. Leave the model override blank for automatic Beam Free selection.
-5. Enter context, pick a template and purpose per scene, then choose **Generate frames**.
+5. Enter a creative brief and each scene’s purpose, timing, tone, and direction, then choose **Generate frames**. Review the story, look, and storyboard before previewing motion or adding frames.
 
 An unavailable Beam Free model produces an error without falling back to a different model. An explicit `provider/model` override must be present in the catalog and can consume provider credits. Provider authentication and model access are managed by OpenCode. A service token authenticates the HTTP service; it is not an OpenCode Go provider key.
 
@@ -35,53 +35,67 @@ The UI receives only URL/model, mode, and whether a token exists. Tokens never g
 
 A canvas owns pages; the current page owns the generated frames. **Generate frames** sends one ordered sequence to OpenCode so questions, answers, diagrams, and narration can remain consistent across scenes. It does not create an assistant session or ask an agent to modify project files. Before inference, Genie reads the service’s `/openapi.json` and selects its advertised stateless text route: `/api/experimental/generate` on OpenCode 2.1.4, or `/api/experimental/generate/text` on newer services. The SDK retains input/output handling while its transport uses the supported path. If a proxy hides the schema with HTTP 404, Genie selects the original route (also supported as an alias by 2.2). It sends one generation POST; a model error never triggers a retry on another route. You do not need to upgrade OpenCode 2.1.4 for this integration.
 
-The request contains context, language, narration enabled, and 1–10 scenes in order. Each scene supplies purpose, tone, duration, narration enabled, note, editable slots with exact IDs/roles/examples/capacities, any typed physics/learning diagrams, and permission to add a teaching visual when a reserved area exists. Fixed branding, badges, and page numbering are excluded from editable text slots. The prompt follows [canvas ownership](canvas.md), [scene timing and animation](animation.md), and [LaTeX/physics capabilities](science.md).
+Generate starts each scene from a blank frame with the standard Siswa Juara logo at top left and username at top right. It uses the selected frame’s dimensions, or 1080 × 1920 on an empty page. Custom standard branding remains supported. The content area stays below the header and above the default subtitle band. There is no template picker or alternate generation mode.
 
-The model returns JSON content in this form:
+The request contains context, language, narration enabled, full semantic frame context, and 1–10 ordered scenes. Each scene supplies purpose, tone, duration, note, and a composition contract with frame dimensions and available asset references. The catalog contains up to 240 relevant metadata records from current canvas elements, built-in 3D illustrations with their default parameters, connected illustrations/video clips, and reusable object presets. Full template layouts are not candidates. The prompt shares each distinct asset catalog once across scenes. Asset metadata is reference data, not proof that the model has seen its pixels.
+
+The model returns an original composition for every scene:
 
 ```json
 {
-  "post": {
-    "name": "Pendulum lesson",
-    "caption": "Compare two pendulum lengths and explain the difference."
+  "post": { "name": "Read together", "caption": "Discuss a story with your child." },
+  "story": {
+    "idea": "A question turns reading into a conversation",
+    "format": "Question and resolution",
+    "device": "A recurring blue book",
+    "look": "Warm paper and blue ink",
+    "palette": ["#ffffff", "#0757ec", "#1b2a7a"]
   },
-  "frames": [
-    {
-      "useCase": "question",
-      "title": "Predict the period",
-      "texts": [
-        { "id": "supplied-headline-id", "text": "Which pendulum takes longer?" }
-      ],
-      "narration": "[curious] Compare both lengths and predict which pendulum takes longer to complete one swing.",
-      "motionPlan": "hold"
+  "frames": [{
+    "useCase": "question",
+    "title": "Predict the next step",
+    "texts": [],
+    "narration": "[curious] Read the story together and ask what might happen next.",
+    "motionPlan": "hold",
+    "direction": {
+      "action": "The book opens into a question",
+      "framing": "close",
+      "bridge": "Hold before revealing the answer"
+    },
+    "composition": {
+      "background": "#ffffff",
+      "layers": [{
+        "type": "text", "name": "Question", "role": "headline",
+        "text": "What happens next?", "x": 0, "y": 0, "w": 100, "h": 25,
+        "fontSize": 6, "weight": 800, "align": "left", "color": "#1b2a7a"
+      }]
     }
-  ]
+  }]
 }
 ```
 
-This is a structural example: the returned frame count, use cases, and text IDs must match the actual selected sequence. Diagram scenes also return `physics:[{id,settings}]`, keeping the supplied diagram IDs and model kinds. Equation slots return math-only LaTeX, with JSON-escaped backslashes. Scenes with `allowVisual:true` may additionally return one optional typed `visual` (learning, physics, or LaTeX), selected from the supplied teaching catalog. The app assigns its ID and places it inside the template’s reserved `teachingArea`. Existing learning slots return `learning:[{id,settings}]`. The model cannot supply geometry, IDs, assets, executable code, or replacement canvas documents. See [SD–SMP models and the addition contract](learning.md).
+Each composition has 1–24 layers in drawing order: text, rectangle, ellipse, line, an exact asset reference, learning diagram, physics diagram, or LaTeX. Positions and sizes are percentages of the safe content area, mapped into pixels by the editor. The editor assigns IDs, embeds selected media, prepares diagrams, fits text, and creates ordinary editable layer/scene animation settings. The model never returns source URLs, file paths, SVG/HTML, executable code, publishing actions, or replacement canvas documents.
 
-| Model output / chosen setting        | Local result when frames are added                                             |
-| ------------------------------------ | ------------------------------------------------------------------------------ |
-| Ordered `frames`                     | New frames added to the chosen destination (current page appends; new page/canvas keeps existing content untouched) |
-| Frame `title`, `texts`, `physics`    | Frame name and editable layers in the chosen templates                         |
-| Chosen scene duration/transition     | `frame.scene`, with narration extending timing when needed                     |
-| Frame `motionPlan`                   | Editable supported layer choreography, selectable in review                  |
-| Frame `narration`                    | Local `voiceoverDraft`; optional ElevenLabs audio and matching captions        |
-| Post `name`, `caption`               | Current page document's `metadata.post`, alongside locally assigned `frameIds` |
-| Canvas/page/frame IDs and timestamps | Assigned or preserved by the local editor                                      |
+Assets load only when selected in a generated composition. Only selected assets embed into the resulting local canvas; browsing/generation never embeds the whole pack. Generation works without a pack using built-in branding, text, shapes, and typed teaching diagrams. Missing referenced media produces a review error before audio or canvas changes.
 
-Validation rejects missing/reordered scenes, missing or duplicated slot IDs, overflowing copy, repeated headlines, missing/unfinished narration, invalid LaTeX, unsupported physics parameters or changed model kinds. If the model omits a physics or learning echo, the template's current diagram settings are kept and the review notes which scene was repaired; anything the model did return is still checked strictly. The prompt requires complete question/answer reasoning, consistent SI units, and distinct scene purposes. Review remains editable before any canvas mutation. Motion plans and template geometry stay under app control.
+Every closing scene must contain visible `siswajuara.com`. Narrated closings must also say `siswajuara dot com` (or `siswajuara titik com`). The resolution and CTA copy follow the topic and audience; the default closing no longer introduces an unrelated academic-test pitch.
+
+Validation rejects missing/reordered scenes, unsupported layers or animation, unknown asset references, invalid diagram parameters/LaTeX, out-of-area layouts or movement, repeated headlines, missing/unfinished narration, and absent closing destinations. Before approval, local preflight fits text, rejects overlapping text boxes, decodes placed media, and renders every scene. It does not verify source facts or infer unseen media. Legacy slot-based responses remain readable by internal compatibility helpers; the Generate dialog always requests blank compositions.
 
 ## Embedded animation direction
 
-Genie adapts the local `opencode-animation-skill` / Animate story and frame rules into `sidecar/animation-direction.mjs`, with its MIT notice in `sidecar/licenses/Animate.LICENSE`. The adapter ships with the sidecar; the skill checkout is an authoring reference, not a runtime dependency. It guides framework drafting and scene generation toward a coherent process, a recurring subject, consistent visual meaning, a readable idea per scene, and a resolved ending.
+The story/frame/craft guidance and review sequence are adapted from the local `animate-main` and `opencode-animation-skill` Animate repositories. `sidecar/animation-direction.mjs` guides framework drafts; `sidecar/scene-composition.mjs` adds story devices, look, beat actions/framing/bridges, and editable composition/motion contracts. Both ship with the sidecar and retain the MIT notice in `sidecar/licenses/Animate.LICENSE`. Neither skill checkout is a runtime dependency.
 
-Scene generation may return `motionPlan`: `hold`, `build`, `focus`, `compare`, or `resolve`. Unknown plans fail validation; omitted plans retain template motion for compatibility with older responses. **Review → Scene motion** lets the user change the choice or restore template motion before adding frames. **Play scene motion** previews that scene through the existing renderer without audio generation or canvas changes. The editor maps a plan to its existing layer animation settings, keeps containing cards and text on the same cue, and leaves the final result editable in Animation and Timeline. Preview, playback, and export use those same ordinary scene/layer settings. Narration can extend their duration after speech generation.
+The dialog follows **Story → Look → Storyboard → Animate**:
 
-This is an adapter for Genie's existing renderer and template catalog. It does not run the skill's CLI, generated JavaScript, procedural style kits, synthesizer, ffmpeg pipeline, measured beat/loudness checks, or automatic artwork generation. Existing asset placement and ElevenLabs audio controls remain the paths for media. No extra model or audio calls occur when browsing or reviewing.
+1. **Story** presents the idea, format, recurring visual device, look, palette, visible action, bridge, and narration for every beat. Review accuracy and change the direction before continuing. **Edit setup** allows explicit regeneration.
+2. **Look** presents opening/middle/ending stills for comparing visual identity and varied staging. Scene layers can be adjusted before approval.
+3. **Storyboard** shows every scene as a thumbnail, with a larger selected-scene preview and editable copy, placement, colours, diagrams, assets, narration, transition, and animation timing. Local preflight checks all scenes before approval.
+4. **Animate** enables **Play scene motion** and adding frames, with optional ElevenLabs speech/captions. Editing scene content after approval returns to Storyboard for another check. No speech requests or canvas mutation occur during the first three reviews.
 
-Supplied templates place the Siswa Juara logo at top left and `@siswajuaraofficial` at top right. Other content, including series badges and page numbers, fits below that strip and above the default bottom caption band. Full background surfaces may fill the frame. The rule applies to newly loaded/inserted templates and aspect-ratio changes; it never rewrites saved canvas documents on load. Custom caption size, position, and offsets can still require manual layout adjustments.
+The model can choose default `motionPlan` (`hold`, `build`, `focus`, `compare`, `resolve`), per-layer reveal/idle motion, and 2–8 bounded movement keyframes. Keyframes use layer-local timing with normalized offsets; the editor converts them into its existing deterministic animation poses. Supported outgoing transitions are cut, crossfade, wipe, slide-left, and zoom. Layer-specific choreography takes precedence over scene defaults. Narration can extend scene duration while preserving the chosen transition and final layer state. Review stills, motion previews, playback, and export use the same renderer and ordinary document fields.
+
+This adapts the skills’ workflow to Genie’s editable renderer. It does not execute their generated JavaScript, procedural style kits, shape-morph bridges, synthesizer, CLI/ffmpeg pipeline, automatic artwork generation, factual web checks, or measured beat/loudness tests. No additional model calls occur during review. Custom subtitle size, position, and offsets can still require layout adjustments.
 
 ## Narration and usage
 
@@ -95,6 +109,7 @@ The current OpenCode one-shot response reports text only. Genie returns `usage:n
 
 ```sh
 node tests/generate.check.mjs
+node tests/scene-composition.check.mjs
 node tests/narration.check.mjs
 node tests/subtitles.check.mjs
 node tests/science.check.mjs

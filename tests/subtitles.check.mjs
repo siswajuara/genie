@@ -53,6 +53,15 @@ const tagged = wordsToCues(
 );
 assert.ok(tagged.length > 0);
 assert.ok(tagged.every((cue) => !cue.text.includes("[warm]")));
+// Speech timing spells the domain dot as its own token while the script
+// holds one "(dot)" token. Both forms must render one domain word.
+const spoken = wordsToCues(words("Kunjungi siswajuara dot com sekarang"));
+assert.equal(spoken.length, 1);
+assert.equal(spoken[0].text, "Kunjungi siswajuara.com sekarang");
+assert.deepEqual(
+  spoken[0].words.map((word) => word.text),
+  ["Kunjungi", "siswajuara.com", "sekarang"],
+);
 
 const frame = (patch = {}) => ({
   t: "frame",

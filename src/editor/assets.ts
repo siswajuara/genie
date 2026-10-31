@@ -79,6 +79,7 @@ let presetFiles = new Map<string, number>();
 let readPresetFile: ((path: string) => Promise<Blob>) | undefined;
 export const assetPackRevision = () => state.revision;
 export const hasPresetLibrary = () => presetFiles.has("presets/catalog.json");
+export const hasPackPresetFile = (path: string) => presetFiles.has(path);
 export async function loadPackPresetFile(path: string): Promise<Blob> {
   const bytes = presetFiles.get(path),
     read = readPresetFile,

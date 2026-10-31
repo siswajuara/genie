@@ -295,8 +295,7 @@ export function AnimationInspector({
                           }
                         />
                       </Field>
-                      <details>
-                        <summary>Advanced (easing)</summary>
+                      <Accordion title="Advanced (easing)">
                         <Field label="Easing">
                           <SelectField
                             label="Camera easing"
@@ -312,7 +311,7 @@ export function AnimationInspector({
                             }
                           />
                         </Field>
-                      </details>
+                      </Accordion>
                     </div>
                   )}
                 </>
@@ -359,8 +358,7 @@ export function AnimationInspector({
                           }
                         />
                       </Field>
-                      <details>
-                        <summary>Advanced (easing)</summary>
+                      <Accordion title="Advanced (easing)">
                         <Field label="Easing">
                           <SelectField
                             label="Transition easing"
@@ -381,7 +379,7 @@ export function AnimationInspector({
                             }
                           />
                         </Field>
-                      </details>
+                      </Accordion>
                     </div>
                   )}
                 </>
@@ -476,8 +474,7 @@ export function AnimationInspector({
                           />
                         </Field>
                       )}
-                      <details>
-                        <summary>Advanced (easing)</summary>
+                      <Accordion title="Advanced (easing)">
                         <Field label="Easing">
                           <SelectField
                             label="Entrance easing"
@@ -490,7 +487,7 @@ export function AnimationInspector({
                             }
                           />
                         </Field>
-                      </details>
+                      </Accordion>
                     </div>
                   )}
                   {o.t === "text" && (
@@ -537,10 +534,7 @@ export function AnimationInspector({
                               onChange={(duration) => patchText({ duration })}
                             />
                           </Field>
-                          <details>
-                            <summary>
-                              Advanced (delay, easing, direction)
-                            </summary>
+                          <Accordion title="Advanced (delay, easing, direction)">
                             <Field label="Delay">
                               <NumberField
                                 label="Text reveal delay"
@@ -576,7 +570,7 @@ export function AnimationInspector({
                               />
                               Reverse reveal order
                             </Label>
-                          </details>
+                          </Accordion>
                           <p className="hint">
                             {textUnits(o.text ?? "").count} characters ·{" "}
                             {textUnits(o.text ?? "").wordCount} words.
@@ -614,8 +608,7 @@ export function AnimationInspector({
                           }
                         />
                       </Field>
-                      <details>
-                        <summary>Advanced (easing)</summary>
+                      <Accordion title="Advanced (easing)">
                         <Field label="Easing">
                           <SelectField
                             label="Motion easing"
@@ -628,7 +621,7 @@ export function AnimationInspector({
                             }
                           />
                         </Field>
-                      </details>
+                      </Accordion>
                     </div>
                   )}
                 </>
@@ -673,8 +666,7 @@ export function AnimationInspector({
                           />
                         </Field>
                       )}
-                      <details>
-                        <summary>Advanced (easing)</summary>
+                      <Accordion title="Advanced (easing)">
                         <Field label="Easing">
                           <SelectField
                             label="Exit easing"
@@ -687,7 +679,7 @@ export function AnimationInspector({
                             }
                           />
                         </Field>
-                      </details>
+                      </Accordion>
                     </div>
                   )}
                 </>

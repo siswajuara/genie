@@ -1,4 +1,9 @@
-import { setSceneTypes } from "./generation-helpers";
+import {
+  setSceneTypes,
+  approveScenes,
+  composedScene,
+  compositionStory,
+} from "./generation-helpers";
 import { expect, test, type Page } from "@playwright/test";
 async function documentOf(page: Page) {
   return page.evaluate(async () => {
@@ -12,7 +17,7 @@ async function documentOf(page: Page) {
       .pages.find((p: any) => p.id === w.activePageId).canvas;
   });
 }
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
   await page.addInitScript(() => {
     window.genieSource = (path) => {
       const r = performance
@@ -22,7 +27,11 @@ test.beforeEach(async ({ page }) => {
       return import(r?.name || path);
     };
   });
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1:1423\/)/, (r) => r.abort());
+  await page.route(/^https?:\/\//, (route) =>
+    new URL(route.request().url()).origin === new URL(baseURL!).origin
+      ? route.fallback()
+      : route.abort(),
+  );
   await page.route("**/api/genie-social/**", (r) =>
     r.fulfill({
       json: {
@@ -198,6 +207,7 @@ for (const [topic, visual] of [
       return r.fulfill({
         json: {
           data: {
+            story: compositionStory,
             post: {
               name: "Pelajaran SD–SMP",
               caption: "Amati contoh dan jelaskan hasilnya.",
@@ -205,6 +215,22 @@ for (const [topic, visual] of [
             frames: payload.scenes.map((s: any) => ({
               useCase: s.useCase,
               title: "Contoh pembelajaran",
+              ...composedScene(s, 0),
+              composition: {
+                background: "#ffffff",
+                layers: [
+                  composedScene(s, 0).composition.layers[0],
+                  {
+                    ...visual,
+                    type: visual.type,
+                    name: "Teaching diagram",
+                    x: 0,
+                    y: 30,
+                    w: 100,
+                    h: 65,
+                  },
+                ],
+              },
               texts: s.slots.map((slot: any) => ({
                 id: slot.id,
                 text:
@@ -213,7 +239,6 @@ for (const [topic, visual] of [
                     : "Jelaskan dengan kata-katamu.",
               })),
               narration: "",
-              visual,
             })),
             usage: null,
           },
@@ -232,12 +257,14 @@ for (const [topic, visual] of [
     await dialog
       .getByRole("button", { name: "Generate frames", exact: true })
       .click();
+    await approveScenes(dialog);
     await expect(
-      dialog.getByText("Added teaching visual", { exact: true }),
+      dialog.getByRole("button", { name: /Teaching diagram/ }),
     ).toBeVisible();
-    expect(payload.scenes[0].allowVisual).toBe(true);
-    expect(payload.scenes[0].diagrams).toHaveLength(0);
-    expect(payload.scenes[0].learning).toHaveLength(0);
+    expect(payload.scenes[0].composition).toBeTruthy();
+    expect(payload.scenes[0].slots).toEqual([]);
+    expect(payload.scenes[0].diagrams).toBeUndefined();
+    expect(payload.scenes[0].learning).toBeUndefined();
     await expect(
       dialog.getByRole("img", {
         name: "Generated scene 1 preview",

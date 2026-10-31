@@ -19,6 +19,7 @@ await fs.writeFile(path.join(destination, ".gitkeep"), "");
 for (const file of [
   "social-core.mjs",
   "generate.mjs",
+  "scene-composition.mjs",
   "animation-direction.mjs",
   "opencode.mjs",
   "opencode-config.mjs",

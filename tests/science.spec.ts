@@ -1,4 +1,9 @@
-import { setSceneTypes } from "./generation-helpers";
+import {
+  setSceneTypes,
+  approveScenes,
+  composedScene,
+  compositionStory,
+} from "./generation-helpers";
 import { expect, test, type Page } from "@playwright/test";
 
 async function savedDocument(page: Page) {
@@ -14,7 +19,7 @@ async function savedDocument(page: Page) {
   });
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
   await page.addInitScript(() => {
     window.genieSource = (path) => {
       const resource = performance
@@ -24,8 +29,10 @@ test.beforeEach(async ({ page }) => {
       return import(resource?.name || path);
     };
   });
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1:1423\/)/, (route) =>
-    route.abort(),
+  await page.route(/^https?:\/\//, (route) =>
+    new URL(route.request().url()).origin === new URL(baseURL!).origin
+      ? route.fallback()
+      : route.abort(),
   );
   await page.route("**/api/genie-social/**", async (route) => {
     const body = route.request().postDataJSON();
@@ -50,6 +57,7 @@ test.beforeEach(async ({ page }) => {
       return route.fulfill({
         json: {
           data: {
+            story: compositionStory,
             post: {
               name: "Pendulum lesson",
               caption: "Compare pendulums with different lengths.",
@@ -57,6 +65,43 @@ test.beforeEach(async ({ page }) => {
             frames: body.payload.scenes.map((scene: any) => ({
               useCase: scene.useCase,
               title: "Pendulum period",
+              ...composedScene(scene, 0),
+              composition: {
+                background: "#ffffff",
+                layers: [
+                  {
+                    type: "text",
+                    name: "Headline",
+                    role: "headline",
+                    text: "Ayunan Bandul",
+                    x: 0,
+                    y: 0,
+                    w: 100,
+                    h: 15,
+                    fontSize: 6,
+                    weight: 800,
+                    align: "left",
+                  },
+                  {
+                    type: "physics",
+                    name: "Pendulum",
+                    x: 0,
+                    y: 20,
+                    w: 100,
+                    h: 45,
+                    settings: { kind: "pendulum", length: 2 },
+                  },
+                  {
+                    type: "latex",
+                    name: "Equation",
+                    x: 0,
+                    y: 70,
+                    w: 100,
+                    h: 25,
+                    source: "T = 2\\pi\\sqrt{L/g}",
+                  },
+                ],
+              },
               texts: scene.slots.map((slot: any) => ({
                 id: slot.id,
                 text:
@@ -278,7 +323,7 @@ test("physics controls change deterministic playback and exported PNG frames", a
   ).toBe(2);
 });
 
-test("generation uses typed math and physics slots and preserves them in editable frames", async ({
+test("generation composes editable math and physics from a blank frame", async ({
   page,
 }) => {
   let payload: any;
@@ -297,28 +342,19 @@ test("generation uses typed math and physics slots and preserves them in editabl
       "Explain pendulum physics with a length of 2 metres and gravity 9.81 metres per second squared.",
     );
   await setSceneTypes(page, dialog, ["content"]);
-  await dialog.getByRole("button", { name: "Change scene template" }).click();
-  await page
-    .getByRole("textbox", { name: "Search all templates" })
-    .fill("Bandul");
-  await page
-    .locator(".generate-template-picker")
-    .getByRole("button", { name: /Bandul/ })
-    .first()
-    .click();
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
-  await expect(
-    dialog.getByRole("textbox", { name: /LaTeX equation/ }),
-  ).toBeVisible();
+  await approveScenes(dialog);
+  await dialog.getByRole("button", { name: /Pendulum.*physics/ }).click();
   await expect(
     dialog.getByRole("spinbutton", { name: "Length (m)", exact: true }),
   ).toHaveValue("2");
-  expect(
-    payload.scenes[0].slots.some((slot: any) => slot.role === "latex"),
-  ).toBe(true);
-  expect(payload.scenes[0].diagrams[0].example.kind).toBe("pendulum");
+  expect(payload.scenes[0].slots).toEqual([]);
+  expect(payload.scenes[0].composition).toMatchObject({
+    width: 1080,
+    height: 1920,
+  });
   await expect(
     dialog.getByRole("img", { name: "Generated scene 1 preview", exact: true }),
   ).toBeVisible();

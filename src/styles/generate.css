@@ -354,6 +354,7 @@
     height: 100%;
     object-fit: cover;
   }
+  .generate-scene-image > img { width: 100%; height: 100%; object-fit: contain; }
   .generate-scene-image > span:last-child {
     position: absolute;
     left: 5px;
@@ -580,18 +581,71 @@
     font-size: 12px;
     color: var(--muted-foreground);
   }
-  .generate-destination select {
+  .generate-destination .select-trigger {
     min-height: 36px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--background);
-    color: var(--foreground);
     font-size: 12px;
-    padding: 0 8px;
   }
   .generate-spinner {
     animation: generate-spin 1.2s linear infinite;
   }
+  .generate-composition-brief {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    margin: 14px 0 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--secondary);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .generate-composition-brief > svg { flex-shrink: 0; color: var(--primary); }
+  .generate-composition-brief p { margin: 5px 0 0; color: var(--muted-foreground); }
+  .generate-review-steps { display: flex; gap: 5px; margin: 0 0 20px; flex-wrap: wrap; }
+  .generate-review-steps button {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--muted-foreground);
+    font-size: 11px;
+    background: var(--card);
+  }
+  .generate-review-steps button[aria-current="step"] { color: var(--primary); background: var(--secondary); border-color: var(--primary); }
+  .generate-review-steps button:disabled { opacity: 0.45; }
+  .generate-story-review h3, .generate-look-review h3 { margin: 0 0 10px; font-size: 15px; }
+  .generate-story-review > .generate-field { margin-top: 15px; }
+  .generate-story-detail { padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.6; }
+  .generate-story-detail p { margin: 4px 0 0; color: var(--muted-foreground); }
+  .generate-palette { display: flex; gap: 6px; margin: 14px 0 24px; }
+  .generate-palette span { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #8885; }
+  .generate-beats { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+  .generate-beats li, .generate-layer-inspector {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    min-width: 0;
+  }
+  .generate-beats li > div { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; margin-bottom: 10px; }
+  .generate-beats small { flex-shrink: 0; color: var(--muted-foreground); }
+  .generate-beats p, .generate-beat-caption { font-size: 12px; line-height: 1.6; color: var(--muted-foreground); }
+  .generate-beat-caption { margin-bottom: 18px; }
+  .generate-beat-caption p { margin: 4px 0; }
+  .generate-look-review > div { margin-top: 20px; font-size: 12px; }
+  .generate-look-review .generate-result-preview { margin-top: 8px; }
+  .generate-composition-review { border-top: 1px solid var(--border); margin-top: 18px; padding-top: 16px; }
+  .generate-layer-list { display: grid; gap: 5px; max-height: 190px; overflow-y: auto; margin-bottom: 14px; }
+  .generate-layer-list button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }
+  .generate-layer-list button[aria-pressed="true"] { border-color: var(--primary); background: var(--secondary); }
+  .generate-layer-list button > small { margin-left: auto; color: var(--muted-foreground); }
+  .generate-layer-list button > span { color: var(--muted-foreground); font-size: 10px; }
+  .generate-layer-inspector { display: grid; gap: 14px; }
+  .generate-color-field { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 15px; }
+  .generate-color-field input[type="color"] { width: 48px; height: 32px; padding: 3px; cursor: pointer; }
+  .generate-layer-details { font-size: 12px; }
+  .generate-layer-details summary { cursor: pointer; margin-bottom: 12px; }
+  .generate-composition-geometry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .generate-actions { flex-wrap: wrap; }
   @keyframes generate-spin {
     to {
       transform: rotate(360deg);

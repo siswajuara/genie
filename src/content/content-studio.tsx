@@ -7,6 +7,9 @@ import {
 } from "./store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion } from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
@@ -14,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { portalContainer } from "@/components/ui/portal-container";
 import { AIConnection } from "../social/ai-connection";
 import type { Projects } from "../editor/projects";
 import { startTaskCanvas } from "./canvas-bridge";
@@ -75,14 +79,17 @@ function StudioSelect({
   onChange,
   options,
   placeholder,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[] | string[][];
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const empty = "__studio_empty__";
+  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
   const items = options.map((o) =>
     Array.isArray(o) ? { value: o[0], label: o[1] } : o,
   );
@@ -91,8 +98,10 @@ function StudioSelect({
     <Select
       value={value || empty}
       onValueChange={(v) => onChange(v === empty ? "" : v)}
+      disabled={disabled}
     >
       <SelectTrigger
+        ref={setTrigger}
         aria-label={label}
         className="studio-select-trigger"
         title={current?.label || label}
@@ -101,7 +110,7 @@ function StudioSelect({
           {current?.label || label}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent container={portalContainer(trigger)}>
         <SelectItem value={empty}>{placeholder || label}</SelectItem>
         {items.map((o) => (
           <SelectItem key={o.value || o.label} value={o.value || o.label}>
@@ -1276,16 +1285,16 @@ function QuestionPicker({
         />
       </div>
       <div className="picker-select-all">
-        <label className="check-label">
-          <input
-            type="checkbox"
+        <span className="check-label">
+          <Checkbox
+            id="bulk-pick-all"
             checked={
               questions.length > 0 &&
               questions.every((q) => selected.includes(q.id))
             }
-            onChange={(e) =>
+            onCheckedChange={(checked) =>
               setSelected(
-                e.target.checked
+                checked === true
                   ? [...new Set([...selected, ...questions.map((q) => q.id)])]
                   : selected.filter(
                       (id) => !questions.some((q) => q.id === id),
@@ -1293,29 +1302,38 @@ function QuestionPicker({
               )
             }
           />
-          Pilih semua yang ditampilkan
-        </label>
+          <Label htmlFor="bulk-pick-all">Pilih semua yang ditampilkan</Label>
+        </span>
         <span>{selected.length} dipilih</span>
       </div>
       <div className="question-picker-list">
         {questions.map((q) => (
-          <label
+          <div
             key={q.id}
             className={cn(
               "picker-question",
               selected.includes(q.id) && "selected",
             )}
+            onClick={() =>
+              setSelected(
+                selected.includes(q.id)
+                  ? selected.filter((id) => id !== q.id)
+                  : [...selected, q.id],
+              )
+            }
           >
-            <input
-              type="checkbox"
+            <Checkbox
+              id={`bulk-pick-${q.id}`}
+              aria-label={`Pilih ${q.subject} soal ${q.number}`}
               checked={selected.includes(q.id)}
-              onChange={(e) =>
+              onCheckedChange={(checked) =>
                 setSelected(
-                  e.target.checked
+                  checked === true
                     ? [...selected, q.id]
                     : selected.filter((id) => id !== q.id),
                 )
               }
+              onClick={(e) => e.stopPropagation()}
             />
             <div>
               <span className="question-meta">
@@ -1326,7 +1344,7 @@ function QuestionPicker({
               <p>{q.stem}</p>
             </div>
             <Chip fw={q.framework} />
-          </label>
+          </div>
         ))}
         {!questions.length && (
           <Empty
@@ -1566,10 +1584,12 @@ function QuestionContent({ question: q }: { question: Question }) {
         </div>
       </div>
       {q.illustration && (
-        <details className="illustration-notes">
-          <summary>Brief ilustrasi dari sumber</summary>
+        <Accordion
+          title="Brief ilustrasi dari sumber"
+          className="illustration-notes"
+        >
           <p>{q.illustration}</p>
-        </details>
+        </Accordion>
       )}
       <div className="source-caption">
         <FileText size={12} />
@@ -1846,27 +1866,22 @@ function TaskEditor({
               </button>
             ))}
           </div>
-          <label className="canvas-target">
+          <span className="canvas-target">
             Canvas tujuan
-            <select
-              aria-label="Canvas tujuan"
+            <StudioSelect
+              label="Canvas tujuan"
               value={canvasTarget}
               disabled={drafting || closing}
-              onChange={(e) => setCanvasTarget(e.target.value)}
-            >
-              <option value="">Buat canvas baru</option>
-              {projects.workspace.projects.flatMap((project) =>
-                project.pages.map((page) => (
-                  <option
-                    key={page.id}
-                    value={JSON.stringify([project.id, page.id])}
-                  >
-                    {project.name} · {page.name}
-                  </option>
-                )),
+              onChange={setCanvasTarget}
+              options={projects.workspace.projects.flatMap((project) =>
+                project.pages.map((page) => ({
+                  value: JSON.stringify([project.id, page.id]),
+                  label: `${project.name} · ${page.name}`,
+                })),
               )}
-            </select>
-          </label>
+              placeholder="Buat canvas baru"
+            />
+          </span>
           <button
             className="btn small primary"
             disabled={drafting || closing}
@@ -1914,7 +1929,7 @@ function TaskEditor({
               }
             }}
           >
-            <ArrowUpRight size={14} /> Buka Publish (Tebar)
+            <ArrowUpRight size={14} /> Buka Publish
           </Button>
         </div>
         <div className="task-publishing-status">
@@ -2052,14 +2067,12 @@ function TaskEditor({
                         <strong>{h.model}</strong>
                         <span>{new Date(h.date).toLocaleString("id-ID")}</span>
                       </div>
-                      <details>
-                        <summary>Prompt yang dikirim</summary>
+                      <Accordion title="Prompt yang dikirim">
                         <pre>{h.prompt}</pre>
-                      </details>
-                      <details>
-                        <summary>Hasil draf</summary>
+                      </Accordion>
+                      <Accordion title="Hasil draf">
                         <pre>{h.output}</pre>
-                      </details>
+                      </Accordion>
                     </article>
                   ))
               ) : (
@@ -2151,25 +2164,25 @@ function TaskEditor({
                     {Object.values(task.checks).filter(Boolean).length}/3
                   </span>
                 </div>
-                <label className="check-label">
-                  <input
-                    type="checkbox"
+                <span className="check-label">
+                  <Checkbox
+                    id="task-check-visual"
                     checked={task.checks.visual}
-                    onChange={(e) =>
+                    onCheckedChange={(checked) =>
                       persist({
-                        checks: { ...task.checks, visual: e.target.checked },
+                        checks: { ...task.checks, visual: checked === true },
                       })
                     }
                   />
-                  Visual sudah siap
-                </label>
-                <label className="check-label verification-check">
-                  <input
-                    type="checkbox"
+                  <Label htmlFor="task-check-visual">Visual sudah siap</Label>
+                </span>
+                <span className="check-label verification-check">
+                  <Checkbox
+                    id="task-check-answer"
                     checked={task.checks.answer}
-                    onChange={(e) => {
+                    onCheckedChange={(checked) => {
                       if (
-                        !e.target.checked &&
+                        checked !== true &&
                         STATUSES.indexOf(task.status) >= 3
                       ) {
                         notify(
@@ -2179,27 +2192,29 @@ function TaskEditor({
                         return;
                       }
                       persist({
-                        checks: { ...task.checks, answer: e.target.checked },
+                        checks: { ...task.checks, answer: checked === true },
                       });
                     }}
                   />
-                  <span>
+                  <Label htmlFor="task-check-answer">
                     Jawaban / akurasi diverifikasi{" "}
                     <small>Wajib sebelum Review</small>
-                  </span>
-                </label>
-                <label className="check-label">
-                  <input
-                    type="checkbox"
+                  </Label>
+                </span>
+                <span className="check-label">
+                  <Checkbox
+                    id="task-check-caption"
                     checked={task.checks.caption}
-                    onChange={(e) =>
+                    onCheckedChange={(checked) =>
                       persist({
-                        checks: { ...task.checks, caption: e.target.checked },
+                        checks: { ...task.checks, caption: checked === true },
                       })
                     }
                   />
-                  Caption sudah selesai
-                </label>
+                  <Label htmlFor="task-check-caption">
+                    Caption sudah selesai
+                  </Label>
+                </span>
               </section>
               <button
                 className="text-btn danger"
@@ -2450,17 +2465,29 @@ function LinkQuestions({
               .includes(query.toLowerCase()),
           )
           .map((q) => (
-            <label className="picker-question" key={q.id}>
-              <input
-                type="checkbox"
+            <div
+              className="picker-question"
+              key={q.id}
+              onClick={() =>
+                setSelected(
+                  selected.includes(q.id)
+                    ? selected.filter((id) => id !== q.id)
+                    : [...selected, q.id],
+                )
+              }
+            >
+              <Checkbox
+                id={`link-pick-${q.id}`}
+                aria-label={`Pilih ${q.subject} soal ${q.number}`}
                 checked={selected.includes(q.id)}
-                onChange={(e) =>
+                onCheckedChange={(checked) =>
                   setSelected(
-                    e.target.checked
+                    checked === true
                       ? [...selected, q.id]
                       : selected.filter((id) => id !== q.id),
                   )
                 }
+                onClick={(e) => e.stopPropagation()}
               />
               <div>
                 <span className="question-meta">
@@ -2469,7 +2496,7 @@ function LinkQuestions({
                 <h4>{q.topic}</h4>
                 <p>{q.stem}</p>
               </div>
-            </label>
+            </div>
           ))}
       </div>
       <div className="modal-actions">
@@ -2608,16 +2635,16 @@ function LibraryView({
                 <thead>
                   <tr>
                     <th>
-                      <input
+                      <Checkbox
+                        id="bank-select-all"
                         aria-label="Pilih semua soal"
-                        type="checkbox"
                         checked={
                           questions.length > 0 &&
                           questions.every((q) => selected.includes(q.id))
                         }
-                        onChange={(e) =>
+                        onCheckedChange={(checked) =>
                           setSelected(
-                            e.target.checked
+                            checked === true
                               ? [
                                   ...new Set([
                                     ...selected,
@@ -2647,13 +2674,13 @@ function LibraryView({
                     return (
                       <tr key={q.id}>
                         <td>
-                          <input
-                            type="checkbox"
+                          <Checkbox
+                            id={`bank-pick-${q.id}`}
                             aria-label={`Pilih ${q.subject} soal ${q.number}`}
                             checked={selected.includes(q.id)}
-                            onChange={(e) =>
+                            onCheckedChange={(checked) =>
                               setSelected(
-                                e.target.checked
+                                checked === true
                                   ? [...selected, q.id]
                                   : selected.filter((id) => id !== q.id),
                               )

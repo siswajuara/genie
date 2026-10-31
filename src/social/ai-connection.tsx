@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectField } from "@/components/ui/select";
 import { useSocial } from "./client";
 
 type Model = { providerID: string; id: string; name: string };
@@ -151,24 +152,20 @@ export function AIConnection() {
         </form>
         {models.length > 0 && (
           <>
-            <Label htmlFor="opencode-catalog">Available models</Label>
-            <select
-              id="opencode-catalog"
-              className="generate-select"
+            <Label id="opencode-catalog-label">Available models</Label>
+            <SelectField
+              label="Available models"
               value={model}
               disabled={!!busy}
-              onChange={(event) => setModel(event.target.value)}
-            >
-              <option value="">Automatic · Beam Free</option>
-              {models.map((entry) => (
-                <option
-                  key={`${entry.providerID}/${entry.id}`}
-                  value={`${entry.providerID}/${entry.id}`}
-                >
-                  {entry.name} · {entry.providerID}/{entry.id}
-                </option>
-              ))}
-            </select>
+              onChange={setModel}
+              options={[
+                { value: "", label: "Automatic · Beam Free" },
+                ...models.map((entry) => ({
+                  value: `${entry.providerID}/${entry.id}`,
+                  label: `${entry.name} · ${entry.providerID}/${entry.id}`,
+                })),
+              ]}
+            />
             <p className="settings-note">Save to apply.</p>
           </>
         )}

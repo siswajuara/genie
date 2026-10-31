@@ -1,4 +1,9 @@
-import { setSceneTypes } from "./generation-helpers";
+import {
+  setSceneTypes,
+  approveScenes,
+  composedScene,
+  compositionStory,
+} from "./generation-helpers";
 import { expect, test, type Page } from "@playwright/test";
 
 async function elements(page: Page) {
@@ -39,7 +44,7 @@ function silentSpeech() {
   };
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
   await page.addInitScript(() => {
     window.genieSource = (path) => {
       const resource = performance
@@ -49,8 +54,10 @@ test.beforeEach(async ({ page }) => {
       return import(resource?.name || path);
     };
   });
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1:1423\/)/, (route) =>
-    route.abort(),
+  await page.route(/^https?:\/\//, (route) =>
+    new URL(route.request().url()).origin === new URL(baseURL!).origin
+      ? route.fallback()
+      : route.abort(),
   );
 });
 
@@ -96,6 +103,7 @@ async function mockProviders(
       return route.fulfill({
         json: {
           data: {
+            story: compositionStory,
             post: {
               name: "Reading together",
               caption: "Ask your child about their story. Read together today.",
@@ -104,6 +112,7 @@ async function mockProviders(
               useCase: scene.useCase,
               title: `Reading scene ${index + 1}`,
               motionPlan: "build",
+              ...(scene.composition ? composedScene(scene, index) : {}),
               texts: scene.slots.map((slot: any) => ({
                 id: slot.id,
                 text:
@@ -119,7 +128,9 @@ async function mockProviders(
               })),
               narration:
                 body.payload.narration && scene.narrate
-                  ? "[warm] Read the story together, then ask your child what happened."
+                  ? scene.useCase === "closing"
+                    ? "[warm] Keep reading together and find more practice at siswajuara dot com."
+                    : "[warm] Read the story together, then ask your child what happened."
                   : "",
             })),
             model: { providerID: "opencode-go", id: "beam-free" },
@@ -181,65 +192,36 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   await dialog
     .getByRole("button", { name: "Scene 2: Content", exact: true })
     .click();
-  const recommended = await page.evaluate(async () => {
-    const { loadPresetCatalog } = await window.genieSource(
-      "/src/editor/preset-catalog.ts",
-    );
-    const { sequenceTemplates, makeScenes, GENERATION_PRESETS } =
-      await window.genieSource("/src/editor/generation.ts");
-    return sequenceTemplates(
-      (await loadPresetCatalog()).presets,
-      makeScenes(GENERATION_PRESETS[0]),
-      "Help parents talk about reading with their children.",
-    )[1].name;
-  });
-  await expect(dialog.locator(".generate-template-trigger")).toContainText(
-    recommended,
-  );
-  await setSceneTypes(page, dialog, ["cover", "explanation", "list"]);
-  await dialog.getByRole("button", { name: "Change scene template" }).click();
-  const picker = page.locator(".generate-template-picker");
-  const templateCount = await page.evaluate(async () => {
-    const { loadPresetCatalog } = await window.genieSource(
-      "/src/editor/preset-catalog.ts",
-    );
-    return (await loadPresetCatalog()).presets.filter(
-      (entry: { kind: string }) => entry.kind === "template",
-    ).length;
-  });
   await expect(
-    picker.getByRole("textbox", { name: "Search all templates" }),
-  ).toHaveAttribute("placeholder", `Search ${templateCount} templates…`);
-  await picker
-    .getByRole("textbox", { name: "Search all templates" })
-    .fill("essentials cover");
-  // Search includes metadata and use cases; selecting a template overrides auto.
-  await picker
-    .getByRole("textbox", { name: "Search all templates" })
-    .fill("Mulai dari satu bacaan");
-  await picker
-    .getByRole("button", { name: /Mulai dari satu bacaan/ })
-    .last()
-    .click();
-  await expect(dialog.locator(".generate-template-trigger")).toContainText(
-    "Selected template",
-  );
+    dialog.getByRole("button", { name: "Change scene template" }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("heading", { name: "Creative brief", exact: true }),
+  ).toBeVisible();
+  await setSceneTypes(page, dialog, ["cover", "explanation", "list"]);
   await dialog.getByRole("combobox", { name: "Output language" }).click();
   await page.getByRole("option", { name: "English", exact: true }).click();
   await dialog.getByRole("combobox", { name: "Scene length" }).click();
   await page.getByRole("option", { name: "8 seconds", exact: true }).click();
   await dialog
-    .getByRole("textbox", { name: /What should this scene cover/ })
+    .getByRole("textbox", { name: /Scene direction/ })
     .fill("A warm introduction");
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
   await expect(
     dialog.getByRole("textbox", { name: "Frame name", exact: true }),
   ).toHaveValue("Reading scene 1");
-  await expect(dialog.getByRole("combobox", { name: "Scene motion", exact: true })).toContainText("Build step by step");
-  await dialog.getByRole("combobox", { name: "Scene motion", exact: true }).click();
-  await page.getByRole("option", { name: "Reading pause", exact: true }).click();
+  await expect(
+    dialog.getByRole("combobox", { name: "Scene motion", exact: true }),
+  ).toContainText("Build step by step");
+  await dialog
+    .getByRole("combobox", { name: "Scene motion", exact: true })
+    .click();
+  await page
+    .getByRole("option", { name: "Reading pause", exact: true })
+    .click();
   await page.screenshot({ path: "/tmp/genie-generate-review.png" });
   expect(requests.filter((r) => r.action === "ai.generate")).toHaveLength(1);
   const request = requests.find((r) => r.action === "ai.generate").payload;
@@ -257,6 +239,7 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   await dialog
     .getByRole("textbox", { name: "Post caption", exact: true })
     .fill("Our edited post caption.");
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add 3 frames without audio", exact: true })
     .click();
@@ -265,9 +248,16 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   expect(before.filter((o: any) => o.t === "frame")).toHaveLength(3);
   expect(before.some((o: any) => o.n === "Our reading scene")).toBe(true);
   const firstFrame = before.find((o: any) => o.t === "frame");
-  const firstContent = before.filter((o: any) => o.fid === firstFrame.id && o.t === "text" && !o.brandRole);
+  const firstContent = before.filter(
+    (o: any) =>
+      o.fid === firstFrame.id && o.t === "text" && o.brandRole === "content",
+  );
   expect(firstContent.length).toBeGreaterThan(0);
-  expect(firstContent.every((o: any) => o.animation.start === 0 && !o.animation.enter)).toBe(true);
+  expect(
+    firstContent.every(
+      (o: any) => o.animation.start === 0 && !o.animation.enter,
+    ),
+  ).toBe(true);
   expect(before.some((o: any) => o.brandRole === "footer")).toBe(false);
 
   expect(before.find((o: any) => o.t === "frame").scene.duration).toBe(8);
@@ -285,6 +275,8 @@ test("generate, edit, and append frames; preserve existing frames and undo as on
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add 1 frame without audio", exact: true })
     .click();
@@ -336,6 +328,7 @@ test("default narration calls ElevenLabs only for scenes with narration enabled"
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
   await expect(
     dialog.getByRole("textbox", { name: "Narration script", exact: true }),
   ).toHaveValue(/Read the story/);
@@ -349,6 +342,7 @@ test("default narration calls ElevenLabs only for scenes with narration enabled"
   expect(requests.filter((r) => r.action === "elevenlabs.speech")).toHaveLength(
     0,
   );
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add frames & generate voice", exact: true })
     .click();
@@ -378,6 +372,7 @@ test("missing ElevenLabs account keeps narration scripts and requires explicit a
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
   await expect(
     dialog.getByRole("textbox", { name: "Narration script", exact: true }),
   ).toHaveValue(/Read the story/);
@@ -390,6 +385,7 @@ test("missing ElevenLabs account keeps narration scripts and requires explicit a
       exact: true,
     }),
   ).toBeDisabled();
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add without audio", exact: true })
     .click();
@@ -429,6 +425,7 @@ test("voice failure preserves review and reuses completed audio on explicit retr
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
   await expect(
     dialog.getByRole("textbox", { name: "Narration script", exact: true }),
   ).not.toBeEmpty();
@@ -438,6 +435,7 @@ test("voice failure preserves review and reuses completed audio on explicit retr
   expect(requests.filter((r) => r.action === "elevenlabs.speech")).toHaveLength(
     0,
   );
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add frames & generate voice", exact: true })
     .click();
@@ -446,6 +444,7 @@ test("voice failure preserves review and reuses completed audio on explicit retr
   expect(requests.filter((r) => r.action === "elevenlabs.speech")).toHaveLength(
     2,
   );
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add frames & generate voice", exact: true })
     .click();
@@ -625,6 +624,8 @@ test("inspector narration keeps content visible past the original duration", asy
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
+  await approveScenes(dialog);
   await dialog
     .getByRole("button", { name: "Add 1 frame without audio", exact: true })
     .click();
@@ -889,7 +890,7 @@ test("template slots preserve chrome, join headlines, diversify scenes, and anim
   expect(result.invalidRole).toBe(true);
 });
 
-test("review renders edited copy and identifies images that need manual filling", async ({
+test("review renders edited composition and previews approved layer motion", async ({
   page,
 }) => {
   await mockProviders(page);
@@ -903,71 +904,470 @@ test("review renders edited copy and identifies images that need manual filling"
       "Invite parents to observe a photo with their child and tell a story.",
     );
   await setSceneTypes(page, dialog, ["content"]);
-  await dialog.getByRole("button", { name: "Change scene template" }).click();
-  const picker = page.locator(".generate-template-picker");
-  await picker
-    .getByRole("textbox", { name: "Search all templates" })
-    .fill("essentials image");
-  await picker.getByRole("button", { name: /Cerita dalam gambar/ }).click();
   await dialog
     .getByRole("button", { name: "Generate frames", exact: true })
     .click();
+  await approveScenes(dialog);
   const preview = dialog.getByRole("img", {
     name: "Generated scene 1 preview",
   });
   await expect(preview).toBeVisible();
-  await expect(dialog.getByText(/These slots need your images/)).toBeVisible();
-  await dialog.getByRole("button", { name: "Play scene motion", exact: true }).click();
-  const motion = dialog.getByRole("img", { name: "Scene motion preview", exact: true });
+  await expect(
+    dialog.getByRole("button", { name: /Headline.*text/ }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Play scene motion", exact: true })
+    .click();
+  const motion = dialog.getByRole("img", {
+    name: "Scene motion preview",
+    exact: true,
+  });
   await expect(motion).toBeVisible();
-  await expect.poll(async () => Number(await motion.getAttribute("data-time"))).toBeGreaterThan(0.1);
-  await dialog.getByRole("button", { name: "Stop scene motion", exact: true }).click();
+  await expect
+    .poll(async () => Number(await motion.getAttribute("data-time")))
+    .toBeGreaterThan(0.1);
+  await dialog
+    .getByRole("button", { name: "Stop scene motion", exact: true })
+    .click();
   await expect(preview).toBeVisible();
 
   const original = await preview.getAttribute("src");
   await dialog
-    .getByRole("textbox", { name: /Headline/ })
+    .getByRole("textbox", { name: "Layer text", exact: true })
     .fill("Tell your story");
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.getAttribute("src")).not.toBe(original);
 });
 
-
-test("scene motion plans keep cards synchronized, branding static, and render settings portable", async ({ page }) => {
+test("scene motion plans keep cards synchronized, branding static, and render settings portable", async ({
+  page,
+}) => {
   await mockProviders(page);
   await page.goto("/");
   const result = await page.evaluate(async () => {
-    const { withGenerationMotion } = await window.genieSource("/src/editor/generation-motion.ts");
-    const { parseDocument, applyPreset, initialDocument } = await window.genieSource("/src/editor/model.ts");
-    const { evaluateAnimation } = await window.genieSource("/src/editor/animation.ts");
-    const base = { name: "Two sides", kind: "template", W: 1080, H: 1080,
+    const { withGenerationMotion } = await window.genieSource(
+      "/src/editor/generation-motion.ts",
+    );
+    const { parseDocument, applyPreset, initialDocument } =
+      await window.genieSource("/src/editor/model.ts");
+    const { evaluateAnimation } = await window.genieSource(
+      "/src/editor/animation.ts",
+    );
+    const base = {
+      name: "Two sides",
+      kind: "template",
+      W: 1080,
+      H: 1080,
       objects: [
         { id: "paper", t: "rect", n: "Paper", x: 0, y: 0, w: 1080, h: 1080 },
-        { id: "handle", t: "text", n: "Handle", x: 700, y: 30, w: 300, h: 50, brandRole: "handle", size: 32, text: "@siswajuaraofficial" },
-        { id: "left-card", t: "rect", n: "Left card", x: 80, y: 300, w: 400, h: 400 },
-        { id: "left-text", t: "text", n: "Left text", x: 100, y: 350, w: 300, h: 100, size: 32, text: "Before" },
-        { id: "right-card", t: "rect", n: "Right card", x: 600, y: 300, w: 400, h: 400 },
-        { id: "right-text", t: "text", n: "Right text", x: 620, y: 350, w: 300, h: 100, size: 32, text: "After" },
+        {
+          id: "handle",
+          t: "text",
+          n: "Handle",
+          x: 700,
+          y: 30,
+          w: 300,
+          h: 50,
+          brandRole: "handle",
+          size: 32,
+          text: "@siswajuaraofficial",
+        },
+        {
+          id: "left-card",
+          t: "rect",
+          n: "Left card",
+          x: 80,
+          y: 300,
+          w: 400,
+          h: 400,
+        },
+        {
+          id: "left-text",
+          t: "text",
+          n: "Left text",
+          x: 100,
+          y: 350,
+          w: 300,
+          h: 100,
+          size: 32,
+          text: "Before",
+        },
+        {
+          id: "right-card",
+          t: "rect",
+          n: "Right card",
+          x: 600,
+          y: 300,
+          w: 400,
+          h: 400,
+        },
+        {
+          id: "right-text",
+          t: "text",
+          n: "Right text",
+          x: 620,
+          y: 350,
+          w: 300,
+          h: 100,
+          size: 32,
+          text: "After",
+        },
         { id: "visual", t: "img", n: "Visual", x: 620, y: 500, w: 200, h: 150 },
-      ] };
+      ],
+    };
     const original = JSON.stringify(base);
     const errors = [];
     for (const plan of ["hold", "build", "focus", "compare", "resolve"]) {
       const p = withGenerationMotion(base, plan, 6);
-      if (JSON.stringify(p) !== JSON.stringify(withGenerationMotion(base, plan, 6))) errors.push("nondeterministic");
-      if (p.objects[0] !== base.objects[0] || p.objects[1] !== base.objects[1]) errors.push("changed static layers");
-      if (p.objects[2].animation.start !== p.objects[3].animation.start ||
-          p.objects[4].animation.start !== p.objects[5].animation.start ||
-          p.objects[4].animation.start !== p.objects[6].animation.start) errors.push("separated card cues");
-      if (plan === "compare" && p.objects[2].animation.start >= p.objects[4].animation.start) errors.push("lost comparison order");
-      if (plan === "hold" && p.objects.slice(2).some((o) => o.animation.enter || o.animation.start)) errors.push("lost reading pause");
-      const doc = parseDocument(JSON.parse(JSON.stringify(applyPreset(initialDocument(), p))));
+      if (
+        JSON.stringify(p) !==
+        JSON.stringify(withGenerationMotion(base, plan, 6))
+      )
+        errors.push("nondeterministic");
+      if (p.objects[0] !== base.objects[0] || p.objects[1] !== base.objects[1])
+        errors.push("changed static layers");
+      if (
+        p.objects[2].animation.start !== p.objects[3].animation.start ||
+        p.objects[4].animation.start !== p.objects[5].animation.start ||
+        p.objects[4].animation.start !== p.objects[6].animation.start
+      )
+        errors.push("separated card cues");
+      if (
+        plan === "compare" &&
+        p.objects[2].animation.start >= p.objects[4].animation.start
+      )
+        errors.push("lost comparison order");
+      if (
+        plan === "hold" &&
+        p.objects.slice(2).some((o) => o.animation.enter || o.animation.start)
+      )
+        errors.push("lost reading pause");
+      const doc = parseDocument(
+        JSON.parse(JSON.stringify(applyPreset(initialDocument(), p))),
+      );
       for (const o of doc.elements.filter((o) => o.animation)) {
         const a = evaluateAnimation(o, 5.9, 6);
-        if (a.opacity !== 1 || a.x || a.y || a.scale !== 1) errors.push("final state did not settle");
+        if (a.opacity !== 1 || a.x || a.y || a.scale !== 1)
+          errors.push("final state did not settle");
       }
     }
-    return { errors, preserved: original === JSON.stringify(base), fallback: withGenerationMotion(base, undefined, 6) === base };
+    return {
+      errors,
+      preserved: original === JSON.stringify(base),
+      fallback: withGenerationMotion(base, undefined, 6) === base,
+    };
   });
   expect(result).toEqual({ errors: [], preserved: true, fallback: true });
+});
+
+test("blank generation requires story, look and storyboard approval and preserves the closing CTA", async ({
+  page,
+}) => {
+  const requests = await mockProviders(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "New Canvas", exact: true }).click();
+  await page.getByRole("button", { name: "Generate", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("switch", { name: "Narration", exact: true })
+    .uncheck();
+  await dialog
+    .getByRole("textbox", { name: "Learning content and context" })
+    .fill("Help parents and children discuss a story after reading together.");
+  await dialog
+    .getByRole("button", { name: "Generate frames", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("region", { name: "Story review" }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Play scene motion", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: /Add 6 frames/ }),
+  ).toHaveCount(0);
+  expect(
+    (await elements(page)).filter((o: any) => o.t === "frame"),
+  ).toHaveLength(0);
+  const sent = requests.find((r) => r.action === "ai.generate").payload;
+  expect(sent.scenes).toHaveLength(6);
+  expect(
+    sent.scenes.every((s: any) => s.slots.length === 0 && !!s.composition),
+  ).toBe(true);
+  expect(sent.scenes.at(-1).useCase).toBe("closing");
+  expect(
+    JSON.stringify(sent.scenes.map((s: any) => s.composition)),
+  ).not.toMatch(/data:image|\/Users\/|"src"|"file"/);
+  await approveScenes(dialog);
+  await dialog
+    .getByRole("button", { name: "Scene 6: Closing", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("textbox", { name: "Layer text", exact: true }),
+  ).toHaveValue("Continue at siswajuara.com");
+  await dialog
+    .getByRole("textbox", { name: "Layer text", exact: true })
+    .fill("Continue somewhere else");
+  await expect(
+    dialog.getByRole("button", { name: /Add 6 frames/ }),
+  ).toHaveCount(0);
+  await dialog
+    .getByRole("button", {
+      name: "Approve storyboard & preview motion",
+      exact: true,
+    })
+    .click();
+  await expect(dialog.getByRole("alert")).toContainText("siswajuara.com");
+  expect(requests.filter((r) => r.action === "elevenlabs.speech")).toHaveLength(
+    0,
+  );
+  await dialog
+    .getByRole("textbox", { name: "Layer text", exact: true })
+    .fill("Keep learning at siswajuara.com");
+  await approveScenes(dialog);
+  await expect(
+    dialog.getByRole("img", { name: "Generated scene 6 preview", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "/private/tmp/genie-composition-storyboard.png",
+  });
+  await dialog
+    .getByRole("button", { name: "Add 6 frames without audio", exact: true })
+    .click();
+  await expect(dialog).not.toBeVisible();
+  const saved = await elements(page);
+  expect(saved.filter((o: any) => o.brandRole === "logo")).toHaveLength(6);
+  expect(saved.filter((o: any) => o.brandRole === "handle")).toHaveLength(6);
+  expect(
+    saved.some((o: any) =>
+      o.text?.replace(/\s+/g, " ").includes("Keep learning at siswajuara.com"),
+    ),
+  ).toBe(true);
+});
+
+test("composition reuses only chosen local media and translates movement into portable keyframes", async ({
+  page,
+}) => {
+  await mockProviders(page);
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { initializeAssetLibrary, disconnectAssetDirectory } =
+      await window.genieSource("/src/editor/assets.ts");
+    await initializeAssetLibrary();
+    await disconnectAssetDirectory();
+    const { blankGenerationFrame, compositionResources } =
+      await window.genieSource("/src/editor/generation-composition.ts");
+    const { fillGenerationTemplate, appendGeneratedFrames } =
+      await window.genieSource("/src/editor/generation.ts");
+    const { initialDocument, parseDocument } = await window.genieSource(
+      "/src/editor/model.ts",
+    );
+    const { evaluateAnimation } = await window.genieSource(
+      "/src/editor/animation.ts",
+    );
+    const { sceneSafeArea } = await window.genieSource(
+      "/src/editor/scene-safe-layout.mjs",
+    );
+    const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="45" fill="#0757ec"/></svg>')}`;
+    const doc = initialDocument();
+    doc.elements = [
+      {
+        id: "existing-frame",
+        t: "frame",
+        n: "Reference",
+        x: 0,
+        y: 0,
+        w: 1080,
+        h: 1920,
+      },
+      {
+        id: "existing-media",
+        fid: "existing-frame",
+        t: "img",
+        n: "Blue circle",
+        aiDescription: "A blue circle",
+        x: 30,
+        y: 300,
+        w: 100,
+        h: 100,
+        src,
+        lock: true,
+      },
+    ];
+    const resources = compositionResources(
+      doc,
+      ["existing-frame"],
+      [],
+      "Explain a moving blue circle",
+    );
+    const ref = resources.catalog[0].ref;
+    const blank = await blankGenerationFrame(doc, ["existing-frame"]);
+    const moving = {
+      start: 0,
+      enter: "fade",
+      duration: 0.3,
+      motion: "none",
+      amount: 0,
+      keyframes: [
+        { time: 0, dx: -10, dy: 0, scale: 1, opacity: 1 },
+        { time: 2, dx: 10, dy: 0, scale: 1, opacity: 1 },
+      ],
+    };
+    const content = {
+      title: "A moving circle",
+      useCase: "content",
+      narration: "",
+      texts: [],
+      motionPlan: "build",
+      composition: {
+        background: "#ffffff",
+        transition: { type: "crossfade", duration: 0.6 },
+        layers: [
+          {
+            type: "text",
+            name: "Headline",
+            role: "headline",
+            text: "Watch the circle move",
+            x: 0,
+            y: 0,
+            w: 100,
+            h: 20,
+            fontSize: 6,
+            weight: 800,
+            align: "left",
+          },
+          {
+            type: "asset",
+            name: "Moving circle",
+            assetRef: ref,
+            x: 30,
+            y: 30,
+            w: 20,
+            h: 20,
+            animation: moving,
+          },
+          {
+            type: "asset",
+            name: "Held circle",
+            assetRef: ref,
+            x: 60,
+            y: 60,
+            w: 20,
+            h: 20,
+          },
+        ],
+      },
+    };
+    const filled = await fillGenerationTemplate(
+      blank,
+      content,
+      { seconds: 6 },
+      0,
+      1,
+      resources,
+    );
+    const media = filled.objects.filter(
+      (o: any) => o.brandRole === "content" && o.t === "img",
+    );
+    const poses = [0.5, 2.5].map((time) =>
+      evaluateAnimation(media[0], time, 6),
+    );
+    const saved = parseDocument(
+      JSON.parse(
+        JSON.stringify(
+          appendGeneratedFrames(initialDocument(), [filled], [{}]).document,
+        ),
+      ),
+    );
+    const safe = sceneSafeArea(1080, 1920);
+    let overlapRejected = false;
+    try {
+      await fillGenerationTemplate(
+        blank,
+        {
+          ...content,
+          composition: {
+            ...content.composition,
+            layers: [
+              content.composition.layers[0],
+              { ...content.composition.layers[0], name: "Overlapping text" },
+            ],
+          },
+        },
+        { seconds: 6 },
+        0,
+        1,
+        resources,
+      );
+    } catch (e) {
+      overlapRejected = String(e).includes("overlap");
+    }
+    const builtin = resources.catalog.find((a: any) => a.name.includes("3D"));
+    const threeD = await fillGenerationTemplate(
+      blank,
+      {
+        ...content,
+        composition: {
+          ...content.composition,
+          layers: [
+            content.composition.layers[0],
+            {
+              type: "asset",
+              name: "Built-in 3D illustration",
+              assetRef: builtin.ref,
+              x: 0,
+              y: 30,
+              w: 100,
+              h: 65,
+            },
+          ],
+        },
+      },
+      { seconds: 6 },
+      0,
+      1,
+      resources,
+    );
+    return {
+      loaded: resources.loaded.size,
+      mediaCount: media.length,
+      embedded: media.every((o: any) => o.src === src),
+      moved: poses[0].x < poses[1].x,
+      separateGroups: media[0].gid !== media[1].gid,
+      safe: filled.objects
+        .filter((o: any) => o.brandRole === "content")
+        .every(
+          (o: any) =>
+            o.x >= safe.x &&
+            o.y >= safe.y &&
+            o.x + o.w <= safe.x + safe.w &&
+            o.y + o.h <= safe.y + safe.h,
+        ),
+      staticBranding: filled.objects
+        .filter((o: any) => ["logo", "handle"].includes(o.brandRole))
+        .every((o: any) => !o.animation),
+      portableKeys: saved.elements.some(
+        (o: any) => o.animation?.keyframes?.length === 2,
+      ),
+      transition: saved.elements.find((o: any) => o.t === "frame").scene
+        .transition.type,
+      overlapRejected,
+      builtIn3D: threeD.objects.some(
+        (o: any) => o.illustration3d && o.src?.startsWith("data:image/svg+xml"),
+      ),
+    };
+  });
+  expect(result).toEqual({
+    loaded: 2,
+    mediaCount: 2,
+    embedded: true,
+    moved: true,
+    separateGroups: true,
+    safe: true,
+    staticBranding: true,
+    portableKeys: true,
+    transition: "crossfade",
+    overlapRejected: true,
+    builtIn3D: true,
+  });
 });

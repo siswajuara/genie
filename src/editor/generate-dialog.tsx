@@ -1,8 +1,11 @@
 import { motionPlanOptions } from "./generation-motion";
-import { GenerationMotionPreview } from "./generation-motion-preview";
+import {
+  GenerationMotionPreview,
+  renderGenerationStill,
+} from "./generation-motion-preview";
 import type { TaskGeneration } from "../content/canvas-bridge";
 import { buildFrameContext } from "../../sidecar/frame-context.mjs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Mic, VolumeX, ArrowLeft, LoaderCircle } from "lucide-react";
 import {
   Dialog,
@@ -22,7 +25,6 @@ import { useSocial, socialRequest } from "../social/client";
 import { AIConnection } from "../social/ai-connection";
 import {
   parseGenerationResult,
-  sceneRoles,
   type GeneratedFrame,
   type GenerationRequest,
   type GenerationResult,
@@ -35,8 +37,6 @@ import {
 } from "../../sidecar/voice-prototype.mjs";
 import { useAssetLibrary } from "./assets";
 import { loadPresetCatalog, type PresetSummary } from "./preset-catalog";
-import { PresetPreviewImage } from "./preset-preview-image";
-import { GenerateTemplatePicker } from "./generate-template-picker";
 import { type Element, type Preset, initialDocument, uid } from "./model";
 import { readAudio } from "./sound";
 import {
@@ -50,22 +50,19 @@ import {
   LANGUAGES,
   makeScenes,
   sceneLabel,
-  sequenceTemplates,
-  textSlots,
-  physicsSlots,
-  learningSlots,
-  listItemCount,
   canvasContextText,
-  prepareGenerationTemplates,
   fillGenerationTemplate,
   fillGenerationTemplates,
   appendGeneratedFrames,
   type SceneDraft,
 } from "./generation";
-import { LearningFields } from "./learning-inspector";
-import { PhysicsFields } from "./science-inspector";
-import { renderTemplatePreview } from "./template-thumbnail";
-import { ensureDocumentFonts } from "../lib/fonts";
+import {
+  blankGenerationFrame,
+  compositionResources,
+  type CompositionResources,
+} from "./generation-composition";
+import { CompositionReview } from "./generation-composition-review";
+import { StoryReview } from "./generation-story-review";
 import type { Editor } from "./use-editor";
 import type { Projects } from "./projects";
 
@@ -78,6 +75,7 @@ type Voice = { id: string; name: string };
 type Review = {
   request: GenerationRequest;
   templates: Preset[];
+  resources: CompositionResources;
   result: GenerationResult;
 };
 const durationOptions = [4, 5, 6, 8, 10, 12].map((n) => ({
@@ -129,7 +127,7 @@ function ToggleRow({
 }
 
 const CLOSING_NOTE =
-  "Tutup dengan ajakan yang jelas: pelajari lebih lanjut tentang Tes Kemampuan Akademik sekarang di siswajuara.com.";
+  "Resolve the opening idea, recap the lesson, and invite the viewer to continue at siswajuara.com. Match the topic and audience.";
 function makeClosingScene(): SceneDraft {
   return {
     useCase: "closing",
@@ -148,7 +146,11 @@ function GeneratedPreview({
   scene,
   index,
   total,
+  resources,
+  allowMotion = false,
 }: {
+  allowMotion?: boolean;
+  resources: CompositionResources;
   template: Preset;
   content: GeneratedFrame;
   scene: SceneDraft;
@@ -158,19 +160,25 @@ function GeneratedPreview({
   const [preview, setPreview] = useState({ src: "", error: "" });
   const [prepared, setPrepared] = useState<Preset>();
   const [playing, setPlaying] = useState(false);
+  const stopMotion = useCallback(() => setPlaying(false), []);
   useEffect(() => {
     let live = true;
+    const controller = new AbortController();
     setPreview({ src: "", error: "" });
     setPrepared(undefined);
     setPlaying(false);
     const timer = window.setTimeout(() => {
-      void ensureDocumentFonts(template.objects)
-        .then(() =>
-          fillGenerationTemplate(template, content, scene, index, total),
-        )
+      void fillGenerationTemplate(
+        template,
+        content,
+        scene,
+        index,
+        total,
+        resources,
+      )
         .then((preset) => {
           if (live) setPrepared(preset);
-          return renderTemplatePreview(preset);
+          return renderGenerationStill(preset, controller.signal);
         })
         .then((src) => {
           if (live) setPreview({ src, error: "" });
@@ -185,18 +193,10 @@ function GeneratedPreview({
     }, 180);
     return () => {
       live = false;
+      controller.abort();
       window.clearTimeout(timer);
     };
-  }, [template, content, scene, index, total]);
-  const missing = template.objects.filter(
-    (o) =>
-      o.t === "img" &&
-      !o.hide &&
-      !o.src &&
-      !o.latex &&
-      !o.physics &&
-      !o.learning,
-  );
+  }, [template, content, scene, index, total, resources]);
   return (
     <figure
       className="generate-result-preview"
@@ -204,7 +204,7 @@ function GeneratedPreview({
     >
       <div className="template-thumbnail">
         {playing && prepared ? (
-          <GenerationMotionPreview preset={prepared} onStop={() => setPlaying(false)} />
+          <GenerationMotionPreview preset={prepared} onStop={stopMotion} />
         ) : preview.src ? (
           <img src={preview.src} alt={`Generated scene ${index + 1} preview`} />
         ) : (
@@ -213,18 +213,57 @@ function GeneratedPreview({
           </p>
         )}
       </div>
-      <Button size="sm" disabled={!prepared || !preview.src}
-        onClick={() => setPlaying(!playing)}>
-        {playing ? "Stop scene motion" : "Play scene motion"}
-      </Button>
-      {missing.length > 0 && (
-        <figcaption className="generate-hint">
-          Add images on the canvas:{" "}
-          {missing.map((o) => o.label || o.n).join(", ")}. These slots need your
-          images.
-        </figcaption>
+      {allowMotion && (
+        <Button
+          size="sm"
+          disabled={!prepared || !preview.src}
+          onClick={() => setPlaying(!playing)}
+        >
+          {playing ? "Stop scene motion" : "Play scene motion"}
+        </Button>
       )}
     </figure>
+  );
+}
+
+function GeneratedThumbnail({
+  review,
+  scene,
+  index,
+  total,
+}: {
+  review: Review;
+  scene: SceneDraft;
+  index: number;
+  total: number;
+}) {
+  const [src, setSrc] = useState("");
+  const content = review.result.frames[index],
+    template = review.templates[index];
+  useEffect(() => {
+    const controller = new AbortController();
+    setSrc("");
+    void fillGenerationTemplate(
+      template,
+      content,
+      scene,
+      index,
+      total,
+      review.resources,
+    )
+      .then((preset) => renderGenerationStill(preset, controller.signal))
+      .then((value) => {
+        if (!controller.signal.aborted) setSrc(value);
+      })
+      .catch(() => {
+        /* The selected scene and approval checks show actionable errors. */
+      });
+    return () => controller.abort();
+  }, [content, template, scene, index, total, review.resources]);
+  return src ? (
+    <img src={src} alt={`Scene ${index + 1} storyboard`} />
+  ) : (
+    <Icon name="layers" size={24} />
   );
 }
 
@@ -272,6 +311,9 @@ export function GenerateDialog({
     { id: PROTOTYPE_VOICE_ID, name: PROTOTYPE_VOICE_NAME },
   ]);
   const [voiceBusy, setVoiceBusy] = useState(false);
+  const [reviewStep, setReviewStep] = useState<
+    "story" | "look" | "storyboard" | "animate"
+  >("story");
   const [catalog, setCatalog] = useState<PresetSummary[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
@@ -287,7 +329,13 @@ export function GenerateDialog({
   const running = useRef(false);
   const mounted = useRef(true);
   const latestEditor = useRef(editor);
+  const scenePanel = useRef<HTMLDivElement>(null);
   latestEditor.current = editor;
+  useEffect(() => {
+    scenePanel.current
+      ?.querySelector(".ui-scroll-viewport")
+      ?.scrollTo({ top: 0 });
+  }, [reviewStep, selected]);
   const accounts = social.config.elevenlabs.accounts.filter(
     (account) => account.configured && account.enabled,
   );
@@ -305,12 +353,6 @@ export function GenerateDialog({
     value: voice.id,
     label: voice.name,
   }));
-  const selectedTemplates = useMemo(
-    () => sequenceTemplates(catalog, scenes, content),
-    [catalog, scenes, content],
-  );
-  const templateFor = (scene: SceneDraft) =>
-    selectedTemplates[scenes.indexOf(scene)];
 
   useEffect(() => {
     mounted.current = true;
@@ -343,11 +385,8 @@ export function GenerateDialog({
       : content.trim().length < 20
         ? "Add at least 20 characters of context."
         : catalogLoading
-          ? "Loading your template library…"
-          : catalogError ||
-            (scenes.some((scene) => !templateFor(scene))
-              ? "Connect a template pack in Setting → Assets."
-              : "");
+          ? "Loading available elements…"
+          : "";
   function patchScene(change: Partial<SceneDraft>) {
     setScenes((all) =>
       all.map((scene, index) =>
@@ -388,6 +427,7 @@ export function GenerateDialog({
     setSelected(scenes.length);
   }
   function patchContent(change: Partial<GeneratedFrame>) {
+    if (reviewStep === "animate") setReviewStep("storyboard");
     setReview((review) =>
       review
         ? {
@@ -428,12 +468,19 @@ export function GenerateDialog({
   async function generate() {
     if (problem || running.current || review) return;
     running.current = true;
-    setBusy("Preparing scene layouts…");
+    setBusy("Preparing blank scenes and available assets…");
     setError("");
     setNotice("");
     try {
-      const templates = await prepareGenerationTemplates(
-        scenes.map((scene) => templateFor(scene)!),
+      const doc = latestEditor.current.getDocument();
+      const selection = latestEditor.current.selection;
+      const blank = await blankGenerationFrame(doc, selection);
+      const templates = scenes.map(() => blank);
+      const resources = compositionResources(
+        doc,
+        selection,
+        catalog,
+        `${content} ${scenes.map((s) => s.note).join(" ")}`,
       );
       if (!mounted.current) return;
       const request: GenerationRequest = {
@@ -445,25 +492,34 @@ export function GenerateDialog({
           latestEditor.current.getDocument(),
           latestEditor.current.selection,
         ),
-        scenes: scenes.map((scene, index) => ({
-          ...scene,
+        scenes: scenes.map((scene) => ({
+          useCase: scene.useCase,
+          seconds: scene.seconds,
+          note: scene.note,
           tone: scene.tone || tone,
           narrate: narration && scene.narrate,
-          slots: textSlots(templates[index]),
-          diagrams: physicsSlots(templates[index]),
-          learning: learningSlots(templates[index]),
-          allowVisual: !!templates[index].teachingArea,
-          listItemCount: listItemCount(templates[index]),
+          slots: [],
+          composition: {
+            width: blank.W!,
+            height: blank.H!,
+            assets: resources.catalog,
+          },
         })),
       };
-      setBusy("Writing scene content and narration…");
+      setBusy("Composing scenes, motion, and narration…");
       const result = await socialRequest<GenerationResult>(
         "ai.generate",
         request,
       );
       const parsed = parseGenerationResult(result, request);
       if (!mounted.current) return;
-      setReview({ request, templates, result: { ...result, ...parsed } });
+      setReviewStep("story");
+      setReview({
+        request,
+        templates,
+        resources,
+        result: { ...result, ...parsed },
+      });
       setNotice((parsed.repaired ?? []).join(" "));
       setSelected(0);
     } catch (error) {
@@ -474,11 +530,48 @@ export function GenerateDialog({
       if (mounted.current) setBusy("");
     }
   }
+  async function approveReview() {
+    if (!review || running.current) return;
+    setError("");
+    try {
+      parseGenerationResult(review.result, review.request);
+      if (reviewStep === "story") {
+        setReviewStep("look");
+        return;
+      }
+      running.current = true;
+      setBusy("Checking scene layouts and media…");
+      const filled = await fillGenerationTemplates(
+        review.templates,
+        review.result.frames,
+        scenes,
+        review.resources,
+      );
+      // Decode placed media and render every scene before approval or speech.
+      for (const preset of filled) await renderGenerationStill(preset);
+      if (!mounted.current) return;
+      setReviewStep(reviewStep === "look" ? "storyboard" : "animate");
+      setNotice(
+        `${filled.length} scenes checked: text fits, media loads, content stays inside the safe area.`,
+      );
+    } catch (error) {
+      if (mounted.current)
+        setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      running.current = false;
+      if (mounted.current) setBusy("");
+    }
+  }
   async function addFrames(withVoice = true) {
-    if (!review || running.current || (withVoice && voicedScenes && !accountId))
+    if (
+      !review ||
+      reviewStep !== "animate" ||
+      running.current ||
+      (withVoice && voicedScenes && !accountId)
+    )
       return;
     running.current = true;
-    setBusy("Fitting text to your layouts…");
+    setBusy("Preparing your editable scenes…");
     setError("");
     setAudioFailed(false);
     let audioStarted = false;
@@ -489,6 +582,7 @@ export function GenerateDialog({
         review.templates,
         review.result.frames,
         scenes,
+        review.resources,
       );
       const frameData: Partial<Element>[] = [];
       const costs: number[] = [];
@@ -540,7 +634,7 @@ export function GenerateDialog({
           throw Error("Generated narration exceeds the scene duration limit.");
         templates[index] = {
           ...templates[index],
-          scene: { duration, transition: { type: "cut", duration: 0.4 } },
+          scene: { ...templates[index].scene, duration },
           objects: templates[index].objects.map((o) =>
             o.animation
               ? { ...o, animation: { ...o.animation, end: duration } }
@@ -670,8 +764,10 @@ export function GenerateDialog({
           event.stopPropagation();
           if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
             event.preventDefault();
-            if (review) void addFrames();
-            else void generate();
+            if (review) {
+              if (reviewStep === "animate") void addFrames();
+              else void approveReview();
+            } else void generate();
           }
         }}
       >
@@ -686,7 +782,7 @@ export function GenerateDialog({
             <DialogDescription>
               {review
                 ? "Review & add to canvas"
-                : "Context, content, narration."}
+                : "Your idea. Original scenes. Ready to animate."}
             </DialogDescription>
           </div>
           <Button
@@ -757,7 +853,7 @@ export function GenerateDialog({
               <section className="generate-section">
                 <div className="generate-section-heading">
                   <span>1</span>
-                  <h3>Your context</h3>
+                  <h3>Creative brief</h3>
                   <small>What should we create?</small>
                 </div>
                 <Label className="sr-only" htmlFor="generate-context">
@@ -803,7 +899,7 @@ export function GenerateDialog({
               <section className="generate-section">
                 <div className="generate-section-heading">
                   <span>2</span>
-                  <h3>Language & voice</h3>
+                  <h3>Voice & captions</h3>
                 </div>
                 <div className="generate-fields">
                   <div className="generate-field">
@@ -908,6 +1004,7 @@ export function GenerateDialog({
             </div>
           </ScrollArea>
           <ScrollArea
+            ref={scenePanel}
             className="generate-scenes"
             aria-label="Scene settings and content"
           >
@@ -915,413 +1012,388 @@ export function GenerateDialog({
               <div className="generate-scene-heading">
                 <div>
                   <span className="generate-eyebrow">YOUR SEQUENCE</span>
-                  <h3>
-                    {review ? "Review your scenes" : "Make it your story"}
-                  </h3>
+                  <h3>{review ? "Review your scenes" : "Direct the story"}</h3>
                 </div>
                 <span className="generate-count">
                   {scenes.length} of 10 scenes · ~{totalSeconds}s
                 </span>
               </div>
-              <ScrollArea
-                className="generate-filmstrip"
-                orientation="horizontal"
-                type="always"
-                aria-label="Scene sequence"
-              >
-                <div className="generate-scene-list">
-                  {scenes.map((scene, index) => {
-                    const entry = templateFor(scene);
-                    return (
-                      <button
-                        type="button"
-                        key={index}
-                        className={`generate-scene-card ${selected === index ? "is-selected" : ""}`}
-                        aria-pressed={selected === index}
-                        aria-label={`Scene ${index + 1}: ${sceneLabel(scene.useCase)}`}
-                        onClick={() => setSelected(index)}
-                      >
-                        <div className="generate-scene-image">
-                          {entry ? (
-                            <PresetPreviewImage entry={entry} alt="" />
-                          ) : (
-                            <Icon name="layers" size={24} />
-                          )}
-                          <span>{String(index + 1).padStart(2, "0")}</span>
-                        </div>
-                        <strong>{sceneLabel(scene.useCase)}</strong>
-                        <small>
-                          {scene.seconds}s{" "}
-                          {narration && scene.narrate ? (
-                            <Mic size={11} />
-                          ) : (
-                            <VolumeX size={11} />
-                          )}
-                        </small>
-                      </button>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-              {!review && (
-                <div className="generate-add-scene">
-                  <Button
-                    size="sm"
-                    disabled={!!busy || scenes.length >= 10}
-                    title={
-                      scenes.length >= 10
-                        ? "Maximum 10 scenes"
-                        : "Add another scene"
-                    }
-                    onClick={addScene}
-                  >
-                    <Icon name="add" size={14} /> Add scene
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={!!busy || scenes.length >= 10 || hasClosing}
-                    title={
-                      hasClosing
-                        ? "A closing scene is already in the sequence"
-                        : scenes.length >= 10
-                          ? "Maximum 10 scenes"
-                          : "Add a closing scene with the siswajuara.com call to action"
-                    }
-                    onClick={addClosing}
-                  >
-                    <Icon name="add" size={14} /> Add closing
-                  </Button>
-                  <small className="generate-hint">
-                    {scenes.length >= 10
-                      ? "Maximum 10 scenes."
-                      : "Add up to 10 scenes."}
-                  </small>
-                </div>
-              )}
-              <section
-                className="generate-scene-editor"
-                aria-label={`Scene ${selected + 1} editor`}
-              >
-                <div className="generate-editor-heading">
-                  <h3>
-                    {String(selected + 1).padStart(2, "0")} ·{" "}
-                    {sceneLabel(scene.useCase)}
-                  </h3>
-                  {!review && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={!!busy || scenes.length === 1}
-                      aria-label="Remove this scene"
-                      onClick={() => {
-                        setScenes((all) =>
-                          all.filter((_, index) => index !== selected),
-                        );
-                        setSelected(Math.max(0, selected - 1));
-                      }}
+              {review && (
+                <nav
+                  className="generate-review-steps"
+                  aria-label="Generation review steps"
+                >
+                  {(
+                    [
+                      ["story", "1. Story"],
+                      ["look", "2. Look"],
+                      ["storyboard", "3. Storyboard"],
+                      ["animate", "4. Animate"],
+                    ] as const
+                  ).map(([step, label]) => (
+                    <button
+                      type="button"
+                      key={step}
+                      disabled={
+                        !!busy ||
+                        (step === "animate" && reviewStep !== "animate") ||
+                        ["story", "look", "storyboard", "animate"].indexOf(
+                          step,
+                        ) >
+                          ["story", "look", "storyboard", "animate"].indexOf(
+                            reviewStep,
+                          )
+                      }
+                      aria-current={reviewStep === step ? "step" : undefined}
+                      onClick={() => setReviewStep(step)}
                     >
-                      <Icon name="delete" size={14} /> Remove
-                    </Button>
-                  )}
-                </div>
-                {!review ? (
-                  <>
-                    <div className="generate-field">
-                      <Label>Scene type</Label>
-                      <SelectField
-                        label="Scene type"
-                        value={scene.useCase}
-                        onChange={(useCase) =>
-                          patchScene({ useCase, templateId: "" })
-                        }
-                        disabled={!!busy}
-                        options={sceneTypes.map((value) => ({
-                          value,
-                          label: sceneLabel(value),
-                        }))}
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+              )}
+              {review && reviewStep === "story" && review.result.story && (
+                <StoryReview
+                  story={review.result.story}
+                  frames={review.result.frames}
+                  seconds={scenes.map((s) => s.seconds)}
+                />
+              )}
+              {review && reviewStep === "look" && (
+                <section
+                  className="generate-look-review"
+                  aria-label="Look review"
+                >
+                  <h3>Check the visual language</h3>
+                  <p className="generate-hint">
+                    Compare the opening, middle, and ending. Look for a
+                    recurring subject, consistent colour meanings, and varied
+                    staging.
+                  </p>
+                  {[
+                    ...new Set([
+                      0,
+                      Math.floor((scenes.length - 1) / 2),
+                      scenes.length - 1,
+                    ]),
+                  ].map((index) => (
+                    <div key={index}>
+                      <strong>
+                        {index + 1}. {review.result.frames[index].title}
+                      </strong>
+                      <GeneratedPreview
+                        template={review.templates[index]}
+                        content={review.result.frames[index]}
+                        scene={scenes[index]}
+                        index={index}
+                        total={scenes.length}
+                        resources={review.resources}
                       />
+                    </div>
+                  ))}
+                </section>
+              )}
+              {(!review || reviewStep !== "story") && (
+                <>
+                  <ScrollArea
+                    className="generate-filmstrip"
+                    orientation="horizontal"
+                    type="always"
+                    aria-label="Scene sequence"
+                  >
+                    <div className="generate-scene-list">
+                      {scenes.map((scene, index) => {
+                        return (
+                          <button
+                            type="button"
+                            key={index}
+                            className={`generate-scene-card ${selected === index ? "is-selected" : ""}`}
+                            aria-pressed={selected === index}
+                            aria-label={`Scene ${index + 1}: ${sceneLabel(scene.useCase)}`}
+                            onClick={() => setSelected(index)}
+                          >
+                            <div className="generate-scene-image">
+                              {review ? (
+                                <GeneratedThumbnail
+                                  review={review}
+                                  scene={scene}
+                                  index={index}
+                                  total={scenes.length}
+                                />
+                              ) : (
+                                <Icon
+                                  name={
+                                    scene.useCase === "closing"
+                                      ? "link"
+                                      : "layers"
+                                  }
+                                  size={24}
+                                />
+                              )}
+                              <span>{String(index + 1).padStart(2, "0")}</span>
+                            </div>
+                            <strong>{sceneLabel(scene.useCase)}</strong>
+                            <small>
+                              {scene.seconds}s{" "}
+                              {narration && scene.narrate ? (
+                                <Mic size={11} />
+                              ) : (
+                                <VolumeX size={11} />
+                              )}
+                            </small>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                  {!review && (
+                    <div className="generate-add-scene">
+                      <Button
+                        size="sm"
+                        disabled={!!busy || scenes.length >= 10}
+                        title={
+                          scenes.length >= 10
+                            ? "Maximum 10 scenes"
+                            : "Add another scene"
+                        }
+                        onClick={addScene}
+                      >
+                        <Icon name="add" size={14} /> Add scene
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={!!busy || scenes.length >= 10 || hasClosing}
+                        title={
+                          hasClosing
+                            ? "A closing scene is already in the sequence"
+                            : scenes.length >= 10
+                              ? "Maximum 10 scenes"
+                              : "Add a closing scene with the siswajuara.com call to action"
+                        }
+                        onClick={addClosing}
+                      >
+                        <Icon name="add" size={14} /> Add closing
+                      </Button>
                       <small className="generate-hint">
-                        {sceneRoles[scene.useCase as keyof typeof sceneRoles]}
+                        {scenes.length >= 10
+                          ? "Maximum 10 scenes."
+                          : "Add up to 10 scenes."}
                       </small>
                     </div>
-                    <div className="generate-field generate-template-field">
-                      <Label>Template</Label>
-                      <GenerateTemplatePicker
-                        catalog={catalog}
-                        useCase={scene.useCase}
-                        context={`${content} ${scene.note}`}
-                        value={scene.templateId}
-                        recommended={selectedTemplates[selected]}
-                        onChange={(templateId) => patchScene({ templateId })}
-                        disabled={!!busy}
-                      />
-                      {selectedTemplates[selected]?.teachingArea && (
-                        <small className="generate-hint">
-                          AI dapat menambahkan diagram pembelajaran yang sesuai
-                          di layout ini.
-                        </small>
+                  )}
+                  <section
+                    className="generate-scene-editor"
+                    aria-label={`Scene ${selected + 1} editor`}
+                  >
+                    <div className="generate-editor-heading">
+                      <h3>
+                        {String(selected + 1).padStart(2, "0")} ·{" "}
+                        {sceneLabel(scene.useCase)}
+                      </h3>
+                      {!review && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={!!busy || scenes.length === 1}
+                          aria-label="Remove this scene"
+                          onClick={() => {
+                            setScenes((all) =>
+                              all.filter((_, index) => index !== selected),
+                            );
+                            setSelected(Math.max(0, selected - 1));
+                          }}
+                        >
+                          <Icon name="delete" size={14} /> Remove
+                        </Button>
                       )}
                     </div>
-                    <div className="generate-fields">
-                      <div className="generate-field">
-                        <Label>Scene tone</Label>
-                        <SelectField
-                          label="Scene tone"
-                          value={scene.tone}
-                          onChange={(tone) => patchScene({ tone })}
-                          disabled={!!busy}
-                          options={[
-                            { value: "", label: "Use default" },
-                            ...TONES,
-                          ]}
-                        />
-                      </div>
-                      <div className="generate-field">
-                        <Label>Scene length</Label>
-                        <SelectField
-                          label="Scene length"
-                          value={String(scene.seconds)}
-                          onChange={(value) =>
-                            patchScene({ seconds: Number(value) })
-                          }
-                          disabled={!!busy}
-                          options={durationOptions}
-                        />
-                      </div>
-                    </div>
-                    {narration && (
+                    {!review ? (
                       <>
-                        <ToggleRow
-                          id="generate-scene-narration"
-                          title="Narrate this scene"
-                          hint="Use a spoken script for this frame."
-                          checked={scene.narrate}
-                          onChange={(narrate) => patchScene({ narrate })}
-                          disabled={!!busy}
-                        />
-                        {scene.narrate && (
+                        <div className="generate-field">
+                          <Label>Scene type</Label>
+                          <SelectField
+                            label="Scene type"
+                            value={scene.useCase}
+                            onChange={(useCase) =>
+                              patchScene({ useCase, templateId: "" })
+                            }
+                            disabled={!!busy}
+                            options={sceneTypes.map((value) => ({
+                              value,
+                              label: sceneLabel(value),
+                            }))}
+                          />
+                        </div>
+                        <div className="generate-fields mt-2">
                           <div className="generate-field">
-                            <Label>Scene voice</Label>
+                            <Label>Scene tone</Label>
                             <SelectField
-                              label="Scene voice"
-                              value={scene.voiceId}
-                              onChange={(voiceId) => patchScene({ voiceId })}
+                              label="Scene tone"
+                              value={scene.tone}
+                              onChange={(tone) => patchScene({ tone })}
                               disabled={!!busy}
                               options={[
-                                { value: "", label: "Use default voice" },
-                                ...voiceOptions,
+                                { value: "", label: "Use default" },
+                                ...TONES,
                               ]}
                             />
                           </div>
+                          <div className="generate-field">
+                            <Label>Scene length</Label>
+                            <SelectField
+                              label="Scene length"
+                              value={String(scene.seconds)}
+                              onChange={(value) =>
+                                patchScene({ seconds: Number(value) })
+                              }
+                              disabled={!!busy}
+                              options={durationOptions}
+                            />
+                          </div>
+                        </div>
+                        {narration && (
+                          <>
+                            <ToggleRow
+                              id="generate-scene-narration"
+                              title="Narrate this scene"
+                              hint="Use a spoken script for this frame."
+                              checked={scene.narrate}
+                              onChange={(narrate) => patchScene({ narrate })}
+                              disabled={!!busy}
+                            />
+                            {scene.narrate && (
+                              <div className="generate-field">
+                                <Label>Scene voice</Label>
+                                <SelectField
+                                  label="Scene voice"
+                                  value={scene.voiceId}
+                                  onChange={(voiceId) =>
+                                    patchScene({ voiceId })
+                                  }
+                                  disabled={!!busy}
+                                  options={[
+                                    { value: "", label: "Use default voice" },
+                                    ...voiceOptions,
+                                  ]}
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                    <div className="generate-field">
-                      <Label htmlFor="generate-scene-note">
-                        What should this scene cover? <small>Optional</small>
-                      </Label>
-                      <Textarea
-                        id="generate-scene-note"
-                        rows={3}
-                        maxLength={1000}
-                        disabled={!!busy}
-                        value={scene.note}
-                        onChange={(event) =>
-                          patchScene({ note: event.target.value })
-                        }
-                        placeholder="A key point, example, or question to focus on…"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  activeContent && (
-                    <>
-                      <GeneratedPreview
-                        template={review.templates[selected]}
-                        content={activeContent}
-                        scene={scene}
-                        index={selected}
-                        total={scenes.length}
-                      />
-                      <div className="generate-review-fields">
                         <div className="generate-field">
-                          <Label htmlFor="generate-frame-name">
-                            Frame name
+                          <Label htmlFor="generate-scene-note">
+                            Scene direction <small>Optional</small>
                           </Label>
-                          <Input
-                            id="generate-frame-name"
-                            value={activeContent.title}
-                            maxLength={100}
+                          <Textarea
+                            id="generate-scene-note"
+                            rows={3}
+                            maxLength={1000}
                             disabled={!!busy}
+                            value={scene.note}
                             onChange={(event) =>
-                              patchContent({ title: event.target.value })
+                              patchScene({ note: event.target.value })
                             }
+                            placeholder="Describe what happens: a comparison, a visual reveal, a worked example, a mood…"
                           />
                         </div>
-                        <div className="generate-field">
-                          <Label>Scene motion</Label>
-                          <SelectField
-                            label="Scene motion"
-                            value={activeContent.motionPlan || ""}
-                            disabled={!!busy}
-                            options={motionPlanOptions}
-                            onChange={(value) => patchContent({
-                              motionPlan: (value || undefined) as GeneratedFrame["motionPlan"],
-                            })}
+                      </>
+                    ) : (
+                      activeContent && (
+                        <>
+                          <GeneratedPreview
+                            template={review.templates[selected]}
+                            content={activeContent}
+                            scene={scene}
+                            index={selected}
+                            total={scenes.length}
+                            resources={review.resources}
+                            allowMotion={reviewStep === "animate"}
                           />
-                        </div>
-                        {activeContent.texts.map((text, index) => {
-                          const slot = review.request.scenes[
-                            selected
-                          ].slots.find((slot) => slot.id === text.id)!;
-                          return (
-                            <div className="generate-field" key={text.id}>
-                              <Label htmlFor={`generate-text-${index}`}>
-                                {slot.label}
-                                <small>
-                                  {text.text.length} / {slot.maxChars}
-                                </small>
+                          {activeContent.direction && (
+                            <div className="generate-beat-caption">
+                              <strong>
+                                {activeContent.direction.framing} shot
+                              </strong>
+                              <p>{activeContent.direction.action}</p>
+                              <small>
+                                Bridge: {activeContent.direction.bridge}
+                              </small>
+                            </div>
+                          )}
+                          <div className="generate-review-fields">
+                            <div className="generate-field">
+                              <Label htmlFor="generate-frame-name">
+                                Frame name
                               </Label>
-                              <Textarea
-                                id={`generate-text-${index}`}
-                                rows={slot.maxChars > 100 ? 3 : 2}
-                                value={text.text}
-                                maxLength={slot.maxChars}
+                              <Input
+                                id="generate-frame-name"
+                                value={activeContent.title}
+                                maxLength={100}
                                 disabled={!!busy}
                                 onChange={(event) =>
+                                  patchContent({ title: event.target.value })
+                                }
+                              />
+                            </div>
+                            <div className="generate-field">
+                              <Label>Default scene motion</Label>
+                              <SelectField
+                                label="Scene motion"
+                                value={activeContent.motionPlan || ""}
+                                disabled={!!busy}
+                                options={motionPlanOptions.filter(
+                                  (option) => option.value,
+                                )}
+                                onChange={(value) =>
                                   patchContent({
-                                    texts: activeContent.texts.map((entry) =>
-                                      entry.id === text.id
-                                        ? { ...entry, text: event.target.value }
-                                        : entry,
-                                    ),
+                                    motionPlan: (value ||
+                                      undefined) as GeneratedFrame["motionPlan"],
                                   })
                                 }
                               />
                             </div>
-                          );
-                        })}
-                        {review.templates[selected].teachingArea && (
-                          <p className="generate-hint">
-                            Template menyediakan ruang untuk visual matematika,
-                            fisika, atau Bahasa Indonesia yang ditambahkan AI
-                            bila diperlukan.
-                          </p>
-                        )}
-                        {activeContent.visual && (
-                          <div className="generate-field">
-                            <Label>Added teaching visual</Label>
-                            {activeContent.visual.type === "learning" ? (
-                              <LearningFields
-                                value={activeContent.visual.settings}
+                            {activeContent.composition && (
+                              <CompositionReview
+                                key={selected}
+                                value={activeContent.composition}
+                                assets={review.resources.catalog}
+                                seconds={scene.seconds}
                                 disabled={!!busy}
-                                onChange={(settings) =>
-                                  patchContent({
-                                    visual: { type: "learning", settings },
-                                  })
-                                }
-                              />
-                            ) : activeContent.visual.type === "physics" ? (
-                              <PhysicsFields
-                                value={activeContent.visual.settings}
-                                disabled={!!busy}
-                                onChange={(settings) =>
-                                  patchContent({
-                                    visual: { type: "physics", settings },
-                                  })
-                                }
-                              />
-                            ) : (
-                              <Textarea
-                                aria-label="Added LaTeX source"
-                                value={activeContent.visual.source}
-                                disabled={!!busy}
-                                onChange={(event) =>
-                                  patchContent({
-                                    visual: {
-                                      type: "latex",
-                                      source: event.target.value,
-                                    },
-                                  })
+                                onChange={(composition) =>
+                                  patchContent({ composition })
                                 }
                               />
                             )}
-                            <Button
-                              size="sm"
-                              disabled={!!busy}
-                              onClick={() =>
-                                patchContent({ visual: undefined })
-                              }
-                            >
-                              Remove teaching visual
-                            </Button>
+                            {narration && scene.narrate && (
+                              <div className="generate-field">
+                                <Label htmlFor="generate-script">
+                                  Narration script
+                                </Label>
+                                <Textarea
+                                  id="generate-script"
+                                  rows={4}
+                                  maxLength={1500}
+                                  disabled={!!busy}
+                                  value={activeContent.narration}
+                                  onChange={(event) =>
+                                    patchContent({
+                                      narration: event.target.value,
+                                    })
+                                  }
+                                />
+                                <small className="generate-hint">
+                                  Audio tags stay in the script; captions use
+                                  the spoken words.
+                                </small>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {activeContent.learning?.map((diagram) => (
-                          <div className="generate-field" key={diagram.id}>
-                            <Label>Learning parameters</Label>
-                            <LearningFields
-                              value={diagram.settings}
-                              disabled={!!busy}
-                              allowModelChange={false}
-                              onChange={(settings) =>
-                                patchContent({
-                                  learning: activeContent.learning!.map(
-                                    (item) =>
-                                      item.id === diagram.id
-                                        ? { ...item, settings }
-                                        : item,
-                                  ),
-                                })
-                              }
-                            />
-                          </div>
-                        ))}
-                        {activeContent.physics?.map((diagram) => (
-                          <div className="generate-field" key={diagram.id}>
-                            <Label>Physics parameters</Label>
-                            <PhysicsFields
-                              value={diagram.settings}
-                              disabled={!!busy}
-                              allowModelChange={false}
-                              onChange={(settings) =>
-                                patchContent({
-                                  physics: activeContent.physics!.map((item) =>
-                                    item.id === diagram.id
-                                      ? { ...item, settings }
-                                      : item,
-                                  ),
-                                })
-                              }
-                            />
-                          </div>
-                        ))}
-                        {narration && scene.narrate && (
-                          <div className="generate-field">
-                            <Label htmlFor="generate-script">
-                              Narration script
-                            </Label>
-                            <Textarea
-                              id="generate-script"
-                              rows={4}
-                              maxLength={1500}
-                              disabled={!!busy}
-                              value={activeContent.narration}
-                              onChange={(event) =>
-                                patchContent({ narration: event.target.value })
-                              }
-                            />
-                            <small className="generate-hint">
-                              Audio tags stay in the script; captions use the
-                              spoken words.
-                            </small>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )
-                )}
-              </section>
+                        </>
+                      )
+                    )}
+                  </section>
+                </>
+              )}
               {review?.result.usage && (
                 <p className="generate-hint">
                   OpenCode reported{" "}
@@ -1345,16 +1417,24 @@ export function GenerateDialog({
             </p>
           )}
           {!busy && !error && notice && <p role="status">{notice}</p>}
+          {!busy && !error && !notice && catalogError && (
+            <p role="status">
+              Assets could not be loaded. Text, shapes, and teaching diagrams
+              are still available.
+            </p>
+          )}
         </div>
         <footer className="generate-foot">
           <div>
             <p>
               {review
-                ? voicedScenes
-                  ? accountId
-                    ? "Uses ElevenLabs credits. Timing follows narration."
-                    : "Connect an ElevenLabs account to generate voice, or add without audio and keep the scripts."
-                  : "No narration is enabled for these scenes. Frames will be added without audio."
+                ? reviewStep !== "animate"
+                  ? "Approve the story, look, and storyboard before motion and speech. No canvas changes yet."
+                  : voicedScenes
+                    ? accountId
+                      ? "Uses ElevenLabs credits. Timing follows narration."
+                      : "Connect an ElevenLabs account to generate voice, or add without audio and keep the scripts."
+                    : "No narration is enabled for these scenes. Frames will be added without audio."
                 : problem ||
                   `${scenes.length} scenes · ~${totalSeconds}s · OpenCode · ${voicedScenes ? "Narration on" : "Narration off"}`}
             </p>
@@ -1362,26 +1442,24 @@ export function GenerateDialog({
           <div className="generate-actions">
             {review ? (
               <>
-                <label className="generate-destination">
-                  <span>Add frames to</span>
-                  <select
-                    aria-label="Add frames to"
+                <div className="generate-destination">
+                  <span id="generate-destination-label">Add frames to</span>
+                  <SelectField
+                    label="Add frames to"
                     value={destination}
                     disabled={!!busy || !projects}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setDestination(
-                        event.target.value as
-                          | "current"
-                          | "new-page"
-                          | "new-canvas",
+                        value as "current" | "new-page" | "new-canvas",
                       )
                     }
-                  >
-                    <option value="current">Current page</option>
-                    <option value="new-page">New page in this canvas</option>
-                    <option value="new-canvas">New canvas</option>
-                  </select>
-                </label>
+                    options={[
+                      { value: "current", label: "Current page" },
+                      { value: "new-page", label: "New page in this canvas" },
+                      { value: "new-canvas", label: "New canvas" },
+                    ]}
+                  />
+                </div>
                 <Button
                   disabled={!!busy}
                   onClick={() => {
@@ -1394,25 +1472,40 @@ export function GenerateDialog({
                 >
                   <ArrowLeft size={14} /> Edit setup
                 </Button>
-                {(audioFailed || (!!voicedScenes && !accountId)) && (
+                {reviewStep === "animate" &&
+                  (audioFailed || (!!voicedScenes && !accountId)) && (
+                    <Button
+                      disabled={!!busy}
+                      onClick={() => void addFrames(false)}
+                    >
+                      Add without audio
+                    </Button>
+                  )}
+                {reviewStep !== "animate" ? (
                   <Button
+                    variant="primary"
                     disabled={!!busy}
-                    onClick={() => void addFrames(false)}
+                    onClick={() => void approveReview()}
                   >
-                    Add without audio
+                    {reviewStep === "story"
+                      ? "Approve story & check look"
+                      : reviewStep === "look"
+                        ? "Approve look & review storyboard"
+                        : "Approve storyboard & preview motion"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    disabled={!!busy || (!!voicedScenes && !accountId)}
+                    onClick={() => void addFrames()}
+                  >
+                    {busy
+                      ? "Adding…"
+                      : voicedScenes
+                        ? "Add frames & generate voice"
+                        : `Add ${scenes.length} ${scenes.length === 1 ? "frame" : "frames"} without audio`}
                   </Button>
                 )}
-                <Button
-                  variant="primary"
-                  disabled={!!busy || (!!voicedScenes && !accountId)}
-                  onClick={() => void addFrames()}
-                >
-                  {busy
-                    ? "Adding…"
-                    : voicedScenes
-                      ? "Add frames & generate voice"
-                      : `Add ${scenes.length} ${scenes.length === 1 ? "frame" : "frames"} without audio`}
-                </Button>
               </>
             ) : (
               <>

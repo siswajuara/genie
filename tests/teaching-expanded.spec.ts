@@ -1,6 +1,11 @@
-import { setSceneTypes } from "./generation-helpers";
+import {
+  setSceneTypes,
+  approveScenes,
+  composedScene,
+  compositionStory,
+} from "./generation-helpers";
 import { expect, test } from "@playwright/test";
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
   await page.addInitScript(() => {
     window.genieSource = (path) => {
       const r = performance
@@ -10,7 +15,11 @@ test.beforeEach(async ({ page }) => {
       return import(r?.name || path);
     };
   });
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1:1423\/)/, (r) => r.abort());
+  await page.route(/^https?:\/\//, (route) =>
+    new URL(route.request().url()).origin === new URL(baseURL!).origin
+      ? route.fallback()
+      : route.abort(),
+  );
   await page.route("**/api/genie-social/**", (r) =>
     r.fulfill({
       json: {
@@ -149,6 +158,7 @@ test("full frame context and visible text reach Generate and narration, and surv
       return route.fulfill({
         json: {
           data: {
+            story: compositionStory,
             post: {
               name: "Kubus dan tumbuhan",
               caption: "Amati kubus dan bagian tumbuhan.",
@@ -156,6 +166,7 @@ test("full frame context and visible text reach Generate and narration, and surv
             frames: body.payload.scenes.map((s: any) => ({
               useCase: s.useCase,
               title: "Amati contohnya",
+              ...composedScene(s, 0),
               texts: s.slots.map((slot: any) => ({
                 id: slot.id,
                 text:
@@ -197,16 +208,14 @@ test("full frame context and visible text reach Generate and narration, and surv
     .click();
   await page.getByRole("tab", { name: "Elements", exact: true }).click();
   await page.getByRole("button", { name: "Image slot", exact: true }).click();
-  await page
-    .locator('input[type=file][accept="image/*"]')
-    .setInputFiles({
-      name: "plant.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/LxoAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    });
+  await page.locator('input[type=file][accept="image/*"]').setInputFiles({
+    name: "plant.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/LxoAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Text", exact: true })
@@ -223,6 +232,7 @@ test("full frame context and visible text reach Generate and narration, and surv
   await dialog
     .getByRole("button", { name: /^Generate (frames|content)$/ })
     .click();
+  await approveScenes(dialog);
   await expect(
     dialog.getByRole("textbox", { name: "Frame name", exact: true }),
   ).toBeVisible();

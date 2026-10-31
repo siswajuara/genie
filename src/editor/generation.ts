@@ -21,6 +21,7 @@ import { withTemplateAnimation } from "./template-animation";
 import { withGenerationSlots } from "./template-slots.mjs";
 import { withGenerationMotion } from "./generation-motion";
 import { prepareScienceElement } from "./science";
+import { fillSceneComposition, type CompositionResources } from "./generation-composition";
 
 export const GENERATION_PRESETS = [
   {
@@ -492,7 +493,12 @@ export async function fillGenerationTemplate(
   scene: SceneDraft,
   index: number,
   total: number,
+  resources?: CompositionResources,
 ): Promise<Preset> {
+  if (content.composition) {
+    if (!resources) throw Error("The scene asset catalog is missing. Generate again.");
+    return fillSceneComposition(template, content, scene.seconds, resources, fitText);
+  }
   template = withGenerationSlots(template);
   const filled = new Map<string, Element>();
   for (const group of slotElements(template)) {
@@ -602,6 +608,7 @@ export async function fillGenerationTemplates(
   templates: Preset[],
   content: GeneratedFrame[],
   scenes: SceneDraft[],
+  resources?: CompositionResources,
 ) {
   await ensureDocumentFonts(templates.flatMap((p) => p.objects));
   return Promise.all(
@@ -612,6 +619,7 @@ export async function fillGenerationTemplates(
         scenes[index],
         index,
         scenes.length,
+        resources,
       ),
     ),
   );
